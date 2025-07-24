@@ -1,8 +1,8 @@
 import os
 from langgraph.graph import StateGraph, END
-from agents.lhb_nodes import fetch_lhb_data, analyze_lhb_data, generate_lhb_suggestion, output_lhb_result
+from tradingagents.agents.analysts.lhb_nodes import fetch_lhb_data, analyze_lhb_data, generate_lhb_suggestion, output_lhb_result
 
-class LHBWorkflow:
+class LHBAgentsGraph:
     def __init__(self):
         self.graph = StateGraph()
         self._build_graph()
