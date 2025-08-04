@@ -1,0 +1,10 @@
+{
+  "fluctuation_threshold": 5.0,
+  "monitor_interval": 300,
+  "db_path": "ruo.db",
+  "enable_notifications": true,
+  "llm_provider": "dashscope",
+  "deep_think_llm": "qwen-plus",
+  "quick_think_llm": "qwen-turbo",
+  "backend_url": "https://api.openai.com/v1"
+}

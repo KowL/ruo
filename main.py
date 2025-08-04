@@ -1,4 +1,4 @@
-from tradingagents.graph.trading_graph import TradingAgentsGraph
+from tradingagents.graph import TradingAgentsGraph, LHBAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
 # Create a custom config
@@ -11,11 +11,16 @@ config["max_debate_rounds"] = 1  # Increase debate rounds
 config["online_tools"] = True  # Increase debate rounds
 
 # Initialize with custom config
-ta = TradingAgentsGraph(debug=True, config=config)
+# ta = TradingAgentsGraph(debug=True, config=config)
 
 # forward propagate
-_, decision = ta.propagate("300543", "2025-07-23")
-print(decision)
+# _, decision = ta.propagate("300543", "2025-07-23")
+# print(decision)
 
 # Memorize mistakes and reflect
 # ta.reflect_and_remember(1000) # parameter is the position returns
+
+
+# Initialize with custom config
+_, lhb_report = LHBAgentsGraph(debug=True, config=config).run("2025-08-01")
+print(lhb_report)
