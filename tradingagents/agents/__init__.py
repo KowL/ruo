@@ -1,5 +1,5 @@
 from .utils.agent_utils import Toolkit, create_msg_delete
-from .utils.agent_states import AgentState, InvestDebateState, RiskDebateState
+from .utils.agent_states import AgentState, InvestDebateState, RiskDebateState, LhbState
 from .utils.memory import FinancialSituationMemory
 
 from .analysts.fundamentals_analyst import create_fundamentals_analyst
@@ -23,6 +23,7 @@ __all__ = [
     "FinancialSituationMemory",
     "Toolkit",
     "AgentState",
+    "LhbState",
     "create_msg_delete",
     "InvestDebateState",
     "RiskDebateState",

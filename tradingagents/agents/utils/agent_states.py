@@ -74,3 +74,10 @@ class AgentState(MessagesState):
         RiskDebateState, "Current state of the debate on evaluating risk"
     ]
     final_trade_decision: Annotated[str, "Final decision made by the Risk Analysts"]
+
+class LhbState(MessagesState):
+    trade_date: Annotated[str, "What date we are trading at"]
+    lhb_data: Annotated[dict, "lhb data"]
+    analysis_result: Annotated[dict, "lhb data analysis result"]
+    suggestions: Annotated[dict, "lhb data analysis suggestions"]
+    final_output: Annotated[dict, "lhb data analysis report"]

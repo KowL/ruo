@@ -9,7 +9,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from tradingagents.llm_adapters import ChatDashScope, ChatDashScopeOpenAI
 from langgraph.graph import StateGraph, END
-from tradingagents.agents.utils.agent_states import AgentState
+from tradingagents.agents.utils.agent_states import LhbState
 
 from tradingagents.agents.analysts.lhb_nodes import (
     fetch_lhb_data,
@@ -95,7 +95,7 @@ class LHBAgentsGraph:
 
     def _build_graph(self) -> StateGraph:
         """构建龙虎榜分析流程图"""
-        graph = StateGraph(AgentState)
+        graph = StateGraph(LhbState)
 
         # 添加节点
         graph.add_node("fetch", fetch_lhb_data)
