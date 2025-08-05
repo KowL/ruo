@@ -128,7 +128,7 @@ def main():
     config["max_debate_rounds"] = 1
     config["online_tools"] = True
     
-    report_date = "2025-08-01"
+    report_date = "2025-08-05"
     
     try:
         # 运行分析

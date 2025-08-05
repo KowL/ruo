@@ -22,5 +22,5 @@ config["online_tools"] = True  # Increase debate rounds
 
 
 # Initialize with custom config
-_, lhb_report = LHBAgentsGraph(debug=True, config=config).run("2025-08-04")
+_, lhb_report = LHBAgentsGraph(debug=True, config=config).run("2025-08-05")
 print(lhb_report)

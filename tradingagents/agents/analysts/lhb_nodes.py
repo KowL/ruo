@@ -49,9 +49,9 @@ def safe_execute(func_name: str, func, *args, **kwargs):
             # 确保必要的字段存在
             if func_name == "fetch_lhb_data" and "lhb_data" not in state:
                 state["lhb_data"] = {}
-            elif func_name == "analyze_lhb_data" and "analysis_result" not in state:
+            elif func_name == "lhb_analyze_node" and "analysis_result" not in state:
                 state["analysis_result"] = {}
-            elif func_name == "generate_lhb_suggestion" and "suggestions" not in state:
+            elif func_name == "lhb_suggestion_node" and "suggestions" not in state:
                 state["suggestions"] = []
             return state
         return {"error": {"function": func_name, "message": str(e)}}
@@ -193,175 +193,179 @@ def fetch_lhb_data(state: Dict[str, Any]) -> Dict[str, Any]:
     
     return safe_execute("fetch_lhb_data", _fetch_data, state)
 
-def analyze_lhb_data(state: Dict[str, Any]) -> Dict[str, Any]:
-    """分析龙虎榜数据"""
-    def _analyze_data(state):
-        if "error" in state:
-            logger.warning("检测到上游错误，跳过分析步骤")
-            return state
-        
-        # 确保lhb_data存在
-        if "lhb_data" not in state:
-            logger.warning("状态中缺少lhb_data字段")
-            state["analysis_result"] = {}
-            return state
+def create_lhb_analyst(llm, toolkit):
+
+    def lhb_analyze_node(state: Dict[str, Any]) -> Dict[str, Any]:
+        """分析龙虎榜数据"""
+        def _analyze_data(state):
+            if "error" in state:
+                logger.warning("检测到上游错误，跳过分析步骤")
+                return state
             
-        lhb_data = state["lhb_data"]
-        deep_thinking_llm = state["llm"]["deep_thinking"]
-        
-        if not lhb_data:
-            logger.warning("没有可分析的龙虎榜数据")
-            state["analysis_result"] = {}
-            return state
-        
-        logger.info(f"开始分析 {len(lhb_data)} 只股票")
-        
-        analysis_results = {}
-        successful_count = 0
-        failed_count = 0
-        
-        for stock_code, data in lhb_data.items():
-            try:
-                logger.info(f"分析股票: {data['股票名称']}({stock_code})")
+            # 确保lhb_data存在
+            if "lhb_data" not in state:
+                logger.warning("状态中缺少lhb_data字段")
+                state["analysis_result"] = {}
+                return state
                 
-                # 计算量化评分
-                scores = calculate_stock_score(data)
-                
-                # 构建分析提示（简化版，避免过长）
-                prompt = f"""请分析以下龙虎榜数据：
-
-股票：{data['股票名称']}({stock_code})
-收盘价：{data['收盘价']} 涨跌幅：{data['涨跌幅']}%
-净买额：{data['龙虎榜净买额']:,.0f}万元
-资金流向强度：{data.get('资金流向强度', 0):.2%}
-机构参与度：{data.get('机构参与度', 0):.2%}
-
-量化评分：
-- 资金流向：{scores['资金流向']}/100
-- 机构参与：{scores['机构参与']}/100  
-- 技术指标：{scores['技术指标']}/100
-- 市场情绪：{scores['市场情绪']}/100
-- 风险控制：{scores['风险控制']}/100
-- 综合评分：{scores['综合评分']}/100
-
-请提供简要分析，包括：
-1. 主要优势和风险
-2. 后市预判
-3. 操作建议
-
-要求：简洁明了，突出要点。"""
-                
-                # 使用LLM分析
-                response = deep_thinking_llm.invoke(prompt)
-                
-                analysis_results[stock_code] = {
-                    "raw_data": data,
-                    "quantitative_scores": scores,
-                    "analysis": response.content,
-                    "综合评分": scores["综合评分"]
-                }
-                
-                successful_count += 1
-                logger.info(f"股票 {stock_code} 分析完成，评分: {scores['综合评分']}")
-                
-            except Exception as e:
-                failed_count += 1
-                logger.error(f"分析股票 {stock_code} 失败: {str(e)}")
-                # 继续处理其他股票
-                continue
-        
-        logger.info(f"分析完成: 成功 {successful_count} 只，失败 {failed_count} 只")
-        
-        # 按综合评分排序
-        sorted_results = dict(sorted(
-            analysis_results.items(), 
-            key=lambda x: x[1]["综合评分"], 
-            reverse=True
-        ))
-        
-        # 更新状态
-        state["analysis_result"] = sorted_results
-        return state
-    
-    return safe_execute("analyze_lhb_data", _analyze_data, state)
-
-def generate_lhb_suggestion(state: Dict[str, Any]) -> Dict[str, Any]:
-    """生成龙虎榜分析建议"""
-    def _generate_suggestions(state):
-        if "error" in state:
-            logger.warning("检测到上游错误，跳过建议生成步骤")
-            return state
-        
-        # 确保analysis_result存在
-        if "analysis_result" not in state:
-            logger.warning("状态中缺少analysis_result字段")
-            state["suggestions"] = []
-            return state
+            lhb_data = state["lhb_data"]
             
-        analysis_result = state["analysis_result"]
-        quick_thinking_llm = state["llm"]["quick_thinking"]
-        
-        if not analysis_result:
-            logger.warning("没有可生成建议的分析结果")
-            state["suggestions"] = []
-            return state
-        
-        suggestions = []
-        
-        for stock_code, result in analysis_result.items():
-            try:
-                # 生成量化建议
-                quantitative_suggestion = generate_trading_suggestion(
-                    result["quantitative_scores"], 
-                    result["raw_data"]
-                )
-                
-                # 构建LLM验证提示（简化版）
-                prompt = f"""验证交易建议：
+            if not lhb_data:
+                logger.warning("没有可分析的龙虎榜数据")
+                state["analysis_result"] = {}
+                return state
+            
+            logger.info(f"开始分析 {len(lhb_data)} 只股票")
+            
+            analysis_results = {}
+            successful_count = 0
+            failed_count = 0
+            
+            for stock_code, data in lhb_data.items():
+                try:
+                    logger.info(f"分析股票: {data['股票名称']}({stock_code})")
+                    
+                    # 计算量化评分
+                    scores = calculate_stock_score(data)
+                    
+                    # 构建分析提示（简化版，避免过长）
+                    prompt = f"""请分析以下龙虎榜数据：
 
-股票：{result['raw_data']['股票名称']}({stock_code})
-量化建议：{quantitative_suggestion['操作建议']}
-置信度：{quantitative_suggestion['置信度']}
-风险等级：{quantitative_suggestion['风险等级']}
+    股票：{data['股票名称']}({stock_code})
+    收盘价：{data['收盘价']} 涨跌幅：{data['涨跌幅']}%
+    净买额：{data['龙虎榜净买额']:,.0f}万元
+    资金流向强度：{data.get('资金流向强度', 0):.2%}
+    机构参与度：{data.get('机构参与度', 0):.2%}
 
-分析结果：{result['analysis'][:500]}...
+    量化评分：
+    - 资金流向：{scores['资金流向']}/100
+    - 机构参与：{scores['机构参与']}/100  
+    - 技术指标：{scores['技术指标']}/100
+    - 市场情绪：{scores['市场情绪']}/100
+    - 风险控制：{scores['风险控制']}/100
+    - 综合评分：{scores['综合评分']}/100
 
-请简要验证并补充：
-1. 是否同意量化建议？
-2. 操作时机建议
-3. 风险提醒
+    请提供简要分析，包括：
+    1. 主要优势和风险
+    2. 后市预判
+    3. 操作建议
 
-要求简洁专业。"""
-                
-                # 使用LLM验证和补充
-                response = quick_thinking_llm.invoke(prompt)
-                
-                suggestions.append({
-                    "stock_code": stock_code,
-                    "stock_name": result['raw_data']['股票名称'],
-                    "quantitative_suggestion": quantitative_suggestion,
-                    "llm_validation": response.content,
-                    "综合评分": result["综合评分"],
-                    "final_recommendation": {
-                        "action": quantitative_suggestion["操作建议"],
-                        "confidence": quantitative_suggestion["置信度"],
-                        "risk_level": quantitative_suggestion["风险等级"],
-                        "reasons": quantitative_suggestion["决策依据"]
+    要求：简洁明了，突出要点。"""
+                    
+                    # 使用LLM分析
+                    response = llm.invoke(prompt)
+                    
+                    analysis_results[stock_code] = {
+                        "raw_data": data,
+                        "quantitative_scores": scores,
+                        "analysis": response.content,
+                        "综合评分": scores["综合评分"]
                     }
-                })
+                    
+                    successful_count += 1
+                    logger.info(f"股票 {stock_code} 分析完成，评分: {scores['综合评分']}")
+                    
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"分析股票 {stock_code} 失败: {str(e)}")
+                    # 继续处理其他股票
+                    continue
+            
+            logger.info(f"分析完成: 成功 {successful_count} 只，失败 {failed_count} 只")
+            
+            # 按综合评分排序
+            sorted_results = dict(sorted(
+                analysis_results.items(), 
+                key=lambda x: x[1]["综合评分"], 
+                reverse=True
+            ))
+            
+            # 更新状态
+            state["analysis_result"] = sorted_results
+            return state
+        
+        return safe_execute("lhb_analyze_node", _analyze_data, state)
+    return lhb_analyze_node
+
+def create_lhb_suggestion(llm, toolkit):
+
+    def lhb_suggestion_node(state: Dict[str, Any]) -> Dict[str, Any]:
+        """生成龙虎榜分析建议"""
+        def _generate_suggestions(state):
+            if "error" in state:
+                logger.warning("检测到上游错误，跳过建议生成步骤")
+                return state
+            
+            # 确保analysis_result存在
+            if "analysis_result" not in state:
+                logger.warning("状态中缺少analysis_result字段")
+                state["suggestions"] = []
+                return state
                 
-            except Exception as e:
-                logger.error(f"生成股票 {stock_code} 建议失败: {str(e)}")
-                continue
+            analysis_result = state["analysis_result"]
+            
+            if not analysis_result:
+                logger.warning("没有可生成建议的分析结果")
+                state["suggestions"] = []
+                return state
+            
+            suggestions = []
+            
+            for stock_code, result in analysis_result.items():
+                try:
+                    # 生成量化建议
+                    quantitative_suggestion = generate_trading_suggestion(
+                        result["quantitative_scores"], 
+                        result["raw_data"]
+                    )
+                    
+                    # 构建LLM验证提示（简化版）
+                    prompt = f"""验证交易建议：
+
+    股票：{result['raw_data']['股票名称']}({stock_code})
+    量化建议：{quantitative_suggestion['操作建议']}
+    置信度：{quantitative_suggestion['置信度']}
+    风险等级：{quantitative_suggestion['风险等级']}
+
+    分析结果：{result['analysis'][:500]}...
+
+    请简要验证并补充：
+    1. 是否同意量化建议？
+    2. 操作时机建议
+    3. 风险提醒
+
+    要求简洁专业。"""
+                    
+                    # 使用LLM验证和补充
+                    response = llm.invoke(prompt)
+                    
+                    suggestions.append({
+                        "stock_code": stock_code,
+                        "stock_name": result['raw_data']['股票名称'],
+                        "quantitative_suggestion": quantitative_suggestion,
+                        "llm_validation": response.content,
+                        "综合评分": result["综合评分"],
+                        "final_recommendation": {
+                            "action": quantitative_suggestion["操作建议"],
+                            "confidence": quantitative_suggestion["置信度"],
+                            "risk_level": quantitative_suggestion["风险等级"],
+                            "reasons": quantitative_suggestion["决策依据"]
+                        }
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"生成股票 {stock_code} 建议失败: {str(e)}")
+                    continue
+            
+            # 按综合评分排序
+            suggestions.sort(key=lambda x: x["综合评分"], reverse=True)
+            
+            # 更新状态
+            state["suggestions"] = suggestions
+            return state
         
-        # 按综合评分排序
-        suggestions.sort(key=lambda x: x["综合评分"], reverse=True)
-        
-        # 更新状态
-        state["suggestions"] = suggestions
-        return state
-    
-    return safe_execute("generate_lhb_suggestion", _generate_suggestions, state)
+        return safe_execute("lhb_suggestion_node", _generate_suggestions, state)
+    return lhb_suggestion_node
 
 def generate_trading_suggestion(scores: Dict[str, float], data: Dict[str, Any]) -> Dict[str, Any]:
     """基于量化评分生成交易建议

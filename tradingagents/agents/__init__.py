@@ -19,6 +19,8 @@ from .managers.risk_manager import create_risk_manager
 
 from .trader.trader import create_trader
 
+from .analysts.lhb_nodes import create_lhb_analyst, create_lhb_suggestion, fetch_lhb_data, output_lhb_result
+
 __all__ = [
     "FinancialSituationMemory",
     "Toolkit",
@@ -39,4 +41,8 @@ __all__ = [
     "create_safe_debator",
     "create_social_media_analyst",
     "create_trader",
+    "create_lhb_analyst",
+    "create_lhb_suggestion",
+    "fetch_lhb_data",
+    "output_lhb_result",
 ]

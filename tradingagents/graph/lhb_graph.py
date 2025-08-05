@@ -11,12 +11,7 @@ from tradingagents.llm_adapters import ChatDashScope, ChatDashScopeOpenAI
 from langgraph.graph import StateGraph, END
 from tradingagents.agents.utils.agent_states import LhbState
 
-from tradingagents.agents.analysts.lhb_nodes import (
-    fetch_lhb_data,
-    analyze_lhb_data,
-    generate_lhb_suggestion,
-    output_lhb_result
-)
+from tradingagents.agents import *
 from tradingagents.agents.analysts.backtest_validator import create_backtest_validator
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.dataflows.interface import set_config
@@ -37,6 +32,7 @@ class LHBAgentsGraph:
         """
         self.debug = debug
         self.config = config or DEFAULT_CONFIG
+        self.toolkit = Toolkit(config)
 
         # 更新接口配置
         set_config(self.config)
@@ -99,8 +95,8 @@ class LHBAgentsGraph:
 
         # 添加节点
         graph.add_node("fetch", fetch_lhb_data)
-        graph.add_node("analyze", analyze_lhb_data)
-        graph.add_node("suggest", generate_lhb_suggestion)
+        graph.add_node("analyze", create_lhb_analyst(self.quick_thinking_llm, self.toolkit))
+        graph.add_node("suggest", create_lhb_suggestion(self.deep_thinking_llm, self.toolkit))
         graph.add_node("output", output_lhb_result)
 
         # 添加边
@@ -182,7 +178,7 @@ class LHBAgentsGraph:
         self.curr_state = final_state
 
         # 记录状态
-        self._log_state(trade_date or date.today(), final_state)
+        # self._log_state(trade_date or date.today(), final_state)
 
         return final_state, self._process_signal(final_state)
 
