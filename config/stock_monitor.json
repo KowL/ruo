@@ -1,6 +1,6 @@
 {
-  "fluctuation_threshold": 5.0,
-  "monitor_interval": 300,
+  "fluctuation_threshold": 1.0,
+  "monitor_interval": 60,
   "db_path": "ruo.db",
   "enable_notifications": true,
   "llm_provider": "dashscope",

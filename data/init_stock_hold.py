@@ -13,8 +13,9 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS stock_hold
 
 # 插入示例数据 (替换为您的实际数据)
 example_data = [
-    ('AAPL', '苹果', 100, 50, 150.0),  # AAPL: 持仓100股，可用50股，成本150 USD
-    ('GOOGL', '谷歌', 200, 100, 120.0)  # GOOGL: 持仓200股，可用100股，成本120 USD
+    ('002401', '中远海科', 2800, 2800, 22.023),
+    ('300561', '汇科', 2800, 2800, 12.973),
+    ('600438', '通威股份', 600, 600, 26.33)
 ]
 cursor.executemany("INSERT OR REPLACE INTO stock_hold (stock, name, hold_num, available, cost) VALUES (?, ?, ?, ?, ?)", example_data)
 

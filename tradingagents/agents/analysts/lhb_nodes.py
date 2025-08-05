@@ -196,7 +196,6 @@ def fetch_lhb_data(state: Dict[str, Any]) -> Dict[str, Any]:
 def analyze_lhb_data(state: Dict[str, Any]) -> Dict[str, Any]:
     """分析龙虎榜数据"""
     def _analyze_data(state):
-        print(state)
         if "error" in state:
             logger.warning("检测到上游错误，跳过分析步骤")
             return state

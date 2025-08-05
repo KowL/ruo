@@ -8,15 +8,17 @@ import os
 import pandas as pd
 from typing import List, Tuple, Optional, Dict
 from contextlib import contextmanager
+import sys
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 引入项目的LLM基础设施
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from tradingagents.llm_adapters import ChatDashScope, ChatDashScopeOpenAI
-from tradingagents.default_config import DEFAULT_CONFIG as PROJECT_DEFAULT_CONFIG
-
-# 引入项目的技术分析工具
+from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.dataflows.akshare_utils import AKShareProvider
 
 # 配置日志
@@ -31,15 +33,15 @@ logging.basicConfig(
 
 # 默认配置
 DEFAULT_CONFIG = {
-    'fluctuation_threshold': 5.0,  # 触发AI分析的波动阈值（百分比）
-    'monitor_interval': 300,  # 监控间隔（秒）
+    'fluctuation_threshold': 0.0,  # 触发AI分析的波动阈值（百分比）
+    'monitor_interval': 30,  # 监控间隔（秒）
     'db_path': 'ruo.db',
     'enable_notifications': True,
     # 继承项目的LLM配置
-    'llm_provider': PROJECT_DEFAULT_CONFIG.get('llm_provider', 'dashscope'),
-    'deep_think_llm': PROJECT_DEFAULT_CONFIG.get('deep_think_llm', 'qwen-plus'),
-    'quick_think_llm': PROJECT_DEFAULT_CONFIG.get('quick_think_llm', 'qwen-turbo'),
-    'backend_url': PROJECT_DEFAULT_CONFIG.get('backend_url', 'https://api.openai.com/v1'),
+    'llm_provider': DEFAULT_CONFIG.get('llm_provider', 'dashscope'),
+    'deep_think_llm': DEFAULT_CONFIG.get('deep_think_llm', 'qwen-plus'),
+    'quick_think_llm': DEFAULT_CONFIG.get('quick_think_llm', 'qwen-turbo'),
+    'backend_url': DEFAULT_CONFIG.get('backend_url', 'https://api.openai.com/v1'),
 }
 
 @contextmanager
@@ -57,13 +59,17 @@ def init_database(db_path: str = 'ruo.db'):
         cursor = conn.cursor()
         # 创建价格历史表
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS prices (
+            CREATE TABLE IF NOT EXISTS stock_prices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 stock TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                price REAL NOT NULL,
-                INDEX(stock, timestamp)
+                price REAL NOT NULL
             )
+        ''')
+        # 创建索引
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_stock_prices_stock_timestamp 
+            ON stock_prices(stock, timestamp)
         ''')
         # 确保stock_hold表存在
         cursor.execute('''
@@ -274,7 +280,7 @@ def store_price(stock: str, price: float, db_path: str = 'ruo.db') -> bool:
             cursor = conn.cursor()
             timestamp = datetime.datetime.now()
             cursor.execute(
-                "INSERT INTO prices (stock, timestamp, price) VALUES (?, ?, ?)", 
+                "INSERT INTO stock_prices (stock, timestamp, price) VALUES (?, ?, ?)", 
                 (stock, timestamp, price)
             )
             conn.commit()
@@ -289,7 +295,7 @@ def get_last_price(stock: str, db_path: str = 'ruo.db') -> Optional[float]:
         with get_db_connection(db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT price FROM prices WHERE stock=? ORDER BY timestamp DESC LIMIT 1", 
+                "SELECT price FROM stock_prices WHERE stock=? ORDER BY timestamp DESC LIMIT 1", 
                 (stock,)
             )
             result = cursor.fetchone()
