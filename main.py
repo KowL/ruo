@@ -16,6 +16,10 @@ except ImportError as e:
     st.error(f"无法加载 agent_system: {e}")
     st.code(traceback.format_exc())
     st.stop()
+    # 如果导入失败，设置默认值避免后续错误
+    CACHE_DIR = None
+    run_ai_research_analysis = None
+    is_cached = None
 
 # =======================
 # 🎨 页面配置
@@ -83,8 +87,12 @@ def highlight_and_render_md(text: str) -> str:
 
 def plot_concept_pie(raw_data: list):
     df = pd.DataFrame(raw_data)
-    concepts_series = df['概念'].str.split(',').explode().str.strip()
-    top_concepts = concepts_series.value_counts().head(8)
+    # 使用实际的列名 '所属行业' 而不是 '概念'
+    if '所属行业' in df.columns:
+        top_concepts = df['所属行业'].value_counts().head(8)
+    else:
+        # 如果没有行业信息，创建空的数据
+        top_concepts = pd.Series(dtype='int64')
     
     fig = px.pie(
         values=top_concepts.values,
@@ -97,8 +105,18 @@ def plot_concept_pie(raw_data: list):
 
 def plot_sankey_flow(raw_data: list):
     df = pd.DataFrame(raw_data)
-    df['连续涨停天数'] = pd.to_numeric(df['连续涨停天数'], errors='coerce').fillna(0).astype(int)
-    df['首次涨停时间'] = pd.to_datetime(df['首次涨停时间'], errors='coerce')
+    # 使用实际的列名 '连板数' 而不是 '连续涨停天数'
+    if '连板数' in df.columns:
+        df['连续涨停天数'] = pd.to_numeric(df['连板数'], errors='coerce').fillna(0).astype(int)
+    else:
+        df['连续涨停天数'] = 1  # 默认为首板
+    
+    # 处理时间列，实际列名是 '首次封板时间'
+    if '首次封板时间' in df.columns:
+        # 时间格式是 HHMMSS，需要转换
+        df['首次涨停时间'] = pd.to_datetime(df['首次封板时间'].astype(str).str.zfill(6), format='%H%M%S', errors='coerce')
+    else:
+        df['首次涨停时间'] = pd.NaT
     df['时间段'] = df['首次涨停时间'].dt.hour.apply(
         lambda x: '早盘' if x < 10 else '中盘' if x < 14 else '尾盘'
     )
@@ -147,7 +165,7 @@ def plot_sankey_flow(raw_data: list):
 
 def plot_trend_over_time(raw_data: list):
     df = pd.DataFrame(raw_data)
-    df['封单金额'] = pd.to_numeric(df['封单资金'], errors='coerce') / 1e8  # 单位：亿元
+    df['封单金额'] = pd.to_numeric(df['封板资金'], errors='coerce') / 1e8  # 单位：亿元
     df['换手率'] = pd.to_numeric(df['换手率'], errors='coerce')
 
     fig = px.scatter(
@@ -167,6 +185,9 @@ def plot_trend_over_time(raw_data: list):
 # 🗂️ 缓存报告查看功能
 # =======================
 def show_cached_report(date: str):
+    if CACHE_DIR is None:
+        st.error("Agent 系统未正确加载，无法查看历史报告。")
+        return
     report_path = CACHE_DIR / date / "report.md"
     if report_path.exists():
         content = report_path.read_text(encoding="utf-8")
@@ -174,6 +195,35 @@ def show_cached_report(date: str):
         st.markdown(content)
     else:
         st.info("该日期暂无缓存报告。")
+
+# =======================
+# 🔍 自动加载最新缓存数据（用于显示可视化）
+# =======================
+def load_latest_cached_data():
+    """加载最新的缓存数据用于可视化显示"""
+    if CACHE_DIR is None or not CACHE_DIR.exists():
+        return None
+    
+    # 获取所有缓存目录，按日期排序
+    all_cache_dirs = [d for d in CACHE_DIR.iterdir() if d.is_dir()]
+    if not all_cache_dirs:
+        return None
+    
+    # 找到最新的缓存目录
+    latest_dir = max(all_cache_dirs, key=lambda x: x.name)
+    state_file = latest_dir / "state.json"
+    
+    if state_file.exists():
+        try:
+            with open(state_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            st.error(f"读取缓存数据失败: {e}")
+    
+    return None
+
+# 尝试加载最新缓存数据
+latest_cached_state = load_latest_cached_data()
 
 # =======================
 # 🧩 主执行逻辑
@@ -237,10 +287,36 @@ if analyze_button:
                 st.code(result.get("traceback", ""))
 
 # =======================
+# 📈 显示历史数据可视化（即使未点击分析按钮）
+# =======================
+if not analyze_button and latest_cached_state:
+    st.markdown("---")
+    st.subheader("📊 最新数据可视化")
+    st.info(f"📌 显示最新缓存数据 · {latest_cached_state.get('date', '未知日期')}")
+    
+    raw_data = latest_cached_state.get("raw_limit_ups", [])
+    if raw_data:
+        tab1, tab2, tab3 = st.tabs(["概念分布", "时间→连板流", "多维散点图"])
+
+        with tab1:
+            plot_concept_pie(raw_data)
+
+        with tab2:
+            plot_sankey_flow(raw_data)
+
+        with tab3:
+            plot_trend_over_time(raw_data)
+    else:
+        st.warning("缓存数据中没有找到涨停股数据。")
+
+# =======================
 # 🗃️ 历史报告管理侧边栏
 # =======================
 st.sidebar.title("📁 历史报告")
-all_cache_dirs = [d.name for d in CACHE_DIR.iterdir() if d.is_dir()]
+if CACHE_DIR is not None and CACHE_DIR.exists():
+    all_cache_dirs = [d.name for d in CACHE_DIR.iterdir() if d.is_dir()]
+else:
+    all_cache_dirs = []
 selected_hist_date = st.sidebar.selectbox("选择历史日期", options=all_cache_dirs, index=0) if all_cache_dirs else None
 
 if selected_hist_date:
