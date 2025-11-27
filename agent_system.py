@@ -60,11 +60,9 @@ class ResearchState(TypedDict):
 # =======================
 def node_data_officer(state: ResearchState) -> ResearchState:
     """采集原始数据"""
-    # 只返回连板数>1的股票
     stocks = get_limit_up_stocks(state['date'])
-    lb_stocks = [s for s in stocks if s['连板数'] > 1]
     lhb = get_lhb_data(state['date'])
-    f10 = get_f10_data_for_stocks(lb_stocks)
+    f10 = get_f10_data_for_stocks(stocks)
 
     count = len(stocks)
     # 使用实际的列名 '所属行业' 而不是 '概念'
@@ -73,7 +71,7 @@ def node_data_officer(state: ResearchState) -> ResearchState:
     report = f"📊 数据官简报：{state['date']} 共 {count} 只个股涨停。\n主要热点概念：{concepts}。"
 
     return {
-        "raw_limit_ups": lb_stocks,
+        "raw_limit_ups": stocks,
         "lhb_data": lhb,
         "f10_data": f10,
         "data_officer_report": report,
@@ -317,10 +315,12 @@ def get_stock_lhb_data(stock_info_json: str) -> str:
         return f"获取龙虎榜数据失败: {str(e)}"
 
 def calculate_risk_reward(stock_data_json: str) -> str:
-    """计算风险收益比和买卖点
+    """计算风险收益比和买卖点，包括止损价和目标价
     
     参数格式: JSON字符串，包含股票基本信息
-    例如: '{"code": "000001", "name": "平安银行", "turnover_rate": 5.2, "pe": 6.5}'
+    例如: '{"code": "000001", "name": "平安银行", "turnover_rate": 5.2, "pe": 6.5, "current_price": 10.5}'
+    
+    返回格式: JSON字符串，包含止损价、目标价和风险收益比
     """
     try:
         if isinstance(stock_data_json, str):
@@ -329,10 +329,20 @@ def calculate_risk_reward(stock_data_json: str) -> str:
             # 如果传入的不是字符串，尝试直接使用
             stock_data = stock_data_json
         
-        analysis = []
         name = stock_data.get('name', '未知股票')
         code = stock_data.get('code', '')
-        analysis.append(f"📈 {name}({code}) 风险收益分析：")
+        current_price = float(stock_data.get('current_price', 0))
+        
+        # 如果没有价格信息，返回错误
+        if current_price <= 0:
+            return json.dumps({
+                "code": code,
+                "name": name,
+                "stop_loss": 0,
+                "take_profit": 0,
+                "risk_reward_ratio": 0,
+                "error": "缺少价格信息，无法计算止损价和目标价"
+            }, ensure_ascii=False)
         
         # 基于换手率和PE估算风险等级
         turnover = float(stock_data.get('turnover_rate', 0))
@@ -341,46 +351,73 @@ def calculate_risk_reward(stock_data_json: str) -> str:
         if turnover > 15:
             risk_level = "高风险"
             risk_score = 3
+            # 高风险：止损幅度更大（-8%），目标价更保守（+10%）
+            stop_loss_pct = -0.08
+            take_profit_pct = 0.10
         elif turnover > 8:
             risk_level = "中风险"
             risk_score = 2
+            # 中风险：止损-5%，目标+15%
+            stop_loss_pct = -0.05
+            take_profit_pct = 0.15
         else:
             risk_level = "低风险"
             risk_score = 1
+            # 低风险：止损-3%，目标+20%
+            stop_loss_pct = -0.03
+            take_profit_pct = 0.20
         
-        analysis.append(f"- 风险等级: {risk_level} (换手率: {turnover:.1f}%)")
-        
+        # 根据PE调整目标价
         if pe and pe > 0:
             if pe > 100:
                 valuation = "高估"
                 val_score = 3
+                # 高估值：降低目标价
+                take_profit_pct *= 0.7
             elif pe > 30:
                 valuation = "合理"
                 val_score = 2
+                # 合理估值：保持目标价
             else:
                 valuation = "低估"
                 val_score = 1
-            analysis.append(f"- 估值水平: {valuation} (PE: {pe:.1f})")
+                # 低估值：提高目标价
+                take_profit_pct *= 1.2
         else:
             valuation = "无法评估"
             val_score = 2
-            analysis.append(f"- 估值水平: {valuation}")
         
-        # 综合评分
-        total_score = (risk_score + val_score) / 2
-        if total_score >= 2.5:
-            recommendation = "谨慎观望"
-        elif total_score >= 1.5:
-            recommendation = "适度关注"
-        else:
-            recommendation = "可以考虑"
-            
-        analysis.append(f"- 综合建议: {recommendation}")
+        # 计算止损价和目标价
+        stop_loss = round(current_price * (1 + stop_loss_pct), 2)
+        take_profit = round(current_price * (1 + take_profit_pct), 2)
         
-        return "\n".join(analysis)
+        # 计算风险收益比
+        risk = current_price - stop_loss
+        reward = take_profit - current_price
+        risk_reward_ratio = round(reward / risk, 2) if risk > 0 else 0
+        
+        # 返回JSON格式的结果
+        result = {
+            "code": code,
+            "name": name,
+            "current_price": current_price,
+            "stop_loss": stop_loss,
+            "take_profit": take_profit,
+            "risk_reward_ratio": risk_reward_ratio,
+            "risk_level": risk_level,
+            "valuation": valuation,
+            "analysis": f"风险等级: {risk_level}, 估值: {valuation}, 换手率: {turnover:.1f}%"
+        }
+        
+        return json.dumps(result, ensure_ascii=False)
         
     except Exception as e:
-        return f"风险收益分析失败: {str(e)}"
+        return json.dumps({
+            "error": f"风险收益分析失败: {str(e)}",
+            "stop_loss": 0,
+            "take_profit": 0,
+            "risk_reward_ratio": 0
+        }, ensure_ascii=False)
 
 # 创建工具列表
 coach_tools = [
@@ -397,7 +434,7 @@ coach_tools = [
     Tool(
         name="calculate_risk_reward",
         func=calculate_risk_reward,
-        description="计算个股的风险收益比，评估投资价值。输入：单个股票数据的JSON字符串，格式如'{\"code\":\"000001\",\"name\":\"平安银行\",\"turnover_rate\":5.2,\"pe\":6.5}'"
+        description="计算个股的风险收益比、止损价和目标价。输入：单个股票数据的JSON字符串，必须包含current_price字段，格式如'{\"code\":\"000001\",\"name\":\"平安银行\",\"turnover_rate\":5.2,\"pe\":6.5,\"current_price\":10.5}'。返回JSON格式，包含stop_loss（止损价）、take_profit（目标价）和risk_reward_ratio（风险收益比）字段。"
     ),
     Tool(
         name="analyze_lhb_data",
@@ -423,6 +460,9 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
         if isinstance(pe, (int, float)) and (pe or 0) > 200:
             continue
 
+        # 获取价格信息：优先使用最新价，其次使用f10_data中的close_price
+        current_price = s.get("最新价") or (state['f10_data'].get(code) or {}).get('close_price') or 0
+
         candidates.append({
             "code": code,
             "name": name,
@@ -431,7 +471,8 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
             "turnover_rate": s.get("换手率", 0),
             "volume_ratio": 1.0,  # 量比列不存在，使用默认值
             "concept": s.get("所属行业", ""),
-            "pe": pe
+            "pe": pe,
+            "current_price": current_price  # 添加当前价格
         })
 
     try:
@@ -451,18 +492,21 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 分析重点：
 - 优先关注连板股和高换手率股票
 - 对重点股票深入分析其龙虎榜数据，识别主力资金参与情况
-- 评估风险收益比，确保合理的止损和目标价
+- **重要**：对于每只重点股票，必须使用calculate_risk_reward工具计算止损价和目标价
+- calculate_risk_reward工具会返回JSON格式，包含stop_loss（止损价）、take_profit（目标价）和risk_reward_ratio（风险收益比）字段
+- 你必须从工具返回的JSON中提取这些值，并在最终输出中使用这些具体的数值
+- 如果工具返回的stop_loss或take_profit为0，说明缺少价格信息，你应该在reason中说明
 - 优先推荐有主力资金参与且技术面强势的标的
-- 针对所有连板股输出打板建议
+- 针对所有连板股输出操作建议
 
 最终输出格式必须是JSON数组，包含以下字段：
 - code: 股票代码
 - name: 股票名称  
 - action: 操作建议（"可打板"/"关注"/"观望"/"回避"）
 - entry_point: 买点描述
-- stop_loss: 止损价
-- take_profit: 目标价
-- risk_reward_ratio: 风险收益比
+- stop_loss: 止损价（必须是从calculate_risk_reward工具返回的数值，不能为0，除非确实缺少价格信息）
+- take_profit: 目标价（必须是从calculate_risk_reward工具返回的数值，不能为0，除非确实缺少价格信息）
+- risk_reward_ratio: 风险收益比（必须是从calculate_risk_reward工具返回的数值）
 - reason: 逻辑说明（不超过30字）
 
 请开始你的分析。"""
@@ -515,6 +559,28 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
             print(step)
         print("="*50 + "\n")
         
+        # 从消息历史中提取工具调用结果，构建价格信息映射
+        price_info_map = {}  # {code: {stop_loss, take_profit, risk_reward_ratio}}
+        
+        for message in response["messages"]:
+            # 查找工具调用的结果消息
+            if hasattr(message, 'content') and isinstance(message.content, str):
+                # 尝试从工具返回结果中提取价格信息
+                try:
+                    # calculate_risk_reward工具返回的是JSON字符串
+                    if '"stop_loss"' in message.content and '"take_profit"' in message.content:
+                        tool_result = safe_parse_json(message.content)
+                        if isinstance(tool_result, dict) and 'code' in tool_result:
+                            code = tool_result.get('code', '')
+                            if code and tool_result.get('stop_loss', 0) > 0:
+                                price_info_map[code] = {
+                                    'stop_loss': tool_result.get('stop_loss', 0),
+                                    'take_profit': tool_result.get('take_profit', 0),
+                                    'risk_reward_ratio': tool_result.get('risk_reward_ratio', 0)
+                                }
+                except:
+                    pass
+        
         # 尝试从最终消息中提取JSON
         advice_list = []
         if final_message:
@@ -527,6 +593,55 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
             else:
                 # 如果没有找到JSON，尝试解析整个消息
                 advice_list = safe_parse_json(final_message)
+        
+        # 后处理：补充缺失的价格信息
+        for advice in advice_list:
+            if isinstance(advice, dict) and 'code' in advice:
+                code = advice.get('code', '')
+                # 如果止损价或目标价为0，尝试从工具调用结果中获取
+                if (advice.get('stop_loss', 0) == 0 or advice.get('take_profit', 0) == 0) and code in price_info_map:
+                    price_info = price_info_map[code]
+                    if advice.get('stop_loss', 0) == 0:
+                        advice['stop_loss'] = price_info.get('stop_loss', 0)
+                    if advice.get('take_profit', 0) == 0:
+                        advice['take_profit'] = price_info.get('take_profit', 0)
+                    if advice.get('risk_reward_ratio', 0) == 0:
+                        advice['risk_reward_ratio'] = price_info.get('risk_reward_ratio', 0)
+                
+                # 如果仍然没有价格信息，尝试从候选池中获取当前价格并计算
+                if (advice.get('stop_loss', 0) == 0 or advice.get('take_profit', 0) == 0):
+                    # 从候选池中查找该股票
+                    candidate = next((c for c in candidates if c.get('code') == code), None)
+                    if candidate and candidate.get('current_price', 0) > 0:
+                        current_price = candidate.get('current_price', 0)
+                        turnover = candidate.get('turnover_rate', 0)
+                        pe = candidate.get('pe')
+                        
+                        # 使用与calculate_risk_reward相同的逻辑计算
+                        if turnover > 15:
+                            stop_loss_pct = -0.08
+                            take_profit_pct = 0.10
+                        elif turnover > 8:
+                            stop_loss_pct = -0.05
+                            take_profit_pct = 0.15
+                        else:
+                            stop_loss_pct = -0.03
+                            take_profit_pct = 0.20
+                        
+                        # 根据PE调整
+                        if pe and pe > 100:
+                            take_profit_pct *= 0.7
+                        elif pe and pe <= 30:
+                            take_profit_pct *= 1.2
+                        
+                        if advice.get('stop_loss', 0) == 0:
+                            advice['stop_loss'] = round(current_price * (1 + stop_loss_pct), 2)
+                        if advice.get('take_profit', 0) == 0:
+                            advice['take_profit'] = round(current_price * (1 + take_profit_pct), 2)
+                        if advice.get('risk_reward_ratio', 0) == 0:
+                            risk = current_price - advice.get('stop_loss', current_price * 0.05)
+                            reward = advice.get('take_profit', current_price * 1.15) - current_price
+                            advice['risk_reward_ratio'] = round(reward / risk, 2) if risk > 0 else 0
         
         if not advice_list:
             print("⚠️ 未能解析出有效的建议，返回空列表")
