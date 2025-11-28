@@ -3,7 +3,12 @@
 import akshare as ak
 import pandas as pd
 import json
+import requests
+import urllib3
 from typing import List, Dict, Optional
+
+# 禁用 SSL 警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_limit_up_stocks(date: str) -> List[dict]:
     try:
@@ -109,3 +114,107 @@ def safe_parse_json(content: str):
         except:
             return [{"error": "parse_failed", "raw": content[:200]}]
     return []
+
+def get_stock_price_realtime(stock_code, retry_count=3):
+    """
+    东方财富实时数据API
+    增加重试机制和更好的错误处理
+    """
+    import time
+    
+    # 构造URL
+    if stock_code.startswith('6'):
+        market = '1'
+    else:
+        market = '0'
+    
+    url = f"https://push2.eastmoney.com/api/qt/stock/get?ut=fa5fd1943c7b386f172d6893dbfba10b&invt=2&fltt=2&fields=f43,f46,f44,f45,f47,f48,f170&secid={market}.{stock_code}"
+    
+    # 添加请求头，模拟浏览器
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'Referer': 'https://quote.eastmoney.com/',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    }
+    
+    # 尝试禁用代理（如果需要）
+    proxies = None
+    # 如果需要强制禁用代理，可以取消下面的注释
+    # proxies = {
+    #     'http': None,
+    #     'https': None,
+    # }
+    
+    for attempt in range(retry_count):
+        try:
+            response = requests.get(
+                url, 
+                headers=headers, 
+                timeout=10,
+                proxies=proxies,
+                verify=False  # 如果SSL证书有问题可以禁用验证
+            )
+            
+            if response.status_code != 200:
+                if attempt < retry_count - 1:
+                    time.sleep(0.5 * (attempt + 1))  # 指数退避
+                    continue
+                return None
+            
+            result = response.json()
+            
+            # 检查返回数据
+            if 'data' not in result or result['data'] is None:
+                return None
+            
+            data = result['data']
+            
+            # 检查数据是否有效（至少要有当前价）
+            if data.get('f43') is None:
+                return None
+            
+            # 返回标准化的数据格式
+            return {
+                'open': data.get('f46'),  # 开盘价
+                'current': data.get('f43'),  # 当前价
+                'high': data.get('f44'),  # 最高价
+                'low': data.get('f45'),  # 最低价
+                'volume': data.get('f47'),  # 成交量
+                'amount': data.get('f48'),  # 成交额
+                'change_rate': data.get('f170')  # 涨跌幅
+            }
+            
+        except requests.exceptions.ConnectionError as e:
+            # 连接错误，包括 RemoteDisconnected
+            if attempt < retry_count - 1:
+                wait_time = 0.5 * (attempt + 1)
+                time.sleep(wait_time)
+                continue
+            return None
+            
+        except requests.exceptions.Timeout:
+            if attempt < retry_count - 1:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            return None
+            
+        except requests.exceptions.RequestException as e:
+            # 其他请求异常
+            if attempt < retry_count - 1:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            return None
+            
+        except (KeyError, ValueError, TypeError) as e:
+            # JSON解析错误或数据格式错误
+            return None
+            
+        except Exception as e:
+            # 其他未知错误
+            if attempt < retry_count - 1:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            return None
+    
+    return None

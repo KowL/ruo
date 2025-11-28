@@ -2439,6 +2439,19 @@ wheels = [
 ]
 
 [[package]]
+name = "reportlab"
+version = "4.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "charset-normalizer" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/80/dfa85941e3c3800aa5cd2f940c1903358c1fb61149f5f91b62efa61e7d03/reportlab-4.4.5.tar.gz", hash = "sha256:0457d642aa76df7b36b0235349904c58d8f9c606a872456ed04436aafadc1510", size = 3910836, upload_time = "2025-11-18T11:43:10.242Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/16/0c26a7bdfd20cba49a011b1095461be120c53df3926e9843fccfb9530e72/reportlab-4.4.5-py3-none-any.whl", hash = "sha256:849773d7cd5dde2072fedbac18c8bc909506c8befba8f088ba7b09243c6684cc", size = 1954256, upload_time = "2025-11-17T12:03:05.214Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.32.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2598,7 +2611,9 @@ dependencies = [
     { name = "langchain-community" },
     { name = "langgraph" },
     { name = "plotly" },
+    { name = "reportlab" },
     { name = "streamlit" },
+    { name = "streamlit-option-menu" },
 ]
 
 [package.metadata]
@@ -2609,7 +2624,9 @@ requires-dist = [
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langgraph", specifier = ">=1.0.3" },
     { name = "plotly", specifier = ">=6.5.0" },
+    { name = "reportlab", specifier = ">=4.4.5" },
     { name = "streamlit", specifier = ">=1.51.0" },
+    { name = "streamlit-option-menu", specifier = ">=0.4.0" },
 ]
 
 [[package]]
@@ -2721,6 +2738,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/6d/327ddd5fc35fcf2aeecb4040668337f5565a1c6c95b1e892b8bfd4bb9031/streamlit-1.51.0.tar.gz", hash = "sha256:1e742a9c0b698f466c6f5bf58d333beda5a1fbe8de660743976791b5c1446ef6", size = 9742904, upload_time = "2025-10-29T17:07:39.082Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/60/868371b6482ccd9ef423c6f62650066cf8271fdb2ee84f192695ad6b7a96/streamlit-1.51.0-py3-none-any.whl", hash = "sha256:4008b029f71401ce54946bb09a6a3e36f4f7652cbb48db701224557738cfda38", size = 10171702, upload_time = "2025-10-29T17:07:35.97Z" },
+]
+
+[[package]]
+name = "streamlit-option-menu"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/27/72dc451cdaef1714fd0d75cc430e50a06c12c9046295fdf1f94af1b766eb/streamlit-option-menu-0.4.0.tar.gz", hash = "sha256:48ec69d59e547fa2fa4bfae001620df8af56a80de2f765ddbb9fcbfb84017129", size = 827290, upload_time = "2024-10-09T14:51:01.685Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/52/2f525ad4262dc83d67297f69ec5afcee1438b9e9ae22aa318396725ddbed/streamlit_option_menu-0.4.0-py3-none-any.whl", hash = "sha256:a55fc7554047b6db371595af2182e435b8a2c715ee6124e8543685bd4670b07e", size = 829255, upload_time = "2024-10-09T14:50:59.707Z" },
 ]
 
 [[package]]

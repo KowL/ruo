@@ -155,7 +155,7 @@ def node_risk_controller(state: ResearchState) -> ResearchState:
     }
 
 # =======================
-# 🛠️ 打板教练分析工具
+# 🛠️ 短线龙头助手分析工具
 # =======================
 def analyze_lhb_data(lhb_data_json: str) -> str:
     """分析龙虎榜数据，识别主力资金动向"""
@@ -444,10 +444,10 @@ coach_tools = [
 ]
 
 # =======================
-# 🥋 Node 4: 打板教练 (ReAct Agent优化版)
+# 🥋 Node 4: 短线龙头助手 (ReAct Agent优化版)
 # =======================
 def node_day_trading_coach(state: ResearchState) -> ResearchState:
-    """使用ReAct Agent的打板教练，输出详细思考过程"""
+    """使用ReAct Agent的短线龙头助手，输出详细思考过程"""
     
     # 构建候选池
     candidates = []
@@ -480,7 +480,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
         get_stock_lhb_data.lhb_data = state['lhb_data']
         
         # 创建ReAct Agent
-        system_prompt = """你是一名经验丰富的【打板教练】，擅长识别强势股临盘信号。
+        system_prompt = """你是一名经验丰富的A 股短线情绪龙头助手，精通龙头战法 6 大维度：题材强度、身位、盘口强度、梯队地位、情绪周期、风险信号。回答简洁，只给结论与数据，不解释原理。
 
 你的分析流程：
 1. 首先使用analyze_candidate_stocks工具分析候选股票池，了解整体情况
@@ -502,10 +502,13 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 最终输出格式必须是JSON数组，包含以下字段：
 - code: 股票代码
 - name: 股票名称  
+- tier_rank: 梯队地位（龙头/跟风/独立）
+- mood_cycle: 情绪周期（冰点/回暖/主升/高潮/退潮）
 - action: 操作建议（"可打板"/"关注"/"观望"/"回避"）
 - entry_point: 买点描述
 - stop_loss: 止损价（必须是从calculate_risk_reward工具返回的数值，不能为0，除非确实缺少价格信息）
 - take_profit: 目标价（必须是从calculate_risk_reward工具返回的数值，不能为0，除非确实缺少价格信息）
+- risk_signal: 风险信号（巨量(>30%)｜长阴｜跌破 5 日线｜后排跌停≥3 家｜监管问询（有则列））
 - risk_reward_ratio: 风险收益比（必须是从calculate_risk_reward工具返回的数值）
 - reason: 逻辑说明（不超过30字）
 
@@ -521,7 +524,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
         # 准备输入数据 - 不再限制数据量
         candidates_str = json.dumps(candidates, ensure_ascii=False, default=str)
         
-        user_query = f"""请分析以下候选股票池并给出打板建议：
+        user_query = f"""请分析以下候选股票池并给出操作建议：
 
 候选股票池（共{len(candidates)}只）：
 {candidates_str}
@@ -537,7 +540,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 注意：龙虎榜数据已准备就绪，你可以通过get_stock_lhb_data工具查询任何股票的龙虎榜信息。"""
 
         # 执行ReAct Agent
-        print("🤖 打板教练开始分析...")
+        print("🤖 短线龙头助手开始分析...")
         
         response = react_agent.invoke({
             "messages": [HumanMessage(content=user_query)]
@@ -554,7 +557,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
         
         # 打印思考过程
         print("\n" + "="*50)
-        print("🧠 打板教练思考过程：")
+        print("🧠 短线龙头助手思考过程：")
         for step in thinking_process:
             print(step)
         print("="*50 + "\n")
@@ -653,7 +656,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 
     return {
         "day_trading_coach_advice": advice_list,
-        "context_notes": ["🥋 打板教练(ReAct)完成深度分析"],
+        "context_notes": ["🥋 短线龙头助手(ReAct)完成深度分析"],
         "next_action": "TO_FINALIZER"
     }
 
@@ -663,17 +666,20 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 def node_finalize_report(state: ResearchState) -> ResearchState:
     coach_advice = [a for a in state.get("day_trading_coach_advice", []) if isinstance(a, dict) and "code" in a]
 
-    # 格式化打板教练建议，与report.md保持一致
+    # 格式化短线龙头助手建议，与report.md保持一致
     if coach_advice:
         coach_summary_parts = []
         for a in coach_advice[:100]:
             stock_summary = f"""
 🎯 {a['name']} ({a['code']})
 - **操作建议**：{a['action']}
+- **梯队地位**：{a.get('tier_rank', '?')}
+- **情绪周期**：{a.get('mood_cycle', '?')}
 - **理想买点**：{a['entry_point']}
 - **止损价**：{a.get('stop_loss', '?')} 元
 - **目标价**：{a.get('take_profit', '?')} 元
 - **风险收益比**：{a.get('risk_reward_ratio', '?')}
+- **风险信号**：{a.get('risk_signal', '无')}
 - **逻辑**：{a['reason']}"""
             coach_summary_parts.append(stock_summary)
         
@@ -693,7 +699,7 @@ def node_finalize_report(state: ResearchState) -> ResearchState:
 🛡️ 风控提醒：
 {' '.join(state['risk_controller_alerts'])}
 
-🥋 打板教练建议：
+🥋 短线龙头助手建议：
 {coach_summary}
 
 📌 综合建议：短线选手可在控制仓位前提下参与高确定性机会，优先选择“机构+游资”共进品种，回避纯情绪博傻标的。
@@ -801,16 +807,19 @@ def save_report_to_cache(state: dict, date: str):
     for alert in state.get("risk_controller_alerts", []):
         md_content += f"- {alert}\n"
 
-    md_content += "\n## 🥋 打板教练建议\n"
+    md_content += "\n## 🥋 短线龙头助手建议\n"
     for item in state.get("day_trading_coach_advice", []):
         if isinstance(item, dict) and "name" in item:
             md_content += f"""
 ### {item['name']} ({item['code']})
 - **操作建议**：{item['action']}
+- **梯队地位**：{item.get('tier_rank', '?')}
+- **情绪周期**：{item.get('mood_cycle', '?')}
 - **理想买点**：{item['entry_point']}
 - **止损价**：{item.get('stop_loss', '?')} 元
 - **目标价**：{item.get('take_profit', '?')} 元
 - **风险收益比**：{item.get('risk_reward_ratio', '?')}
+- **风险信号**：{item.get('risk_signal', '无')}
 - **逻辑**：{item['reason']}
 """
 
