@@ -18,6 +18,14 @@ except ImportError as e:
     st.code(traceback.format_exc())
     st.stop()
 
+# 导入工具函数
+try:
+    from tools import get_previous_trading_day
+except ImportError as e:
+    st.error(f"无法加载 tools: {e}")
+    st.code(traceback.format_exc())
+    st.stop()
+
 # =======================
 # 🎨 页面配置
 # =======================
@@ -488,7 +496,8 @@ def show_opening_analysis_page():
     st.title("🌅 开盘表现分析")
     st.markdown("追踪昨日涨停股票的今日开盘表现")
 
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    # 使用获取上一个交易日的方法（跳过周末和节假日）
+    yesterday = get_previous_trading_day()
     today = datetime.now().strftime("%Y-%m-%d")
 
     st.info(f"📊 将分析 **{yesterday}** 涨停股票今日开盘表现")

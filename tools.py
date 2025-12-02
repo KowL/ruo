@@ -6,9 +6,92 @@ import json
 import requests
 import urllib3
 from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 
 # 禁用 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def get_previous_trading_day(target_date: Optional[str] = None, days_back: int = 1) -> str:
+    """
+    获取上一个交易日（跳过周末和节假日）
+    
+    Args:
+        target_date: 目标日期，格式为 'YYYY-MM-DD'，默认为当前日期
+        days_back: 往前推多少个交易日，默认为1（即上一个交易日）
+    
+    Returns:
+        str: 上一个交易日的日期，格式为 'YYYY-MM-DD'
+    
+    Example:
+        >>> get_previous_trading_day()  # 获取上一个交易日
+        '2025-12-01'
+        >>> get_previous_trading_day('2025-12-02', 2)  # 获取12月2日往前推2个交易日
+        '2025-11-29'
+    """
+    try:
+        # 如果没有指定目标日期，使用当前日期
+        if target_date is None:
+            current_date = datetime.now()
+        else:
+            current_date = datetime.strptime(target_date, '%Y-%m-%d')
+        
+        # 使用 akshare 获取交易日历
+        # 获取最近一年的交易日历（确保有足够的数据）
+        end_date = current_date.strftime('%Y%m%d')
+        start_date = (current_date - timedelta(days=365)).strftime('%Y%m%d')
+        
+        # 获取交易日历
+        trade_date_df = ak.tool_trade_date_hist_sina()
+        
+        # 过滤出指定日期范围内的交易日
+        trade_date_df['trade_date'] = pd.to_datetime(trade_date_df['trade_date'])
+        
+        # 获取小于目标日期的所有交易日
+        valid_dates = trade_date_df[trade_date_df['trade_date'] < current_date].sort_values('trade_date', ascending=False)
+        
+        if len(valid_dates) < days_back:
+            # 如果没有足够的交易日数据，使用简单的日期推算（跳过周末）
+            print(f"⚠️ 交易日历数据不足，使用简单日期推算")
+            return _get_previous_date_skip_weekend(current_date, days_back)
+        
+        # 获取往前推 days_back 个交易日的日期
+        previous_trading_day = valid_dates.iloc[days_back - 1]['trade_date']
+        
+        return previous_trading_day.strftime('%Y-%m-%d')
+        
+    except Exception as e:
+        # 如果获取交易日历失败，使用简单的日期推算（跳过周末）
+        print(f"⚠️ 获取交易日历失败: {e}，使用简单日期推算")
+        if target_date is None:
+            current_date = datetime.now()
+        else:
+            current_date = datetime.strptime(target_date, '%Y-%m-%d')
+        return _get_previous_date_skip_weekend(current_date, days_back)
+
+
+def _get_previous_date_skip_weekend(current_date: datetime, days_back: int = 1) -> str:
+    """
+    简单的日期推算方法（跳过周末，不考虑节假日）
+    作为交易日历获取失败时的备用方案
+    
+    Args:
+        current_date: 当前日期
+        days_back: 往前推多少天
+    
+    Returns:
+        str: 往前推算的日期，格式为 'YYYY-MM-DD'
+    """
+    count = 0
+    check_date = current_date
+    
+    while count < days_back:
+        check_date -= timedelta(days=1)
+        # 跳过周末（周六=5, 周日=6）
+        if check_date.weekday() < 5:  # 周一到周五
+            count += 1
+    
+    return check_date.strftime('%Y-%m-%d')
+
 
 def get_limit_up_stocks(date: str) -> List[dict]:
     try:

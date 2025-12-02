@@ -13,7 +13,7 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # 导入工具函数
-from tools import get_stock_price_realtime
+from tools import get_stock_price_realtime, get_previous_trading_day
 
 # 加载密钥
 load_dotenv()
@@ -48,7 +48,8 @@ class AnalysisState(TypedDict, total=False):
 def read_yesterday_report(state: AnalysisState) -> AnalysisState:
     """读取昨日报告并筛选涨停股票"""
     try:
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        # 使用获取上一个交易日的方法（跳过周末和节假日）
+        yesterday = get_previous_trading_day()
         cache_dir = f'cache/daily_research/{yesterday}'
         report_path = os.path.join(cache_dir, "state.json")
         
