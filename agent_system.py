@@ -2,11 +2,11 @@
 from typing import TypedDict, Annotated, List, Dict, Literal, Optional
 import operator
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import create_react_agent
-from langchain_community.chat_models import ChatTongyi  # 或 ChatOpenAI
+from langchain.tools import tool
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.tools import Tool
 from dotenv import load_dotenv
 import json
 import pandas as pd
@@ -25,10 +25,16 @@ from tools import get_limit_up_stocks, get_lhb_data, get_f10_data_for_stocks, sa
 # =======================
 # 🧠 LLM 初始化（通义千问）
 # =======================
-llm = ChatTongyi(
-    model="qwen-plus-latest",  # 推荐 qwen-plus 提升推理质量
-    api_key=os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY"),
-    temperature=0.6,
+# llm = ChatTongyi(
+#     model="qwen-plus-latest",  # 推荐 qwen-plus 提升推理质量
+#     api_key=os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY"),
+#     temperature=0.6,
+# )
+
+llm = ChatOpenAI(
+    model="deepseek-v3-1-terminus",
+    openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
+    openai_api_key=os.getenv("ARK_API_KEY") or os.getenv("OPENAI_API_KEY"),
 )
 
 # =======================
@@ -157,8 +163,9 @@ def node_risk_controller(state: ResearchState) -> ResearchState:
 # =======================
 # 🛠️ 短线龙头助手分析工具
 # =======================
+@tool
 def analyze_lhb_data(lhb_data_json: str) -> str:
-    """分析龙虎榜数据，识别主力资金动向"""
+    """分析整体龙虎榜数据，识别市场主力资金动向。输入：龙虎榜数据的JSON字符串。用于了解整体市场情况。"""
     try:
         lhb_data = json.loads(lhb_data_json) if isinstance(lhb_data_json, str) else lhb_data_json
         
@@ -201,8 +208,9 @@ def analyze_lhb_data(lhb_data_json: str) -> str:
     except Exception as e:
         return f"龙虎榜数据分析失败: {str(e)}"
 
+@tool
 def analyze_candidate_stocks(candidates_json: str) -> str:
-    """分析候选股票池，筛选优质标的"""
+    """分析候选股票池，筛选连板股、高换手率股票和强势板块。输入：候选股票数据的JSON字符串。这应该是你的第一步分析。"""
     try:
         candidates = json.loads(candidates_json) if isinstance(candidates_json, str) else candidates_json
         
@@ -244,33 +252,55 @@ def analyze_candidate_stocks(candidates_json: str) -> str:
     except Exception as e:
         return f"候选股票分析失败: {str(e)}"
 
-def get_stock_lhb_data(stock_info_json: str) -> str:
+@tool
+def get_stock_lhb_data(stock_info_json: str, lhb_data_list: str = None) -> str:
     """获取特定股票的龙虎榜数据
-    
-    参数格式: JSON字符串，包含股票代码和名称
-    例如: '{"code": "000001", "name": "平安银行", "date": "2025-11-26"}'
+
+    参数格式:
+    - stock_info_json: JSON字符串，包含股票代码和名称，例如: '{"code": "000001", "name": "平安银行"}'
+    - lhb_data_list: (可选) 全局龙虎榜数据的JSON字符串，如果提供则使用此数据，否则尝试从缓存加载
     """
     try:
         if isinstance(stock_info_json, str):
             stock_info = json.loads(stock_info_json)
         else:
             stock_info = stock_info_json
-            
+
         code = stock_info.get('code', '')
         name = stock_info.get('name', '')
-        date = stock_info.get('date', '')
-        
+
         if not code or not name:
             return f"❌ 股票信息不完整: {stock_info}"
-        
-        # 从全局龙虎榜数据中查找该股票的记录
-        # 这里需要访问state中的lhb_data，我们通过全局变量传递
-        global current_lhb_data
-        if not hasattr(get_stock_lhb_data, 'lhb_data'):
-            return f"⚠️ {name}({code}) 未找到龙虎榜数据"
-            
-        lhb_data = getattr(get_stock_lhb_data, 'lhb_data', [])
-        
+
+        # 获取龙虎榜数据
+        lhb_data = []
+        if lhb_data_list:
+            # 如果传入了lhb_data_list，使用它
+            if isinstance(lhb_data_list, str):
+                lhb_data = json.loads(lhb_data_list)
+            else:
+                lhb_data = lhb_data_list
+        else:
+            # 尝试从缓存文件加载（避免在prompt中传递大量数据）
+            try:
+                cache_dir = Path("cache/daily_research")
+                # 查找最新日期的缓存文件
+                if cache_dir.exists():
+                    subdirs = sorted([d for d in cache_dir.iterdir() if d.is_dir()], reverse=True)
+                    if subdirs:
+                        latest_dir = subdirs[0]
+                        state_file = latest_dir / "state.json"
+                        if state_file.exists():
+                            with open(state_file, 'r', encoding='utf-8') as f:
+                                cached_state = json.load(f)
+                                lhb_data = cached_state.get('lhb_data', [])
+            except Exception:
+                pass
+
+            # 如果缓存加载失败，尝试从全局变量获取（向后兼容）
+            if not lhb_data:
+                lhb_data = getattr(get_stock_lhb_data, 'lhb_data', [])
+
         # 查找该股票的龙虎榜记录
         stock_lhb_records = []
         for record in lhb_data:
@@ -314,6 +344,7 @@ def get_stock_lhb_data(stock_info_json: str) -> str:
     except Exception as e:
         return f"获取龙虎榜数据失败: {str(e)}"
 
+@tool
 def calculate_risk_reward(stock_data_json: str) -> str:
     """计算风险收益比和买卖点，包括止损价和目标价
     
@@ -419,29 +450,6 @@ def calculate_risk_reward(stock_data_json: str) -> str:
             "risk_reward_ratio": 0
         }, ensure_ascii=False)
 
-# 创建工具列表
-coach_tools = [
-    Tool(
-        name="analyze_candidate_stocks", 
-        func=analyze_candidate_stocks,
-        description="分析候选股票池，筛选连板股、高换手率股票和强势板块。输入：候选股票数据的JSON字符串。这应该是你的第一步分析。"
-    ),
-    Tool(
-        name="get_stock_lhb_data",
-        func=get_stock_lhb_data,
-        description="获取特定股票的龙虎榜数据和主力资金分析。输入：股票信息JSON字符串，格式如'{\"code\":\"000001\",\"name\":\"平安银行\",\"date\":\"2025-11-26\"}'"
-    ),
-    Tool(
-        name="calculate_risk_reward",
-        func=calculate_risk_reward,
-        description="计算个股的风险收益比、止损价和目标价。输入：单个股票数据的JSON字符串，必须包含current_price字段，格式如'{\"code\":\"000001\",\"name\":\"平安银行\",\"turnover_rate\":5.2,\"pe\":6.5,\"current_price\":10.5}'。返回JSON格式，包含stop_loss（止损价）、take_profit（目标价）和risk_reward_ratio（风险收益比）字段。"
-    ),
-    Tool(
-        name="analyze_lhb_data",
-        func=analyze_lhb_data,
-        description="分析整体龙虎榜数据，识别市场主力资金动向。输入：龙虎榜数据的JSON字符串。用于了解整体市场情况。"
-    )
-]
 
 # =======================
 # 🥋 Node 4: 短线龙头助手 (ReAct Agent优化版)
@@ -476,15 +484,12 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
         })
 
     try:
-        # 设置全局龙虎榜数据，供工具函数使用
-        get_stock_lhb_data.lhb_data = state['lhb_data']
-        
         # 创建ReAct Agent
         system_prompt = """你是一名经验丰富的A 股短线情绪龙头助手，精通龙头战法 6 大维度：题材强度、身位、盘口强度、梯队地位、情绪周期、风险信号。回答简洁，只给结论与数据，不解释原理。
 
 你的分析流程：
 1. 首先使用analyze_candidate_stocks工具分析候选股票池，了解整体情况
-2. 对于重点关注的股票，使用get_stock_lhb_data工具查询其龙虎榜数据
+2. 对于重点关注的股票，使用get_stock_lhb_data工具查询其龙虎榜数据。重要：调用get_stock_lhb_data时，必须将lhb_data_list参数设置为可访问的龙虎榜数据
 3. 使用calculate_risk_reward工具计算重点股票的风险收益比
 4. 如需了解整体市场情况，可使用analyze_lhb_data工具
 5. 最后综合所有分析结果，给出最终的打板建议
@@ -501,7 +506,7 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 
 最终输出格式必须是JSON数组，包含以下字段：
 - code: 股票代码
-- name: 股票名称  
+- name: 股票名称
 - tier_rank: 梯队地位（龙头/跟风/独立）
 - mood_cycle: 情绪周期（冰点/回暖/主升/高潮/退潮）
 - action: 操作建议（"可打板"/"关注"/"观望"/"回避"）
@@ -514,38 +519,47 @@ def node_day_trading_coach(state: ResearchState) -> ResearchState:
 
 请开始你的分析。"""
 
-        # 创建ReAct Agent
-        react_agent = create_react_agent(
-            model=llm,
-            tools=coach_tools,
-            prompt=system_prompt
+        # 创建Agent
+        agent = create_agent(
+            llm,
+            tools=[analyze_candidate_stocks, get_stock_lhb_data, calculate_risk_reward, analyze_lhb_data],
+            system_prompt=system_prompt
         )
         
         # 准备输入数据 - 不再限制数据量
         candidates_str = json.dumps(candidates, ensure_ascii=False, default=str)
-        
+
         user_query = f"""请分析以下候选股票池并给出操作建议：
 
 候选股票池（共{len(candidates)}只）：
 {candidates_str}
 
+龙虎榜数据已准备就绪，可以通过get_stock_lhb_data工具查询任何股票的龙虎榜信息。
+
 分析日期：{state['date']}
 
 请按照你的分析流程：
-1. 先分析候选股票池的整体情况
-2. 对重点股票逐一查询龙虎榜数据
-3. 计算风险收益比
-4. 给出最终的投资建议
+1. 先使用analyze_candidate_stocks分析候选股票池的整体情况
+2. 对重点关注的股票（特别是连板股），使用get_stock_lhb_data查询其龙虎榜数据
+3. 对重点股票使用calculate_risk_reward计算风险收益比、止损价和目标价
+4. 最后综合所有分析结果，给出可执行的投资建议，格式为JSON数组
 
-注意：龙虎榜数据已准备就绪，你可以通过get_stock_lhb_data工具查询任何股票的龙虎榜信息。"""
-
-        # 执行ReAct Agent
+请确保最终输出是完整的JSON数组格式，包含所有要求的字段。"""
         print("🤖 短线龙头助手开始分析...")
         
-        response = react_agent.invoke({
+        response = agent.invoke({
             "messages": [HumanMessage(content=user_query)]
         })
         
+        # 打印工具使用（从消息历史中提取）
+        for message in response["messages"]:
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    print(f"Tool: {tool_call.get('name', 'unknown')}")
+                    print(f"Args: {tool_call.get('args', {})}")
+                    print(f"ID: {tool_call.get('id', '')}")
+                    print("-" * 40)
+
         # 提取最终的AI消息
         final_message = ""
         thinking_process = []
@@ -720,7 +734,7 @@ def route_next_step(state: ResearchState) -> str:
 # 🌐 构建 Graph
 # =======================
 def create_research_graph():
-    workflow = StateGraph(ResearchState)
+    workflow = StateGraph[ResearchState, None, ResearchState, ResearchState](ResearchState)
 
     # 添加所有节点
     workflow.add_node("node_data_officer", node_data_officer)
@@ -913,3 +927,8 @@ def run_ai_research_analysis(date: str, force_rerun: bool = False) -> Dict:
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+if __name__ == "__main__":
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    run_ai_research_analysis(today, force_rerun=True)

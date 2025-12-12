@@ -131,4 +131,8 @@ cython_debug/
 .DS_Store
 
 # PyCharm
-.idea/ 
+.idea/
+
+# Project specific
+cache/
+reports/
