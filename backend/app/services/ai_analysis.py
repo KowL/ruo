@@ -79,7 +79,7 @@ class AIAnalysisService:
             if ark_key and ark_key != 'your_ark_api_key_here':
                 api_key = ark_key
                 base_url = 'https://ark.cn-beijing.volces.com/api/v3'
-                model_name = 'ep-20250122212631-xssdr'
+                model_name = 'deepseek-v3-2-251201'
                 logger.info("使用火山方舟 DeepSeek-V3 API")
 
             # 方式2: 尝试 DeepSeek 官方
