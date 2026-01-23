@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: ruo_postgres
+    environment:
+      POSTGRES_USER: ruo_user
+      POSTGRES_PASSWORD: ruo_password
+      POSTGRES_DB: ruo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ruo_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: ruo_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # FastAPI 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ruo_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./cache:/app/cache
+      - ./reports:/app/reports
+    environment:
+      - DATABASE_URL=postgresql://ruo_user:ruo_password@postgres:5432/ruo_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+
+  # Celery Worker (定时任务)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ruo_celery_worker
+    command: celery -A app.tasks worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - ./cache:/app/cache
+      - ./reports:/app/reports
+    environment:
+      - DATABASE_URL=postgresql://ruo_user:ruo_password@postgres:5432/ruo_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+
+  # Celery Beat (定时调度)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ruo_celery_beat
+    command: celery -A app.tasks beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://ruo_user:ruo_password@postgres:5432/ruo_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer utilities {
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+}
+
+@layer components {
+  /* 涨跌颜色 */
+  .text-rise {
+    @apply text-red-600;
+  }
+
+  .text-fall {
+    @apply text-green-600;
+  }
+
+  .bg-rise {
+    @apply bg-red-50;
+  }
+
+  .bg-fall {
+    @apply bg-green-50;
+  }
+
+  /* 卡片样式 */
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+  }
+
+  /* 按钮样式 */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-200 text-gray-700 hover:bg-gray-300;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+}
