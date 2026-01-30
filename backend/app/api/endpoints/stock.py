@@ -1,11 +1,11 @@
 """
-股票查询 API 端点 - MVP v0.1
+股票查询 API 端点 - MVP v0.2
 Stock Query API Endpoints
 
 实现功能：
 - F-01: 基础行情接入
 - F-02: 股票搜索（自动补全）
-- F-07: K 线数据查询
+- F-07: 股票详情页（分时+买卖盘）
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
@@ -111,45 +111,37 @@ async def get_realtime_price(
         raise HTTPException(status_code=500, detail=f"获取实时行情失败: {str(e)}")
 
 
-@router.get("/kline/{symbol}", summary="获取 K 线数据", tags=["股票查询"])
-async def get_kline_data(
-    symbol: str,
-    period: str = Query("daily", description="周期：daily/weekly/monthly"),
-    limit: int = Query(60, description="返回数量", ge=1, le=500)
+@router.get("/detail/{symbol}", summary="获取股票详细数据", tags=["股票查询"])
+async def get_stock_detail(
+    symbol: str
 ):
     """
-    获取 K 线数据
+    获取股票详细数据（含分时和买卖盘）
 
     **参数：**
     - symbol: 股票代码
-    - period: 周期（daily=日K, weekly=周K, monthly=月K）
-    - limit: 返回数量（默认 60）
 
     **返回：**
-    - K 线数据列表
-    - 包含日期、开高低收、成交量
+    - 基础行情：价格、涨跌幅、开高低收、成交量、成交额、换手率
+    - 分时数据：时间、价格、成交量、均价
+    - 买盘五档：价格、手数
+    - 卖盘五档：价格、手数
     """
     try:
-        # 验证周期参数
-        if period not in ['daily', 'weekly', 'monthly']:
-            raise HTTPException(status_code=400, detail="周期参数错误，支持：daily/weekly/monthly")
+        detail = market_service.get_stock_detail(symbol)
 
-        kline_data = market_service.get_kline_data(symbol, period, limit)
-
-        if not kline_data:
-            raise HTTPException(status_code=404, detail=f"未找到 K 线数据: {symbol}")
+        if not detail:
+            raise HTTPException(status_code=404, detail=f"未找到股票详情: {symbol}")
 
         return {
             "status": "success",
-            "data": kline_data,
-            "count": len(kline_data),
-            "period": period
+            "data": detail
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取 K 线数据失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取股票详情失败: {str(e)}")
 
 
 @router.post("/batch/realtime", summary="批量获取实时行情", tags=["股票查询"])

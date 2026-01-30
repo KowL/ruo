@@ -360,6 +360,198 @@ class MarketDataService:
             logger.error(f"批量获取实时行情失败, 错误: {e}")
             raise
 
+    @retry_on_error(max_retries=3, delay=1.0)
+    def get_intraday_data(self, symbol: str) -> List[Dict]:
+        """
+        获取分时数据
+
+        Args:
+            symbol: 股票代码
+
+        Returns:
+            分时数据列表
+        """
+        try:
+            # 检查缓存（分时数据短期缓存）
+            cache_key = f"intraday:{symbol}"
+            if cache_key in self.cache:
+                cached_data, cached_time = self.cache[cache_key]
+                # 分时数据缓存30秒
+                if time.time() - cached_time < 30:
+                    logger.debug(f"从缓存返回分时数据: {symbol}")
+                    return cached_data
+
+            # 使用 AkShare 获取分时数据
+            # 根据市场选择不同的接口
+            if symbol.startswith('6') or symbol.startswith('688'):
+                # 上海市场
+                df = ak.stock_zh_a_hist_min_em(symbol=symbol, period='1', adjust='')
+            else:
+                # 深圳市场
+                df = ak.stock_zh_a_hist_min_em(symbol=symbol, period='1', adjust='')
+
+            if df.empty:
+                logger.warning(f"未找到分时数据: {symbol}")
+                return []
+
+            # 转换为字典列表
+            intraday_data = []
+            total_volume = 0
+            total_amount = 0
+
+            for _, row in df.iterrows():
+                volume = float(row['成交量']) if '成交量' in row else 0
+                amount = float(row['成交额']) if '成交额' in row else 0
+                total_volume += volume
+                total_amount += amount
+
+                # 计算均价
+                avg_price = amount / volume if volume > 0 else 0
+
+                intraday_data.append({
+                    'time': row['时间'].strftime('%H:%M:%S') if '时间' in row else row.name.strftime('%H:%M:%S'),
+                    'price': float(row['收盘']),
+                    'volume': volume,
+                    'avg_price': avg_price
+                })
+
+            # 缓存结果
+            self.cache[cache_key] = (intraday_data, time.time())
+
+            return intraday_data
+
+        except Exception as e:
+            logger.error(f"获取分时数据失败: {symbol}, 错误: {e}")
+            raise
+
+    @retry_on_error(max_retries=3, delay=1.0)
+    def get_order_book_data(self, symbol: str) -> Dict:
+        """
+        获取买卖盘数据（五档）
+
+        Args:
+            symbol: 股票代码
+
+        Returns:
+            买卖盘数据字典
+        """
+        try:
+            # 买卖盘数据使用极短期缓存（5秒）
+            cache_key = f"orderbook:{symbol}"
+            if cache_key in self.cache:
+                cached_data, cached_time = self.cache[cache_key]
+                if time.time() - cached_time < 5:
+                    logger.debug(f"从缓存返回买卖盘数据: {symbol}")
+                    return cached_data
+
+            # 使用 AkShare 获取实时行情（包含买卖盘）
+            spot_data = ak.stock_zh_a_spot_em()
+
+            # 查找指定股票
+            stock_data = spot_data[spot_data['代码'] == symbol]
+
+            if stock_data.empty:
+                logger.warning(f"未找到股票买卖盘数据: {symbol}")
+                return {'buy_orders': [], 'sell_orders': []}
+
+            row = stock_data.iloc[0]
+
+            # 解析买一到买五
+            buy_orders = []
+            for i in range(1, 6):
+                price_col = f'买{i}_价'
+                volume_col = f'买{i}_量'
+                if price_col in row and volume_col in row:
+                    price = float(row[price_col]) if pd.notna(row[price_col]) else 0
+                    volume = float(row[volume_col]) if pd.notna(row[volume_col]) else 0
+                    if price > 0:
+                        buy_orders.append({
+                            'level': i,
+                            'price': price,
+                            'volume': int(volume)
+                        })
+
+            # 解析卖一到卖五
+            sell_orders = []
+            for i in range(1, 6):
+                price_col = f'卖{i}_价'
+                volume_col = f'卖{i}_量'
+                if price_col in row and volume_col in row:
+                    price = float(row[price_col]) if pd.notna(row[price_col]) else 0
+                    volume = float(row[volume_col]) if pd.notna(row[volume_col]) else 0
+                    if price > 0:
+                        sell_orders.append({
+                            'level': i,
+                            'price': price,
+                            'volume': int(volume)
+                        })
+
+            result = {
+                'buy_orders': buy_orders,
+                'sell_orders': sell_orders
+            }
+
+            # 缓存结果（5秒）
+            self.cache[cache_key] = (result, time.time())
+
+            return result
+
+        except Exception as e:
+            logger.error(f"获取买卖盘数据失败: {symbol}, 错误: {e}")
+            raise
+
+    @retry_on_error(max_retries=3, delay=1.0)
+    def get_stock_detail(self, symbol: str) -> Optional[Dict]:
+        """
+        获取股票完整详情（含基础行情、分时、买卖盘）
+
+        Args:
+            symbol: 股票代码
+
+        Returns:
+            股票完整详情字典
+        """
+        try:
+            # 获取基础行情
+            realtime = self.get_realtime_price(symbol)
+            if not realtime:
+                return None
+
+            # 获取分时数据
+            intraday = self.get_intraday_data(symbol)
+
+            # 获取买卖盘数据
+            order_book = self.get_order_book_data(symbol)
+
+            # 计算换手率
+            volume = realtime.get('volume', 0)
+            amount = realtime.get('amount', 0)
+            turnover = (amount / (volume * realtime.get('price', 1))) * 100 if volume > 0 and amount > 0 else 0
+
+            result = {
+                'symbol': realtime['symbol'],
+                'name': realtime['name'],
+                'price': realtime['price'],
+                'change': realtime['change'],
+                'change_pct': realtime['change_pct'],
+                'open': realtime['open'],
+                'high': realtime['high'],
+                'low': realtime['low'],
+                'volume': volume,
+                'amount': amount,
+                'turnover': round(turnover, 2),
+                'timestamp': realtime['timestamp'],
+                'intraday': intraday,
+                'buy_orders': order_book.get('buy_orders', []),
+                'sell_orders': order_book.get('sell_orders', [])
+            }
+
+            return result
+
+        except Exception as e:
+            logger.error(f"获取股票详情失败: {symbol}, 错误: {e}")
+            raise
+
     def _get_market_name(self, symbol: str) -> str:
         """
         根据代码判断市场

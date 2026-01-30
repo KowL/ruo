@@ -8,12 +8,12 @@ MVP v0.1
 - 存储到数据库
 """
 import akshare as ak
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 import logging
 
-from app.models.news import StockNews
+from app.models.news import StockNews, NewsAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -331,3 +331,146 @@ class NewsService:
         except Exception as e:
             logger.warning(f"解析时间失败: {time_str}, 错误: {e}")
             return datetime.now()
+
+    def get_unanalyzed_news(self, hours: int = 24, limit: int = 100) -> List[StockNews]:
+        """
+        获取未分析的新闻
+
+        Args:
+            hours: 最近 N 小时内的新闻
+            limit: 返回数量限制
+
+        Returns:
+            未分析的新闻列表
+        """
+        try:
+            from sqlalchemy import and_
+
+            # 计算时间范围
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+
+            # 查询未分析的新闻
+            query = self.db.query(StockNews).filter(
+                and_(
+                    StockNews.publish_time >= cutoff_time,
+                    ~StockNews.analyses.any()  # 没有关联的分析记录
+                )
+            ).order_by(StockNews.publish_time.desc()).limit(limit)
+
+            news_list = query.all()
+            logger.info(f"找到 {len(news_list)} 条未分析的新闻（最近 {hours} 小时）")
+            return news_list
+
+        except Exception as e:
+            logger.error(f"获取未分析新闻失败: {e}")
+            raise
+
+    def save_news_analysis(self, news_id: int, analysis_data: Dict[str, Any]) -> Optional[NewsAnalysis]:
+        """
+        保存新闻分析结果
+
+        Args:
+            news_id: 新闻 ID
+            analysis_data: 分析结果字典
+
+        Returns:
+            保存的分析对象
+        """
+        try:
+            # 检查是否已存在分析结果
+            existing = self.db.query(NewsAnalysis).filter(
+                NewsAnalysis.news_id == news_id
+            ).first()
+
+            if existing:
+                # 更新现有记录
+                existing.ai_summary = analysis_data.get('ai_summary', '')
+                existing.sentiment_label = analysis_data.get('sentiment_label', '中性')
+                existing.sentiment_score = analysis_data.get('sentiment_score', 3.0)
+                existing.llm_model = analysis_data.get('llm_model', 'unknown')
+                existing.updated_at = datetime.now()
+
+                self.db.commit()
+                self.db.refresh(existing)
+                logger.info(f"更新新闻分析结果 (ID: {news_id})")
+                return existing
+
+            # 创建新记录
+            analysis = NewsAnalysis(
+                news_id=news_id,
+                ai_summary=analysis_data.get('ai_summary', ''),
+                sentiment_label=analysis_data.get('sentiment_label', '中性'),
+                sentiment_score=analysis_data.get('sentiment_score', 3.0),
+                llm_model=analysis_data.get('llm_model', 'unknown')
+            )
+
+            self.db.add(analysis)
+            self.db.commit()
+            self.db.refresh(analysis)
+            logger.info(f"保存新闻分析结果 (ID: {news_id})")
+            return analysis
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"保存新闻分析结果失败: {e}")
+            raise
+
+    def delete_old_news(self, cutoff_date: datetime) -> int:
+        """
+        删除指定日期之前的新闻
+
+        Args:
+            cutoff_date: 截止日期
+
+        Returns:
+            删除的新闻数量
+        """
+        try:
+            # 查询旧新闻
+            old_news = self.db.query(StockNews).filter(
+                StockNews.publish_time < cutoff_date
+            ).all()
+
+            if not old_news:
+                return 0
+
+            count = len(old_news)
+            news_ids = [n.id for n in old_news]
+
+            # 删除关联的分析记录
+            self.db.query(NewsAnalysis).filter(
+                NewsAnalysis.news_id.in_(news_ids)
+            ).delete(synchronize_session=False)
+
+            # 删除新闻记录
+            self.db.query(StockNews).filter(
+                StockNews.id.in_(news_ids)
+            ).delete(synchronize_session=False)
+
+            self.db.commit()
+
+            logger.info(f"删除了 {count} 条旧新闻（截止日期: {cutoff_date}）")
+            return count
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"删除旧新闻失败: {e}")
+            raise
+
+    def get_news_by_id(self, news_id: int) -> Optional[StockNews]:
+        """
+        根据 ID 获取新闻
+
+        Args:
+            news_id: 新闻 ID
+
+        Returns:
+            新闻对象
+        """
+        try:
+            return self.db.query(StockNews).filter(
+                StockNews.id == news_id
+            ).first()
+        except Exception as e:
+            logger.error(f"获取新闻失败 (ID: {news_id}): {e}")
+            raise

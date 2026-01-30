@@ -1,9 +1,9 @@
 # MVP v0.1 详细设计文档
 
-> **版本**: v0.1
-> **目标**: 实现基础持仓管理 + AI 新闻情报功能
+> **版本**: v0.2
+> **目标**: 实现基础持仓管理 + AI 新闻情报功能 + 股票详情页
 > **开发周期**: 2-3 周
-> **最后更新**: 2026-01-22
+> **最后更新**: 2026-01-28
 
 ---
 
@@ -34,7 +34,9 @@
 
 | 功能ID | 模块 | 功能描述 | 验收标准 | 优先级 |
 |--------|------|----------|----------|--------|
-| F-07 | K线分析 | 基础 K 线图 | 展示日 K 线图（OHLC） | P1 |
+| F-07 | 股票详情 | 股票详情页 | 点击持仓股票进入详情页，显示股票详细数据 | P1 |
+| F-08 | 分时数据 | 分时图展示 | 展示当日分时价格走势图 | P1 |
+| F-09 | 买卖盘 | 五档买卖盘 | 显示买一到买五、卖一到卖五的价格和手数 | P1 |
 
 ---
 
@@ -250,29 +252,91 @@ portfolios.symbol --- stocks.symbol (逻辑关联)
 }
 ```
 
-### 3.4 K 线数据 API
+### 3.4 股票详情数据 API
 
-#### **GET /api/v1/kline/{symbol}**
-获取 K 线数据
-
-**查询参数：**
-- `period`: 周期（daily/weekly/monthly，默认 daily）
-- `limit`: 返回数量（默认 60）
+#### **GET /api/v1/stock/detail/{symbol}**
+获取股票详细数据（包含分时和买卖盘）
 
 **响应：**
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "date": "2026-01-22",
-      "open": 11.0,
-      "high": 11.5,
-      "low": 10.9,
-      "close": 11.2,
-      "volume": 123456789
-    }
-  ]
+  "data": {
+    "symbol": "000001",
+    "name": "平安银行",
+    "price": 11.2,
+    "change": 0.15,
+    "change_pct": 1.36,
+    "open": 11.0,
+    "high": 11.5,
+    "low": 10.9,
+    "volume": 123456789,
+    "amount": 1385000000,
+    "turnover": 2.5,
+    "timestamp": "2026-01-22 14:30:00",
+    "intraday": [
+      {
+        "time": "09:30:00",
+        "price": 10.95,
+        "volume": 125000,
+        "avg_price": 10.92
+      }
+    ],
+    "buy_orders": [
+      {
+        "level": 1,
+        "price": 11.19,
+        "volume": 125800
+      },
+      {
+        "level": 2,
+        "price": 11.18,
+        "volume": 98500
+      },
+      {
+        "level": 3,
+        "price": 11.17,
+        "volume": 75000
+      },
+      {
+        "level": 4,
+        "price": 11.16,
+        "volume": 62000
+      },
+      {
+        "level": 5,
+        "price": 11.15,
+        "volume": 58000
+      }
+    ],
+    "sell_orders": [
+      {
+        "level": 1,
+        "price": 11.20,
+        "volume": 98500
+      },
+      {
+        "level": 2,
+        "price": 11.21,
+        "volume": 125000
+      },
+      {
+        "level": 3,
+        "price": 11.22,
+        "volume": 85000
+      },
+      {
+        "level": 4,
+        "price": 11.23,
+        "volume": 78000
+      },
+      {
+        "level": 5,
+        "price": 11.24,
+        "volume": 62000
+      }
+    ]
+  }
 }
 ```
 
@@ -289,7 +353,9 @@ portfolios.symbol --- stocks.symbol (逻辑关联)
 class MarketDataService:
     def get_stock_info(symbol: str) -> dict
     def get_realtime_price(symbol: str) -> dict
-    def get_kline_data(symbol: str, period: str, limit: int) -> list
+    def get_stock_detail(symbol: str) -> dict      # 获取股票完整详情（含分时、买卖盘）
+    def get_intraday_data(symbol: str) -> list    # 获取分时数据
+    def get_order_book_data(symbol: str) -> dict  # 获取买卖盘数据
     def search_stock(keyword: str) -> list
 ```
 
@@ -362,11 +428,11 @@ SENTIMENT_ANALYSIS_PROMPT = """
 | T-06 | 实现 NewsService | Services | 3h | 🔜 待开始 | - |
 | T-07 | 实现 AIAnalysisService | Services | 4h | 🔜 待开始 | - |
 | T-08 | 实现新闻情报 API | API | 3h | 🔜 待开始 | - |
-| T-09 | 实现 K 线数据 API | API | 2h | 🔜 待开始 | - |
+| T-09 | 实现股票详情 API（分时+买卖盘）| API | 4h | 🔜 待开始 | - |
 | T-10 | 创建 Celery 定时任务 | Tasks | 3h | 🔜 待开始 | - |
 | T-11 | 集成测试 | Tests | 4h | 🔜 待开始 | - |
 
-**总预计工时**: 34h
+**总预计工时**: 36h
 **当前进度**: 5%
 
 ### 5.2 里程碑
@@ -374,7 +440,7 @@ SENTIMENT_ANALYSIS_PROMPT = """
 - [ ] **里程碑 1**: 完成数据库和基础服务（T-01 ~ T-03）
 - [ ] **里程碑 2**: 完成持仓管理功能（T-04 ~ T-05）
 - [ ] **里程碑 3**: 完成新闻和 AI 分析（T-06 ~ T-08）
-- [ ] **里程碑 4**: 完成 K 线和定时任务（T-09 ~ T-10）
+- [ ] **里程碑 4**: 完成股票详情和定时任务（T-09 ~ T-10）
 - [ ] **里程碑 5**: 完成集成测试和部署（T-11）
 
 ---
@@ -487,6 +553,7 @@ docker-compose up -d
 
 | 日期 | 版本 | 更新内容 |
 |------|------|----------|
+| 2026-01-28 | v0.2 | 移除 K 线设计，新增股票详情页（分时图+买卖盘）|
 | 2026-01-22 | v0.1 | 初始版本，完成需求分析和数据库设计 |
 
 ---

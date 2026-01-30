@@ -1,5 +1,4 @@
 import React from 'react';
-import Card from '../common/Card';
 import { StockNews } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
 import clsx from 'clsx';
@@ -9,53 +8,67 @@ interface NewsCardProps {
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
-  const getSentimentColor = (label?: string) => {
-    switch (label) {
-      case '利好':
-        return 'text-red-600 bg-red-50';
-      case '利空':
-        return 'text-green-600 bg-green-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
+  const getSentimentColor = (score?: number) => {
+    if (!score) return 'text-[var(--color-text-secondary)]';
+    if (score > 0.6) return 'text-[var(--color-profit-up)]';
+    if (score < 0.4) return 'text-[var(--color-loss-up)]';
+    return 'text-[var(--color-warning)]';
   };
 
-  const getSentimentStars = (score?: number) => {
-    if (!score) return '';
-    return '★'.repeat(Math.round(score));
+  const getSentimentPosition = (score?: number) => {
+    if (!score) return 50;
+    return score * 100;
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <div className="card hover:shadow-md transition-all hover:shadow-[var(--color-ruo-purple)]/10">
       <div className="space-y-3">
-        {/* 标题和情感标签 */}
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-semibold text-gray-900 flex-1">{news.title}</h3>
-          {news.sentiment_label && (
-            <span
-              className={clsx(
-                'px-2 py-1 text-xs font-medium rounded whitespace-nowrap',
-                getSentimentColor(news.sentiment_label)
-              )}
-            >
-              {news.sentiment_label} {getSentimentStars(news.sentiment_score)}
-            </span>
-          )}
-        </div>
-
-        {/* AI 摘要 */}
-        {news.ai_summary && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-            <p className="text-xs text-blue-800 font-medium mb-1">🤖 AI 分析</p>
-            <p className="text-sm text-gray-700">{news.ai_summary}</p>
-          </div>
-        )}
-
-        {/* 来源和时间 */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        {/* Header - 来源和时间 */}
+        <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
           <span>{news.source}</span>
           <span>{formatRelativeTime(news.publish_time)}</span>
         </div>
+
+        {/* Body - AI 摘要 */}
+        <div className="space-y-2">
+          <p className="font-medium leading-tight">{news.ai_summary || news.title}</p>
+
+          {/* 情感倾向条 */}
+          {news.sentiment_score !== undefined && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-[var(--color-text-secondary)]">利空</span>
+              <div className="flex-1 h-1 bg-[var(--color-surface-3)] rounded-full relative">
+                <div
+                  className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-[var(--color-ruo-purple)] rounded-full -mt-1.5"
+                  style={{ left: `${getSentimentPosition(news.sentiment_score)}%` }}
+                ></div>
+              </div>
+              <span className="text-xs text-[var(--color-text-secondary)]">利好</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer - 关联股票 */}
+        {news.stock_symbols && news.stock_symbols.length > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-[var(--color-text-secondary)]">关联股票:</span>
+              {news.stock_symbols.map((symbol, idx) => (
+                <span key={idx} className="text-xs text-[var(--color-ruo-purple)] cursor-pointer hover:underline">
+                  {symbol}
+                  {idx < news.stock_symbols.length - 1 && ', '}
+                </span>
+              ))}
+            </div>
+            {/* 情感分数 */}
+            {news.sentiment_score !== undefined && (
+              <span className={`text-xs font-medium ${getSentimentColor(news.sentiment_score)}`}>
+                {news.sentiment_score > 0.6 ? '📈' : news.sentiment_score < 0.4 ? '📉' : '➡️'}
+                {Math.round(news.sentiment_score * 100)}%
+              </span>
+            )}
+          </div>
+        )}
 
         {/* 查看原文链接 */}
         {news.url && (
@@ -63,13 +76,13 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
             href={news.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary-600 hover:text-primary-700 inline-flex items-center"
+            className="text-sm text-[var(--color-ruo-purple)] hover:text-[var(--color-electric-cyan)] inline-flex items-center transition-colors"
           >
             查看原文 →
           </a>
         )}
       </div>
-    </Card>
+    </div>
   );
 };
 
