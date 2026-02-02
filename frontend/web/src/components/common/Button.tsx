@@ -18,14 +18,27 @@ const Button: React.FC<ButtonProps> = ({
   const baseClass = 'px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 active:scale-95',
-    secondary: 'bg-gray-200 text-gray-700 hover:bg-gray-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+    primary: 'bg-white text-black hover:bg-white/90 active:scale-95',
+    secondary: 'hover:opacity-80 active:scale-95',
+    danger: 'hover:opacity-80 active:scale-95',
+  };
+
+  const variantStyles = {
+    primary: { backgroundColor: 'var(--color-brand)', color: 'black' },
+    secondary: { backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' },
+    danger: { backgroundColor: 'var(--color-profit-up)', color: 'white' },
+  };
+
+  const variantHoverStyles = {
+    primary: { },
+    secondary: { backgroundColor: 'var(--color-surface-4)' },
+    danger: { },
   };
 
   return (
     <button
       className={clsx(baseClass, variantClasses[variant], className)}
+      style={variantStyles[variant]}
       disabled={disabled || loading}
       {...props}
     >

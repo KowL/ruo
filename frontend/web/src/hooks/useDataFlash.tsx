@@ -53,12 +53,7 @@ export const DataFlash: React.FC<DataFlashProps> = ({ value, children, className
 
   useEffect(() => {
     if (prevValue.current !== value) {
-      // 根据涨跌决定闪烁颜色
-      const flashColor = isPositive
-        ? 'rgba(246, 53, 56, 0.2)' // 涨 - 红色
-        : 'rgba(16, 185, 129, 0.2)'; // 跌 - 绿色
-
-      setFlashClass(`data-flash`);
+      setFlashClass('data-flash');
       prevValue.current = value;
 
       // 300ms后移除闪烁效果

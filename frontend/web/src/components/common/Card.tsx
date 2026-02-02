@@ -11,10 +11,14 @@ const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
   return (
     <div
       className={clsx(
-        'bg-white rounded-lg shadow-sm border border-gray-200 p-4',
-        onClick && 'cursor-pointer hover:shadow-md transition-shadow',
+        'rounded-lg p-4',
+        onClick && 'cursor-pointer hover:opacity-80 transition-opacity',
         className
       )}
+      style={{
+        backgroundColor: 'var(--color-surface-2)',
+        border: '1px solid var(--color-surface-4)'
+      }}
       onClick={onClick}
     >
       {children}

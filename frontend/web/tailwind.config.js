@@ -6,45 +6,28 @@ export default {
   ],
   theme: {
     extend: {
-      // 深空暗黑主题色彩体系
+      // 极简黑色主题色彩体系
       colors: {
         // 背景色 (Backgrounds)
-        'surface-1': '#0F1115', // Global BG
-        'surface-2': '#181B21', // Cards/Panels
-        'surface-3': '#2A2E35', // Hover/Active
+        'surface-1': '#000000', // 全局背景 - 纯黑
+        'surface-2': '#0A0A0A', // 卡片/面板
+        'surface-3': '#1A1A1A', // 悬停/激活
+        'surface-4': '#2A2A2A', // 边框/分隔
 
-        // 品牌与 AI 色 (Brand & AI)
-        'ruo-purple': '#7C3AED', // AI 核心色
-        'electric-cyan': '#06B6D4', // 高亮/强调
+        // 品牌色 (Brand) - 极简白色
+        'brand': '#FFFFFF', // 品牌白
 
         // 功能色 (Functional)
-        'profit-up': '#F63538', // A股红 (涨/利好)
-        'profit-down': '#10B981', // 美股绿 (涨/利好)
-        'loss-up': '#10B981', // A股绿 (跌/利空)
-        'loss-down': '#F63538', // 美股红 (跌/利空)
-        'warning': '#F59E0B', // 预警
+        'profit-up': '#FF3B30', // A股红 (涨)
+        'profit-down': '#34C759', // 美股绿 (涨)
+        'loss-up': '#34C759', // A股绿 (跌)
+        'loss-down': '#FF3B30', // 美股红 (跌)
+        'warning': '#FF9500', // 预警
 
         // 文本色 (Typography)
-        'text-primary': '#F9FAFB', // 高亮白
-        'text-secondary': '#9CA3AF', // 冷灰
-
-        // 保留原有的颜色体系作为备用
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        },
-        success: '#10b981',
-        danger: '#ef4444',
-        warning: '#f59e0b',
-        info: '#3b82f6',
+        'text-primary': '#FFFFFF', // 主文本
+        'text-secondary': '#8E8E93', // 次要文本
+        'text-muted': '#3A3A3C', // 弱化文本
       },
 
       // 字体配置

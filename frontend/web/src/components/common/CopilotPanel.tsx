@@ -145,30 +145,31 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
           style={{ backgroundColor: 'var(--color-surface-2)' }}
         >
           {/* 头部 */}
-          <div className="p-4 border-b border-[var(--color-surface-3)] flex items-center justify-between">
+          <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-surface-4)' }}>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg gradient-aurora flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-black font-bold text-sm" style={{ backgroundColor: 'var(--color-brand)' }}>
                 R
               </div>
               <h2 className="text-lg font-bold">Ruo Copilot</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-[var(--color-surface-3)]"
+              className="p-2 rounded-lg hover:opacity-70"
             >
               ✕
             </button>
           </div>
 
           {/* 快捷指令 */}
-          <div className="p-4 border-b border-[var(--color-surface-3)]">
-            <div className="text-xs text-[var(--color-text-secondary)] mb-2">快捷指令</div>
+          <div className="p-4 border-b" style={{ borderColor: 'var(--color-surface-4)' }}>
+            <div className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>快捷指令</div>
             <div className="grid grid-cols-2 gap-2">
               {quickCommands.map((command, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickCommand(command)}
-                  className="p-2 rounded-lg text-xs font-medium bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-3)]/80 transition-colors flex items-center space-x-1"
+                  className="p-2 rounded-lg text-xs font-medium transition-opacity flex items-center space-x-1"
+                  style={{ backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' }}
                 >
                   <span>{command.icon}</span>
                   <span>{command.label}</span>
@@ -191,12 +192,17 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
                   className={clsx(
                     'max-w-[85%] rounded-lg p-3',
                     message.role === 'user'
-                      ? 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)]'
-                      : 'bg-[var(--color-ruo-purple)]/10 border border-[var(--color-ruo-purple)]/30 glow-purple'
+                      ? ''
+                      : 'border'
                   )}
+                  style={
+                    message.role === 'user'
+                      ? { backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' }
+                      : { backgroundColor: 'var(--color-surface-2)', borderColor: 'var(--color-surface-4)', color: 'var(--color-text-primary)' }
+                  }
                 >
                   <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                  <div className="text-xs text-[var(--color-text-secondary)] mt-1">
+                  <div className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                     {message.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
@@ -206,11 +212,11 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
             {/* AI 正在输入 */}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-[var(--color-ruo-purple)]/10 border border-[var(--color-ruo-purple)]/30 rounded-lg p-3">
+                <div className="rounded-lg p-3 border" style={{ backgroundColor: 'var(--color-surface-2)', borderColor: 'var(--color-surface-4)' }}>
                   <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-[var(--color-ruo-purple)] rounded-full pulse-wave" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-[var(--color-ruo-purple)] rounded-full pulse-wave" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-[var(--color-ruo-purple)] rounded-full pulse-wave" style={{ animationDelay: '300ms' }}></div>
+                    <div className="w-2 h-2 rounded-full pulse-wave" style={{ backgroundColor: 'var(--color-brand)', animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 rounded-full pulse-wave" style={{ backgroundColor: 'var(--color-brand)', animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 rounded-full pulse-wave" style={{ backgroundColor: 'var(--color-brand)', animationDelay: '300ms' }}></div>
                   </div>
                 </div>
               </div>
@@ -220,7 +226,7 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
           </div>
 
           {/* 输入区 */}
-          <div className="p-4 border-t border-[var(--color-surface-3)]">
+          <div className="p-4 border-t" style={{ borderColor: 'var(--color-surface-4)' }}>
             <div className="flex items-center space-x-2">
               <input
                 type="text"
@@ -235,15 +241,15 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
                 disabled={!input.trim()}
                 className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: 'var(--color-ruo-purple)',
-                  color: 'white'
+                  backgroundColor: 'var(--color-brand)',
+                  color: 'black'
                 }}
               >
                 发送
               </button>
             </div>
-            <div className="text-xs text-[var(--color-text-secondary)] mt-2 text-center">
-              按 <kbd className="px-1 py-0.5 rounded bg-[var(--color-surface-3)]">Enter</kbd> 发送，<kbd className="px-1 py-0.5 rounded bg-[var(--color-surface-3)]">Shift</kbd>+<kbd className="px-1 py-0.5 rounded bg-[var(--color-surface-3)]">Enter</kbd> 换行
+            <div className="text-xs mt-2 text-center" style={{ color: 'var(--color-text-secondary)' }}>
+              按 <kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Enter</kbd> 发送，<kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Shift</kbd>+<kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Enter</kbd> 换行
             </div>
           </div>
         </div>

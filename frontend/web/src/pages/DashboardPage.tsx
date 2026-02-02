@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import PortfolioCard from '../components/portfolio/PortfolioCard';
-import NewsCard from '../components/news/NewsCard';
 
 const DashboardPage: React.FC = () => {
   const [usMarket, setUsMarket] = useState(false);

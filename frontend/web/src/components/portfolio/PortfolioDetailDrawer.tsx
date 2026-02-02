@@ -155,7 +155,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[var(--color-text-secondary)]">推演盈亏</span>
                   <span className={clsx('font-semibold', getProfitColor(analysis?.simulationProfitLossPercent || 0))}>
-                    ¥{formatMoney(analysis?.simulationProfitLoss || 0)}
+                    {formatMoney(analysis?.simulationProfitLoss || 0)}
                     <span className="ml-1 text-sm">
                       ({formatPercent(analysis?.simulationProfitLossPercent || 0)})
                     </span>
@@ -164,7 +164,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[var(--color-text-secondary)]">账户总资产</span>
                   <span className="font-semibold">
-                    ¥{formatMoney(analysis?.simulationTotalAssets || 0)}
+                    {formatMoney(analysis?.simulationTotalAssets || 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

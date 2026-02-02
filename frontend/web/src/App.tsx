@@ -1,10 +1,10 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/common/Layout';
 import DashboardPage from './pages/DashboardPage';
 import PortfolioPage from './pages/PortfolioPage';
 import NewsPage from './pages/NewsPage';
 import ChartPage from './pages/ChartPage';
+import StockDetailPage from './pages/StockDetailPage';
 
 function App() {
   return (
@@ -15,6 +15,7 @@ function App() {
           <Route path="/portfolio" element={<PortfolioPage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/chart" element={<ChartPage />} />
+          <Route path="/stock/:symbol" element={<StockDetailPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

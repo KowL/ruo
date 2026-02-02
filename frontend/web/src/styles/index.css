@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-surface-1 text-text-primary;
   }
 }
 
@@ -28,24 +28,24 @@
 @layer components {
   /* 涨跌颜色 */
   .text-rise {
-    @apply text-red-600;
+    @apply text-profit-up;
   }
 
   .text-fall {
-    @apply text-green-600;
+    @apply text-loss-up;
   }
 
   .bg-rise {
-    @apply bg-red-50;
+    @apply bg-profit-up/10;
   }
 
   .bg-fall {
-    @apply bg-green-50;
+    @apply bg-loss-up/10;
   }
 
   /* 卡片样式 */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+    @apply bg-surface-2 rounded-lg border border-surface-4 p-4;
   }
 
   /* 按钮样式 */
@@ -54,14 +54,14 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:scale-95;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-brand text-black hover:bg-white/90 active:scale-95;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-700 hover:bg-gray-300;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-surface-3 text-text-primary hover:bg-surface-4;
   }
 
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-profit-up text-white hover:bg-profit-up/90;
   }
 }
