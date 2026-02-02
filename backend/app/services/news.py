@@ -193,13 +193,13 @@ class NewsService:
             for news in news_list:
                 news_dict = {
                     'id': news.id,
-                    'stock_code': news.stock_code,
+                    'stockCode': news.stock_code,
                     'title': news.title,
-                    'raw_content': news.raw_content,
+                    'rawContent': news.raw_content,
                     'source': news.source,
                     'url': news.url,
-                    'publish_time': news.publish_time.strftime('%Y-%m-%d %H:%M:%S') if news.publish_time else None,
-                    'created_at': news.created_at.strftime('%Y-%m-%d %H:%M:%S') if news.created_at else None
+                    'publishTime': news.publish_time.strftime('%Y-%m-%d %H:%M:%S') if news.publish_time else None,
+                    'createdAt': news.created_at.strftime('%Y-%m-%d %H:%M:%S') if news.created_at else None
                 }
                 result.append(news_dict)
 
@@ -248,22 +248,22 @@ class NewsService:
                 news_dict = {
                     'id': news.id,
                     'title': news.title,
-                    'raw_content': news.raw_content,
+                    'rawContent': news.raw_content,
                     'source': news.source,
                     'url': news.url,
-                    'publish_time': news.publish_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'publishTime': news.publish_time.strftime('%Y-%m-%d %H:%M:%S'),
                 }
 
                 # 添加 AI 分析结果
                 if analysis:
-                    news_dict['ai_summary'] = analysis.ai_summary
-                    news_dict['sentiment_label'] = analysis.sentiment_label
-                    news_dict['sentiment_score'] = analysis.sentiment_score
-                    news_dict['llm_model'] = analysis.llm_model
+                    news_dict['aiSummary'] = analysis.ai_summary
+                    news_dict['sentimentLabel'] = analysis.sentiment_label
+                    news_dict['sentimentScore'] = analysis.sentiment_score
+                    news_dict['llmModel'] = analysis.llm_model
                 else:
-                    news_dict['ai_summary'] = None
-                    news_dict['sentiment_label'] = None
-                    news_dict['sentiment_score'] = None
+                    news_dict['aiSummary'] = None
+                    news_dict['sentimentLabel'] = None
+                    news_dict['sentimentScore'] = None
 
                 news_with_analysis.append(news_dict)
 

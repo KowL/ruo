@@ -1,7 +1,6 @@
 import React from 'react';
 import { StockNews } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
-import clsx from 'clsx';
 
 interface NewsCardProps {
   news: StockNews;
@@ -26,21 +25,21 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
         {/* Header - 来源和时间 */}
         <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
           <span>{news.source}</span>
-          <span>{formatRelativeTime(news.publish_time)}</span>
+          <span>{formatRelativeTime(news.publishTime)}</span>
         </div>
 
         {/* Body - AI 摘要 */}
         <div className="space-y-2">
-          <p className="font-medium leading-tight">{news.ai_summary || news.title}</p>
+          <p className="font-medium leading-tight">{news.aiSummary || news.title}</p>
 
           {/* 情感倾向条 */}
-          {news.sentiment_score !== undefined && (
+          {news.sentimentScore !== undefined && (
             <div className="flex items-center space-x-2">
               <span className="text-xs text-[var(--color-text-secondary)]">利空</span>
               <div className="flex-1 h-1 bg-[var(--color-surface-3)] rounded-full relative">
                 <div
                   className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-[var(--color-ruo-purple)] rounded-full -mt-1.5"
-                  style={{ left: `${getSentimentPosition(news.sentiment_score)}%` }}
+                  style={{ left: `${getSentimentPosition(news.sentimentScore)}%` }}
                 ></div>
               </div>
               <span className="text-xs text-[var(--color-text-secondary)]">利好</span>
@@ -49,22 +48,22 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
         </div>
 
         {/* Footer - 关联股票 */}
-        {news.stock_symbols && news.stock_symbols.length > 0 && (
+        {news.stockSymbols && news.stockSymbols.length > 0 && (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xs text-[var(--color-text-secondary)]">关联股票:</span>
-              {news.stock_symbols.map((symbol, idx) => (
+              {news.stockSymbols.map((symbol, idx) => (
                 <span key={idx} className="text-xs text-[var(--color-ruo-purple)] cursor-pointer hover:underline">
                   {symbol}
-                  {idx < news.stock_symbols.length - 1 && ', '}
+                  {idx < news.stockSymbols!.length - 1 && ', '}
                 </span>
               ))}
             </div>
             {/* 情感分数 */}
-            {news.sentiment_score !== undefined && (
-              <span className={`text-xs font-medium ${getSentimentColor(news.sentiment_score)}`}>
-                {news.sentiment_score > 0.6 ? '📈' : news.sentiment_score < 0.4 ? '📉' : '➡️'}
-                {Math.round(news.sentiment_score * 100)}%
+            {news.sentimentScore !== undefined && (
+              <span className={`text-xs font-medium ${getSentimentColor(news.sentimentScore)}`}>
+                {news.sentimentScore > 0.6 ? '📈' : news.sentimentScore < 0.4 ? '📉' : '➡️'}
+                {Math.round(news.sentimentScore * 100)}%
               </span>
             )}
           </div>

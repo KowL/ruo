@@ -149,8 +149,8 @@ class MarketDataService:
                 'name': info_dict.get('股票简称', ''),
                 'industry': info_dict.get('行业', ''),
                 'market': self._get_market_name(symbol),
-                'listing_date': info_dict.get('上市时间', ''),
-                'total_shares': info_dict.get('总股本', ''),
+                'listingDate': info_dict.get('上市时间', ''),
+                'totalShares': info_dict.get('总股本', ''),
             }
 
             # 缓存结果
@@ -199,7 +199,7 @@ class MarketDataService:
                 'name': row['名称'],
                 'price': float(row['最新价']),
                 'change': float(row['涨跌额']),
-                'change_pct': float(row['涨跌幅']),
+                'changePct': float(row['涨跌幅']),
                 'open': float(row['今开']),
                 'high': float(row['最高']),
                 'low': float(row['最低']),
@@ -339,7 +339,7 @@ class MarketDataService:
                 all_data[symbol] = {
                     'price': float(row['最新价']),
                     'change': float(row['涨跌额']),
-                    'change_pct': float(row['涨跌幅']),
+                    'changePct': float(row['涨跌幅']),
                     'name': row['名称']
                 }
 
@@ -412,7 +412,7 @@ class MarketDataService:
                     'time': row['时间'].strftime('%H:%M:%S') if '时间' in row else row.name.strftime('%H:%M:%S'),
                     'price': float(row['收盘']),
                     'volume': volume,
-                    'avg_price': avg_price
+                    'avgPrice': avg_price
                 })
 
             # 缓存结果
@@ -452,7 +452,7 @@ class MarketDataService:
 
             if stock_data.empty:
                 logger.warning(f"未找到股票买卖盘数据: {symbol}")
-                return {'buy_orders': [], 'sell_orders': []}
+                return {'buyOrders': [], 'sellOrders': []}
 
             row = stock_data.iloc[0]
 
@@ -487,8 +487,8 @@ class MarketDataService:
                         })
 
             result = {
-                'buy_orders': buy_orders,
-                'sell_orders': sell_orders
+                'buyOrders': buy_orders,
+                'sellOrders': sell_orders
             }
 
             # 缓存结果（5秒）
@@ -533,7 +533,7 @@ class MarketDataService:
                 'name': realtime['name'],
                 'price': realtime['price'],
                 'change': realtime['change'],
-                'change_pct': realtime['change_pct'],
+                'changePct': realtime['changePct'],
                 'open': realtime['open'],
                 'high': realtime['high'],
                 'low': realtime['low'],
@@ -542,8 +542,8 @@ class MarketDataService:
                 'turnover': round(turnover, 2),
                 'timestamp': realtime['timestamp'],
                 'intraday': intraday,
-                'buy_orders': order_book.get('buy_orders', []),
-                'sell_orders': order_book.get('sell_orders', [])
+                'buyOrders': order_book.get('buyOrders', []),
+                'sellOrders': order_book.get('sellOrders', [])
             }
 
             return result

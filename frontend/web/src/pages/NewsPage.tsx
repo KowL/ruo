@@ -45,11 +45,11 @@ const NewsPage: React.FC = () => {
   const filteredNews = news.filter(item => {
     switch (filter) {
       case 'positive':
-        return item.sentiment_score > 0.6;
+        return (item.sentimentScore ?? 0) > 0.6;
       case 'negative':
-        return item.sentiment_score < 0.4;
+        return (item.sentimentScore ?? 0) < 0.4;
       case 'favorites':
-        return item.is_favorite || portfolios.some(p => p.symbol === item.symbol);
+        return item.isFavorite || portfolios.some(p => p.symbol === item.symbol);
       default:
         return true;
     }
@@ -84,7 +84,7 @@ const NewsPage: React.FC = () => {
                   )}
                 >
                   {portfolio.name}
-                  {portfolio.has_new_news && (
+                  {portfolio.hasNewNews && (
                     <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-[var(--color-ruo-purple)]"></span>
                   )}
                 </button>

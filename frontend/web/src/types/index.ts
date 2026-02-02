@@ -1,16 +1,20 @@
-// 股票持仓类型
+// 股票持仓类型（驼峰命名）
 export interface Portfolio {
   id: number;
   symbol: string;
   name: string;
-  cost_price: number;
+  costPrice: number;
   quantity: number;
-  current_price?: number;
-  profit_loss?: number;
-  profit_loss_ratio?: number;
-  strategy_tag?: string;
-  has_new_news?: boolean;
-  created_at?: string;
+  currentPrice: number;
+  costValue: number;
+  marketValue: number;
+  profitLoss: number;
+  profitLossRatio: number;
+  changePct: number;
+  strategyTag: string;
+  notes?: string;
+  hasNewNews: boolean;
+  createdAt: string;
 }
 
 // 股票实时行情
@@ -19,7 +23,7 @@ export interface StockRealtime {
   name: string;
   price: number;
   change: number;
-  change_pct: number;
+  changePct: number;
   open: number;
   high: number;
   low: number;
@@ -32,11 +36,17 @@ export interface StockNews {
   id: number;
   title: string;
   source: string;
-  publish_time: string;
-  ai_summary?: string;
-  sentiment_label?: '利好' | '中性' | '利空';
-  sentiment_score?: number;
+  publishTime: string;
+  aiSummary?: string;
+  sentimentLabel?: '利好' | '中性' | '利空';
+  sentimentScore?: number;
   url?: string;
+  stockSymbols?: string[];
+  isFavorite?: boolean;
+  symbol?: string;
+  stockCode?: string;
+  rawContent?: string;
+  createdAt?: string;
 }
 
 // K线数据
@@ -56,12 +66,11 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-// 持仓列表响应
+// 持仓列表响应（与后端保持一致的命名）
 export interface PortfolioListResponse {
   items: Portfolio[];
-  total_value: number;
-  total_cost: number;
-  total_profit_loss: number;
+  totalValue: number;
+  totalCost: number;
 }
 
 // 策略标签类型

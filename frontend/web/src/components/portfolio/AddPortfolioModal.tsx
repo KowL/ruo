@@ -8,9 +8,9 @@ interface AddPortfolioModalProps {
   onClose: () => void;
   onSubmit: (data: {
     symbol: string;
-    cost_price: number;
+    costPrice: number;
     quantity: number;
-    strategy_tag?: string;
+    strategyTag?: string;
   }) => Promise<void>;
 }
 
@@ -18,9 +18,9 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
   const [formData, setFormData] = useState({
     symbol: '',
     name: '',
-    cost_price: '',
+    costPrice: '',
     quantity: '',
-    strategy_tag: '' as StrategyTag | '',
+    strategyTag: '' as StrategyTag | '',
   });
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -60,17 +60,17 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
     try {
       await onSubmit({
         symbol: formData.symbol,
-        cost_price: parseFloat(formData.cost_price),
+        costPrice: parseFloat(formData.costPrice),
         quantity: parseFloat(formData.quantity),
-        strategy_tag: formData.strategy_tag || undefined,
+        strategyTag: formData.strategyTag || undefined,
       });
       // 重置表单
       setFormData({
         symbol: '',
         name: '',
-        cost_price: '',
+        costPrice: '',
         quantity: '',
-        strategy_tag: '',
+        strategyTag: '',
       });
       // 成功后关闭模态框
       onClose();
@@ -128,8 +128,8 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
             <input
               type="number"
               step="0.01"
-              value={formData.cost_price}
-              onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+              value={formData.costPrice}
+              onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
               placeholder="10.50"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
@@ -153,9 +153,9 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">策略标签</label>
             <select
-              value={formData.strategy_tag}
+              value={formData.strategyTag}
               onChange={(e) =>
-                setFormData({ ...formData, strategy_tag: e.target.value as StrategyTag })
+                setFormData({ ...formData, strategyTag: e.target.value as StrategyTag })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >

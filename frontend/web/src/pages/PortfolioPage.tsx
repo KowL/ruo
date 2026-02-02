@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import AddPortfolioModal from '@/components/portfolio/AddPortfolioModal';
 import PortfolioDetailDrawer from '@/components/portfolio/PortfolioDetailDrawer';
@@ -75,11 +76,11 @@ const getAIStatus = (status?: 'healthy' | 'warning' | 'danger') => {
 };
 
 const PortfolioPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     portfolios,
     totalValue,
     totalCost,
-    totalProfitLoss,
     loading,
     fetchPortfolios,
     addNewPortfolio,
@@ -90,12 +91,13 @@ const PortfolioPage: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioWithStrategy | null>(null);
   const [usMarket, setUsMarket] = useState(false);
+  const total_profit_loss = totalValue - totalCost;
 
   useEffect(() => {
     fetchPortfolios();
   }, [fetchPortfolios]);
 
-  // 为持仓添加策略和AI数据
+  // 为持仓添加策略和AI数据，使用后端返回的驼峰属性
   const portfoliosWithStrategy = portfolios.map(portfolio => {
     const aiData = mockAIData[portfolio.id] || {
       strategy: 'long' as StrategyType,
@@ -103,7 +105,16 @@ const PortfolioPage: React.FC = () => {
       message: '符合策略预期'
     };
     return {
-      ...portfolio,
+      id: portfolio.id,
+      symbol: portfolio.symbol,
+      name: portfolio.name,
+      shares: portfolio.quantity,
+      avgPrice: portfolio.costPrice,
+      currentPrice: portfolio.currentPrice,
+      cost: portfolio.costValue,
+      value: portfolio.marketValue,
+      profitLoss: portfolio.profitLoss,
+      profitLossPercent: portfolio.profitLossRatio,
       strategy: aiData.strategy,
       aiStatus: aiData.status,
       aiMessage: aiData.message,
@@ -131,7 +142,8 @@ const PortfolioPage: React.FC = () => {
   };
 
   const handleRowClick = (portfolio: PortfolioWithStrategy) => {
-    setSelectedPortfolio(portfolio);
+    // 点击持仓行跳转到股票详情页
+    navigate(`/stock/${portfolio.symbol}`);
   };
 
   const getProfitColor = (percent: number) => {
@@ -169,19 +181,19 @@ const PortfolioPage: React.FC = () => {
         <div className="grid grid-cols-3 gap-6">
           <div>
             <p className="text-sm text-[var(--color-text-secondary)]">总市值</p>
-            <p className="text-2xl font-bold numbers mt-1">¥{formatMoney(totalValue)}</p>
+            <p className="text-2xl font-bold numbers mt-1">{formatMoney(totalValue)}</p>
           </div>
           <div>
             <p className="text-sm text--[color-text-secondary)]">总成本</p>
-            <p className="text-2xl font-bold numbers mt-1">¥{formatMoney(totalCost)}</p>
+            <p className="text-2xl font-bold numbers mt-1">{formatMoney(totalCost)}</p>
           </div>
           <div>
             <p className="text-sm text-[var(--color-text-secondary)]">总盈亏</p>
-            <p className={clsx('text-2xl font-bold mt-1', getProfitColor(totalProfitLoss / totalCost * 100))}>
-              ¥{formatMoney(totalProfitLoss)}
+            <p className={clsx('text-2xl font-bold mt-1', getProfitColor(total_profit_loss / totalValue * 100))}>
+              {formatMoney(total_profit_loss)}
             </p>
             <p className="text-sm mt-1">
-              {formatPercent(totalCost > 0 ? totalProfitLoss / totalCost : 0)}
+              {formatPercent(totalValue > 0 ? total_profit_loss / totalValue : 0)}
             </p>
           </div>
         </div>
@@ -230,10 +242,10 @@ const PortfolioPage: React.FC = () => {
                   >
                     <td className="py-3 px-4 font-medium numbers">{portfolio.symbol}</td>
                     <td className="py-3 px-4">{portfolio.name}</td>
-                    <td className="py-3 px-4 text-right numbers">¥{portfolio.currentPrice.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right numbers">¥{(portfolio.currentPrice ?? 0).toFixed(2)}</td>
                     <td className={clsx('py-3 px-4 text-right', getProfitColor(portfolio.profitLossPercent))}>
                       <div className="numbers">
-                        ¥{formatMoney(portfolio.profitLoss)}
+                        {formatMoney(portfolio.profitLoss)}
                         <div className="text-sm font-normal">
                           {formatPercent(portfolio.profitLossPercent)}
                         </div>

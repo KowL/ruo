@@ -14,19 +14,19 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onClick, onDel
   const {
     name,
     symbol,
-    current_price,
-    cost_price,
+    currentPrice,
+    costPrice,
     quantity,
-    profit_loss = 0,
-    profit_loss_ratio = 0,
-    strategy_tag,
-    has_new_news,
+    strategyTag,
   } = portfolio;
+
+  const profitLoss = (currentPrice * quantity) - (costPrice * quantity);
+  const profitLossRatio = costPrice > 0 ? profitLoss / costPrice : 0;
 
   return (
     <Card className="relative" onClick={onClick}>
       {/* 新消息提示 */}
-      {has_new_news && (
+      {portfolio.hasNewNews && (
         <div className="absolute top-2 right-2">
           <span className="flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -34,7 +34,6 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onClick, onDel
           </span>
         </div>
       )}
-
       <div className="space-y-3">
         {/* 股票名称和代码 */}
         <div className="flex items-start justify-between">
@@ -42,9 +41,9 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onClick, onDel
             <h3 className="text-lg font-bold text-gray-900">{name}</h3>
             <p className="text-sm text-gray-500">{symbol}</p>
           </div>
-          {strategy_tag && (
+          {strategyTag && (
             <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-              {strategy_tag}
+              {strategyTag}
             </span>
           )}
         </div>
@@ -53,11 +52,11 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onClick, onDel
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-gray-500">现价</p>
-            <p className="text-lg font-semibold">{current_price?.toFixed(2) || '--'}</p>
+            <p className="text-lg font-semibold">{currentPrice?.toFixed(2) || '--'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">成本</p>
-            <p className="text-lg font-semibold">{cost_price.toFixed(2)}</p>
+            <p className="text-lg font-semibold">{costPrice.toFixed(2)}</p>
           </div>
         </div>
 
@@ -66,21 +65,21 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onClick, onDel
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">持仓盈亏</p>
-              <p className={clsx('text-xl font-bold', getRiseOrFallClass(profit_loss))}>
-                {formatMoney(profit_loss)}
+              <p className={clsx('text-xl font-bold', getRiseOrFallClass(profitLoss))}>
+                {formatMoney(profitLoss)}
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500">收益率</p>
-              <p className={clsx('text-xl font-bold', getRiseOrFallClass(profit_loss_ratio))}>
-                {formatPercent(profit_loss_ratio)}
+              <p className={clsx('text-xl font-bold', getRiseOrFallClass(profitLossRatio))}>
+                {formatPercent(profitLossRatio)}
               </p>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
-            持仓 {quantity} 股 · 市值 {formatMoney((current_price || cost_price) * quantity)}
-          </p>
         </div>
+        <p className="text-xs text-gray-400 mt-2">
+          持仓 {quantity} 股 · 市值 {formatMoney((currentPrice || costPrice) * quantity)}
+          </p>
       </div>
 
       {/* 删除按钮 */}

@@ -359,10 +359,10 @@ class AIAnalysisService:
         """转换分析结果为字典"""
         return {
             'id': analysis.id,
-            'news_id': analysis.news_id,
-            'ai_summary': analysis.ai_summary,
-            'sentiment_label': analysis.sentiment_label,
-            'sentiment_score': analysis.sentiment_score,
-            'llm_model': analysis.llm_model,
-            'created_at': analysis.created_at.strftime('%Y-%m-%d %H:%M:%S') if analysis.created_at else None
+            'newsId': analysis.news_id,
+            'aiSummary': analysis.ai_summary,
+            'sentimentLabel': analysis.sentiment_label,
+            'sentimentScore': analysis.sentiment_score,
+            'llmModel': analysis.llm_model,
+            'createdAt': analysis.created_at.strftime('%Y-%m-%d %H:%M:%S') if analysis.created_at else None
         }

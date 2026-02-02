@@ -17,9 +17,9 @@ class TestPortfolioAPI:
         """测试添加持仓"""
         payload = {
             "symbol": "000001",
-            "cost_price": 10.5,
+            "costPrice": 10.5,
             "quantity": 1000,
-            "strategy_tag": "趋势"
+            "strategyTag": "趋势"
         }
 
         response = client.post("/api/v1/portfolio/add", json=payload)
@@ -29,7 +29,7 @@ class TestPortfolioAPI:
         assert data["status"] == "success"
         assert data["data"]["symbol"] == "000001"
         assert data["data"]["quantity"] == 1000
-        assert "profit_loss" in data["data"]
+        assert "profitLoss" in data["data"]
 
     def test_portfolio_list(self):
         """测试获取持仓列表"""
@@ -39,16 +39,16 @@ class TestPortfolioAPI:
         data = response.json()
         assert data["status"] == "success"
         assert "data" in data
-        assert "total_value" in data
+        assert "totalValue" in data
 
     def test_portfolio_detail(self):
         """测试获取持仓详情"""
         # 先添加一个持仓
         payload = {
             "symbol": "000001",
-            "cost_price": 10.5,
+            "costPrice": 10.5,
             "quantity": 1000,
-            "strategy_tag": "趋势"
+            "strategyTag": "趋势"
         }
         add_response = client.post("/api/v1/portfolio/add", json=payload)
         portfolio_id = add_response.json()["data"]["id"]
@@ -95,7 +95,7 @@ class TestStockAPI:
         assert data["data"]["symbol"] == "000001"
         assert "price" in data["data"]
         assert "change" in data["data"]
-        assert "change_pct" in data["data"]
+        assert "changePct" in data["data"]
 
     def test_get_stock_detail(self):
         """测试获取股票详细数据（分时+买卖盘）"""
@@ -118,26 +118,27 @@ class TestStockAPI:
                 assert "time" in intraday[0]
                 assert "price" in intraday[0]
                 assert "volume" in intraday[0]
+                assert "avgPrice" in intraday[0]
 
         # 验证买卖盘数据
-        assert "buy_orders" in stock_detail
-        assert "sell_orders" in stock_detail
+        assert "buyOrders" in stock_detail
+        assert "sellOrders" in stock_detail
 
         # 验证买盘数据
-        buy_orders = stock_detail["buy_orders"]
-        if buy_orders:
-            assert len(buy_orders) <= 5  # 最多 5 档
-            assert "level" in buy_orders[0]
-            assert "price" in buy_orders[0]
-            assert "volume" in buy_orders[0]
+        buyOrders = stock_detail["buyOrders"]
+        if buyOrders:
+            assert len(buyOrders) <= 5  # 最多 5 档
+            assert "level" in buyOrders[0]
+            assert "price" in buyOrders[0]
+            assert "volume" in buyOrders[0]
 
         # 验证卖盘数据
-        sell_orders = stock_detail["sell_orders"]
-        if sell_orders:
-            assert len(sell_orders) <= 5  # 最多 5 档
-            assert "level" in sell_orders[0]
-            assert "price" in sell_orders[0]
-            assert "volume" in sell_orders[0]
+        sellOrders = stock_detail["sellOrders"]
+        if sellOrders:
+            assert len(sellOrders) <= 5  # 最多 5 档
+            assert "level" in sellOrders[0]
+            assert "price" in sellOrders[0]
+            assert "volume" in sellOrders[0]
 
     def test_batch_get_realtime_prices(self):
         """测试批量获取实时行情"""
@@ -221,7 +222,7 @@ class TestErrorHandling:
         """测试无效的持仓数据"""
         payload = {
             "symbol": "",  # 空的股票代码
-            "cost_price": -1,  # 负价格
+            "costPrice": -1,  # 负价格
             "quantity": -1  # 负数量
         }
 

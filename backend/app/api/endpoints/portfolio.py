@@ -23,18 +23,18 @@ router = APIRouter()
 class PortfolioAddRequest(BaseModel):
     """添加持仓请求模型"""
     symbol: str = Field(..., description="股票代码，如 000001", min_length=6, max_length=6)
-    cost_price: float = Field(..., description="成本价", gt=0)
+    costPrice: float = Field(..., description="成本价", gt=0)
     quantity: float = Field(..., description="持仓数量", gt=0)
-    strategy_tag: Optional[str] = Field(None, description="策略标签：打板/低吸/趋势")
+    strategyTag: Optional[str] = Field(None, description="策略标签：打板/低吸/趋势")
     notes: Optional[str] = Field(None, description="备注")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "symbol": "000001",
-                "cost_price": 10.5,
+                "costPrice": 10.5,
                 "quantity": 1000,
-                "strategy_tag": "趋势",
+                "strategyTag": "趋势",
                 "notes": "长期持有"
             }
         }
@@ -42,17 +42,17 @@ class PortfolioAddRequest(BaseModel):
 
 class PortfolioUpdateRequest(BaseModel):
     """更新持仓请求模型"""
-    cost_price: Optional[float] = Field(None, description="成本价", gt=0)
+    costPrice: Optional[float] = Field(None, description="成本价", gt=0)
     quantity: Optional[float] = Field(None, description="持仓数量", gt=0)
-    strategy_tag: Optional[str] = Field(None, description="策略标签")
+    strategyTag: Optional[str] = Field(None, description="策略标签")
     notes: Optional[str] = Field(None, description="备注")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "cost_price": 10.8,
+                "costPrice": 10.8,
                 "quantity": 1200,
-                "strategy_tag": "低吸"
+                "strategyTag": "低吸"
             }
         }
 
@@ -88,9 +88,9 @@ async def add_portfolio(
         service = PortfolioService(db)
         result = service.add_portfolio(
             symbol=request.symbol,
-            cost_price=request.cost_price,
+            cost_price=request.costPrice,
             quantity=request.quantity,
-            strategy_tag=request.strategy_tag,
+            strategy_tag=request.strategyTag,
             user_id=user_id,
             notes=request.notes
         )
@@ -109,7 +109,7 @@ async def add_portfolio(
 
 @router.get("/list", summary="获取持仓列表", tags=["持仓管理"])
 async def get_portfolio_list(
-    user_id: int = 1,
+    userId: int = 1,
     db: Session = Depends(get_db)
 ):
     """
@@ -129,7 +129,7 @@ async def get_portfolio_list(
     """
     try:
         service = PortfolioService(db)
-        result = service.get_portfolio_list(user_id=user_id)
+        result = service.get_portfolio_list(user_id=userId)
 
         return {
             "status": "success",
@@ -192,9 +192,9 @@ async def update_portfolio(
         service = PortfolioService(db)
         result = service.update_portfolio(
             portfolio_id=portfolio_id,
-            cost_price=request.cost_price,
+            cost_price=request.costPrice,
             quantity=request.quantity,
-            strategy_tag=request.strategy_tag,
+            strategy_tag=request.strategyTag,
             notes=request.notes
         )
 

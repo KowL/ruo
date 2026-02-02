@@ -97,7 +97,7 @@ class PortfolioService:
 
     def get_portfolio_list(self, user_id: int = 1) -> Dict:
         """
-        获取持仓列表
+        获取持仓列表（不包含实时价格，前端单独获取）
 
         Args:
             user_id: 用户ID
@@ -105,9 +105,8 @@ class PortfolioService:
         Returns:
             {
                 "items": [...],
-                "total_value": 总市值,
-                "total_cost": 总成本,
-                "total_profit_loss": 总盈亏
+                "total_value": 0.0,
+                "total_cost": 0.0
             }
         """
         try:
@@ -120,61 +119,41 @@ class PortfolioService:
             if not portfolios:
                 return {
                     "items": [],
-                    "total_value": 0.0,
-                    "total_cost": 0.0,
-                    "total_profit_loss": 0.0,
-                    "total_profit_loss_ratio": 0.0
+                    "totalValue": 0.0,
+                    "totalCost": 0.0
                 }
 
-            # 2. 批量获取实时价格
-            symbols = [p.symbol for p in portfolios]
-            realtime_prices = self.market_service.batch_get_realtime_prices(symbols)
-
-            # 3. 构建持仓列表
+            # 2. 构建持仓列表（使用成本价作为当前价，前端单独调用行情接口）
             items = []
-            total_value = 0.0
             total_cost = 0.0
 
             for portfolio in portfolios:
-                # 获取实时价格
-                price_data = realtime_prices.get(portfolio.symbol, {})
-                current_price = price_data.get('price', portfolio.cost_price)
-
-                # 计算盈亏
                 cost = portfolio.cost_price * portfolio.quantity
-                value = current_price * portfolio.quantity
-                profit_loss = value - cost
-                profit_loss_ratio = (current_price - portfolio.cost_price) / portfolio.cost_price if portfolio.cost_price > 0 else 0
 
                 total_cost += cost
-                total_value += value
 
                 items.append({
                     "id": portfolio.id,
                     "symbol": portfolio.symbol,
                     "name": portfolio.name,
-                    "cost_price": portfolio.cost_price,
+                    "costPrice": portfolio.cost_price,
                     "quantity": portfolio.quantity,
-                    "current_price": current_price,
-                    "market_value": value,
-                    "profit_loss": profit_loss,
-                    "profit_loss_ratio": profit_loss_ratio,
-                    "change_pct": price_data.get('change_pct', 0),
-                    "strategy_tag": portfolio.strategy_tag,
+                    "currentPrice": portfolio.cost_price,  # 暂时使用成本价
+                    "marketValue": round(cost, 2),
+                    "costValue": round(cost, 2),
+                    "profitLoss": 0.0,
+                    "profitLossRatio": 0.0,
+                    "changePct": 0.0,
+                    "strategyTag": portfolio.strategy_tag,
                     "notes": portfolio.notes,
-                    "created_at": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
-                    "has_new_news": False  # TODO: 后续集成新闻服务
+                    "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
+                    "hasNewNews": False
                 })
-
-            total_profit_loss = total_value - total_cost
-            total_profit_loss_ratio = total_profit_loss / total_cost if total_cost > 0 else 0
 
             return {
                 "items": items,
-                "total_value": round(total_value, 2),
-                "total_cost": round(total_cost, 2),
-                "total_profit_loss": round(total_profit_loss, 2),
-                "total_profit_loss_ratio": round(total_profit_loss_ratio, 4)
+                "totalValue": round(total_cost, 2),
+                "totalCost": round(total_cost, 2)
             }
 
         except Exception as e:
@@ -317,7 +296,7 @@ class PortfolioService:
                 change_pct = 0
             else:
                 current_price = realtime['price']
-                change_pct = realtime['change_pct']
+                change_pct = realtime['changePct']
 
             # 计算盈亏
             cost = portfolio.cost_price * portfolio.quantity
@@ -326,24 +305,24 @@ class PortfolioService:
             profit_loss_ratio = (current_price - portfolio.cost_price) / portfolio.cost_price if portfolio.cost_price > 0 else 0
 
             return {
-                "current_price": current_price,
-                "market_value": value,
-                "cost_value": cost,
-                "profit_loss": profit_loss,
-                "profit_loss_ratio": profit_loss_ratio,
-                "change_pct": change_pct
+                "currentPrice": current_price,
+                "marketValue": value,
+                "costValue": cost,
+                "profitLoss": profit_loss,
+                "profitLossRatio": profit_loss_ratio,
+                "changePct": change_pct
             }
 
         except Exception as e:
             logger.error(f"计算盈亏失败: {portfolio.symbol}, 错误: {e}")
             # 返回默认值
             return {
-                "current_price": portfolio.cost_price,
-                "market_value": portfolio.cost_price * portfolio.quantity,
-                "cost_value": portfolio.cost_price * portfolio.quantity,
-                "profit_loss": 0,
-                "profit_loss_ratio": 0,
-                "change_pct": 0
+                "currentPrice": portfolio.cost_price,
+                "marketValue": portfolio.cost_price * portfolio.quantity,
+                "costValue": portfolio.cost_price * portfolio.quantity,
+                "profitLoss": 0,
+                "profitLossRatio": 0,
+                "changePct": 0
             }
 
     def _build_simple_response(self, portfolio: Portfolio) -> Dict:
@@ -362,18 +341,18 @@ class PortfolioService:
             "id": portfolio.id,
             "symbol": portfolio.symbol,
             "name": portfolio.name,
-            "cost_price": portfolio.cost_price,
+            "costPrice": portfolio.cost_price,
             "quantity": portfolio.quantity,
-            "current_price": portfolio.cost_price,  # 暂时使用成本价
-            "market_value": round(cost_value, 2),
-            "cost_value": round(cost_value, 2),
-            "profit_loss": 0.0,  # 暂无盈亏
-            "profit_loss_ratio": 0.0,
-            "change_pct": 0.0,
-            "strategy_tag": portfolio.strategy_tag,
+            "currentPrice": portfolio.cost_price,  # 暂时使用成本价
+            "marketValue": round(cost_value, 2),
+            "costValue": round(cost_value, 2),
+            "profitLoss": 0.0,  # 暂无盈亏
+            "profitLossRatio": 0.0,
+            "changePct": 0.0,
+            "strategyTag": portfolio.strategy_tag,
             "notes": portfolio.notes,
-            "created_at": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
-            "updated_at": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
+            "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
+            "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
         }
 
     def _build_portfolio_response(self, portfolio: Portfolio) -> Dict:
@@ -392,16 +371,16 @@ class PortfolioService:
             "id": portfolio.id,
             "symbol": portfolio.symbol,
             "name": portfolio.name,
-            "cost_price": portfolio.cost_price,
+            "costPrice": portfolio.cost_price,
             "quantity": portfolio.quantity,
-            "current_price": profit_loss_data['current_price'],
-            "market_value": round(profit_loss_data['market_value'], 2),
-            "cost_value": round(profit_loss_data['cost_value'], 2),
-            "profit_loss": round(profit_loss_data['profit_loss'], 2),
-            "profit_loss_ratio": round(profit_loss_data['profit_loss_ratio'], 4),
-            "change_pct": profit_loss_data['change_pct'],
-            "strategy_tag": portfolio.strategy_tag,
+            "currentPrice": profit_loss_data['current_price'],
+            "marketValue": round(profit_loss_data['market_value'], 2),
+            "costValue": round(profit_loss_data['cost_value'], 2),
+            "profitLoss": round(profit_loss_data['profit_loss'], 2),
+            "profitLossRatio": round(profit_loss_data['profit_loss_ratio'], 4),
+            "changePct": profit_loss_data['change_pct'],
+            "strategyTag": portfolio.strategy_tag,
             "notes": portfolio.notes,
-            "created_at": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
-            "updated_at": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
+            "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
+            "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
         }

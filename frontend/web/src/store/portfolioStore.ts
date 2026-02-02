@@ -6,18 +6,12 @@ interface PortfolioState {
   portfolios: Portfolio[];
   totalValue: number;
   totalCost: number;
-  totalProfitLoss: number;
   loading: boolean;
   error: string | null;
 
   // Actions
   fetchPortfolios: () => Promise<void>;
-  addNewPortfolio: (data: {
-    symbol: string;
-    cost_price: number;
-    quantity: number;
-    strategy_tag?: string;
-  }) => Promise<void>;
+  addNewPortfolio: (data: any) => Promise<void>;
   removePortfolio: (id: number) => Promise<void>;
 }
 
@@ -25,7 +19,6 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   portfolios: [],
   totalValue: 0,
   totalCost: 0,
-  totalProfitLoss: 0,
   loading: false,
   error: null,
 
@@ -37,9 +30,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
       console.log('获取成功:', data);
       set({
         portfolios: data.items,
-        totalValue: data.total_value,
-        totalCost: data.total_cost,
-        totalProfitLoss: data.total_profit_loss,
+        totalValue: data.totalValue,
+        totalCost: data.totalCost,
         loading: false,
       });
     } catch (error: any) {
@@ -52,15 +44,19 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
     set({ loading: true, error: null });
     try {
       console.log('正在添加持仓...', data);
-      await addPortfolio(data);
+      await addPortfolio({
+        symbol: data.symbol,
+        costPrice: data.costPrice,
+        quantity: data.quantity,
+        strategyTag: data.strategyTag,
+      });
       console.log('添加成功，正在刷新列表...');
       // 重新获取列表
       const portfolioData = await getPortfolioList();
       set({
         portfolios: portfolioData.items,
-        totalValue: portfolioData.total_value,
-        totalCost: portfolioData.total_cost,
-        totalProfitLoss: portfolioData.total_profit_loss,
+        totalValue: portfolioData.totalValue,
+        totalCost: portfolioData.totalCost,
         loading: false,
       });
       console.log('列表刷新成功');
@@ -79,9 +75,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
       const data = await getPortfolioList();
       set({
         portfolios: data.items,
-        totalValue: data.total_value,
-        totalCost: data.total_cost,
-        totalProfitLoss: data.total_profit_loss,
+        totalValue: data.totalValue,
+        totalCost: data.totalCost,
         loading: false,
       });
     } catch (error: any) {
