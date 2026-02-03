@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import Base, engine, init_db
-from app.models import User, Portfolio, Trade, StockNews, NewsAnalysis, Stock
+from app.models import User, Portfolio, Trade, News, Stock
 
 
 def create_tables():

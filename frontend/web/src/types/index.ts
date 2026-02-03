@@ -31,22 +31,19 @@ export interface StockRealtime {
   timestamp: string;
 }
 
-// 股票新闻
-export interface StockNews {
+// 新闻（按 DESIGN_NEWS.md）
+export interface News {
   id: number;
+  source: 'cls' | 'xueqiu';
+  externalId: string;
   title: string;
-  source: string;
+  content: string;
+  rawJson: string;
   publishTime: string;
-  aiSummary?: string;
-  sentimentLabel?: '利好' | '中性' | '利空';
-  sentimentScore?: number;
-  url?: string;
-  stockSymbols?: string[];
-  isFavorite?: boolean;
-  symbol?: string;
-  stockCode?: string;
-  rawContent?: string;
-  createdAt?: string;
+  createdAt: string;
+  relationStock?: string;  // 新闻关联的股票代码，逗号分隔，如 "600519,000001"
+  relationStocks?: string[]; // 解析后的关联股票代码数组
+  aiAnalysis?: string;    // AI 分析总结
 }
 
 // K线数据

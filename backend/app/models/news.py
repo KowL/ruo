@@ -1,46 +1,42 @@
 """
-新闻模型
-News Model
+新闻表模型 - News Model
+根据 DESIGN_NEWS.md 设计文档创建
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Index, UniqueConstraint
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-class StockNews(Base):
-    """股票新闻表 - MVP v0.1"""
-    __tablename__ = "stock_news"
+class News(Base):
+    """新闻表 - 按设计文档规范"""
+    __tablename__ = "news"
 
+    # 主键
     id = Column(Integer, primary_key=True, index=True)
-    stock_code = Column(String(10), nullable=False, index=True)  # 股票代码
-    title = Column(String(200), nullable=False)  # 新闻标题
-    raw_content = Column(Text)  # 原始内容/摘要
-    source = Column(String(100))  # 来源（如：财联社、新浪财经）
-    url = Column(String(500))  # 新闻链接
-    publish_time = Column(DateTime(timezone=True), nullable=False)  # 发布时间
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    # 来源和唯一标识
+    source = Column(String(20), nullable=False, index=True)  # cls / xueqiu
+    external_id = Column(String(100), nullable=False)  # 原始平台 ID (用于唯一性校验)
+
+    # 新闻内容
+    title = Column(String(500))  # 新闻标题 (部分快讯可能无标题)
+    content = Column(Text)  # 新闻正文内容
+    raw_json = Column(Text)  # 存储原始响应数据 (备查)
+
+    # 关联和分析字段
+    relation_stock = Column(Text)  # 新闻关联的股票代码，逗号分隔，如 "600519,000001"
+    ai_analysis = Column(Text)  # AI 分析总结
+
+    # 时间字段
+    publish_time = Column(DateTime(timezone=True), nullable=False, index=True)  # 原始发布时间
+    created_at = Column(DateTime(timezone=True), server_default=func.now())  # 系统入库时间
+
+    # 唯一约束：防止同一条新闻被重复写入
+    __table_args__ = (
+        UniqueConstraint('source', 'external_id', name='uq_source_external_id'),
+        Index('idx_publish_time', 'publish_time'),
+        Index('idx_source', 'source'),
+    )
 
     def __repr__(self):
-        return f"<StockNews(code='{self.stock_code}', title='{self.title[:30]}...')>"
-
-
-class NewsAnalysis(Base):
-    """AI 新闻分析结果表 - MVP v0.1"""
-    __tablename__ = "news_analysis"
-
-    id = Column(Integer, primary_key=True, index=True)
-    news_id = Column(Integer, ForeignKey("stock_news.id"), nullable=False, unique=True)
-
-    # AI 分析结果
-    ai_summary = Column(Text, nullable=False)  # AI 生成的一句话摘要
-    sentiment_label = Column(String(20), nullable=False)  # 利好/中性/利空
-    sentiment_score = Column(Float)  # 情感分数 1-5 星
-
-    # 元数据
-    llm_model = Column(String(50))  # 使用的模型（如 deepseek-chat）
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    def __repr__(self):
-        return f"<NewsAnalysis(news_id={self.news_id}, sentiment='{self.sentiment_label}')>"
+        return f"<News(source='{self.source}', external_id='{self.external_id}', title='{self.title[:30] if self.title else 'N/A'}...')>"
