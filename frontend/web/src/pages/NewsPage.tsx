@@ -3,7 +3,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { getStockNews } from '@/api/news';
 import NewsCard from '@/components/news/NewsCard';
 import Loading from '@/components/common/Loading';
-import { StockNews } from '@/types';
+import { News } from '@/types';
 import clsx from 'clsx';
 
 type NewsFilter = 'all' | 'favorites' | 'positive' | 'negative';
@@ -11,7 +11,7 @@ type NewsFilter = 'all' | 'favorites' | 'positive' | 'negative';
 const NewsPage: React.FC = () => {
   const { portfolios } = usePortfolioStore();
   const [selectedSymbol, setSelectedSymbol] = useState<string>('');
-  const [news, setNews] = useState<StockNews[]>([]);
+  const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<NewsFilter>('all');
   const [usMarket, setUsMarket] = useState(false);

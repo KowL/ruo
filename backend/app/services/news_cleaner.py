@@ -169,7 +169,7 @@ class NewsCleaner:
         """
         保存新闻到数据库
 
-        使用 PostgreSQL 的 INSERT ON CONFLICT DO NOTHING 进行去重
+        逐条保存并单独提交，确保部分数据失败不影响其他数据的保存
 
         Args:
             news_list: 新闻列表
@@ -186,6 +186,16 @@ class NewsCleaner:
                 # 清洗数据
                 cleaned_news = self.clean_news_item(news)
 
+                # 检查是否已存在（source + external_id 唯一约束）
+                existing = self.db.query(News).filter(
+                    News.source == cleaned_news['source'],
+                    News.external_id == cleaned_news['external_id']
+                ).first()
+
+                if existing:
+                    duplicate_count += 1
+                    continue
+
                 # 创建数据库记录
                 raw_news = News(
                     source=cleaned_news['source'],
@@ -197,6 +207,7 @@ class NewsCleaner:
                 )
 
                 self.db.add(raw_news)
+                self.db.commit()
                 saved_count += 1
 
             except Exception as e:
@@ -205,19 +216,8 @@ class NewsCleaner:
                 logger.debug(f"保存新闻失败: {e}")
                 continue
 
-        # 提交事务（PostgreSQL 会处理唯一约束冲突）
-        try:
-            self.db.commit()
-            logger.info(f"保存新闻完成: 尝试 {len(news_list)} 条, 成功 {saved_count} 条, 错误 {error_count} 条")
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"批量提交失败: {e}")
-            return {
-                'attempted': len(news_list),
-                'saved': 0,
-                'duplicate': 0,
-                'error': len(news_list)
-            }
+        logger.info(f"保存新闻完成: 尝试 {len(news_list)} 条, "
+                   f"成功 {saved_count} 条, 重复 {duplicate_count} 条, 错误 {error_count} 条")
 
         return {
             'attempted': len(news_list),

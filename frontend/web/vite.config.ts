@@ -12,18 +12,19 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://localhost:8300',
+        target: process.env.VITE_API_URL || 'http://backend:8000',
         changeOrigin: true,
         configure: (proxy, options) => {
-        proxy.on('proxyReq', (proxyReq, req, res) => {
-          console.log('发送请求到后端:', req.method, options.target + req.url);
-        });
-        proxy.on('proxyRes', (proxyRes, req, res) => {
-          console.log('接收到后端响应:', proxyRes.statusCode, req.url);
-        });
-      },
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('发送请求到后端:', req.method, options.target + req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('接收到后端响应:', proxyRes.statusCode, req.url);
+          });
+        },
       },
     },
   },

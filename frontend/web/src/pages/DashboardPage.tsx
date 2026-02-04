@@ -1,50 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
+import { getRawNews } from '@/api/news';
+import { News } from '@/types';
+import { usePortfolioStore } from '@/store/portfolioStore';
+import ReactECharts from 'echarts-for-react';
 
 const DashboardPage: React.FC = () => {
   const [usMarket, setUsMarket] = useState(false);
 
-  // 模拟数据
-  const assetData = {
-    totalAssets: 125800.50,
-    todayPnL: 2350.80,
-    todayPnLPercent: 1.90,
-    sentiment: '恐惧',
-    sentimentScore: 0.3,
+  // Real Portfolio Data
+  const { portfolios, totalValue, totalProfitLoss, totalProfitLossRatio, fetchPortfolios, loading: portfolioLoading } = usePortfolioStore();
+
+  useEffect(() => {
+    fetchPortfolios();
+    // Auto-refresh every 60s
+    const timer = setInterval(() => {
+      fetchPortfolios();
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []); // Run once on mount
+
+  // Top Movers (Sort by absolute change percent)
+  const portfolioMovements = [...portfolios]
+    .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+    .slice(0, 3)
+    .map(p => ({
+      code: p.symbol,
+      name: p.name,
+      changePercent: p.changePct,
+      price: p.currentPrice
+    }));
+
+  // Mock Sentiment Data (can be connected to API later)
+  const sentimentScore = 0.45;
+  const sentimentLabel = '中性';
+
+  // News Data
+  const [newsList, setNewsList] = useState<News[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<News | null>(null);
+
+  useEffect(() => {
+    const fetchNews = async (isBackground = false) => {
+      try {
+        if (!isBackground) setNewsLoading(true);
+        const data = await getRawNews(undefined, 24, 20);
+        setNewsList(data);
+      } catch (error) {
+        console.error('获取新闻失败:', error);
+      } finally {
+        if (!isBackground) setNewsLoading(false);
+      }
+    };
+
+    fetchNews();
+    const intervalId = setInterval(() => fetchNews(true), 30000); // 30s refresh for news
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const formatTimeAgo = (publishTime: string) => {
+    const now = new Date();
+    const publish = new Date(publishTime);
+    const diffMs = now.getTime() - publish.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins}分钟前`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}小时前`;
+    return `${Math.floor(diffHours / 24)}天前`;
   };
-
-  const portfolioMovements = [
-    { code: 'AAPL', name: '苹果', changePercent: 3.5, price: 182.52 },
-    { code: 'TSLA', name: '特斯拉', changePercent: -2.8, price: 245.18 },
-    { code: 'NVDA', name: '英伟达', changePercent: 4.2, price: 485.30 },
-  ];
-
-  const aiNews = [
-    {
-      id: 1,
-      source: '财经头条',
-      time: '10分钟前',
-      summary: '央行降准释放流动性，市场预期宽松',
-      sentiment: 0.8,
-      relatedStocks: ['000001', '600036'],
-    },
-    {
-      id: 2,
-      source: '华尔街日报',
-      time: '25分钟前',
-      summary: '美联储暗示维持利率不变',
-      sentiment: 0.2,
-      relatedStocks: ['AAPL', 'MSFT'],
-    },
-    {
-      id: 3,
-      source: '证券时报',
-      time: '1小时前',
-      summary: '科技巨头财报超预期',
-      sentiment: 0.9,
-      relatedStocks: ['AAPL', 'GOOGL', 'AMZN'],
-    },
-  ];
 
   const riskAlerts = [
     { type: 'warning', message: '新能源行业仓位过重，建议适度减持' },
@@ -53,68 +76,149 @@ const DashboardPage: React.FC = () => {
 
   const getProfitColor = (percent: number) => {
     return usMarket
-      ? (percent >= 0 ? 'text-[var(--color-profit-down)]' : 'text-[var(--color-loss-down)]')
-      : (percent >= 0 ? 'text-[var(--color-profit-up)]' : 'text-[var(--color-loss-up)]');
+      ? (percent >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]')
+      : (percent >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]');
   };
 
   const getProfitBgColor = (percent: number) => {
+    // Using opacity directly in color for better glass effect overlay
     return usMarket
-      ? (percent >= 0 ? 'bg-[var(--color-profit-down)]/20' : 'bg-[var(--color-loss-down)]/20')
-      : (percent >= 0 ? 'bg-[var(--color-profit-up)]/20' : 'bg-[var(--color-loss-up)]/20');
+      ? (percent >= 0 ? 'bg-[rgba(52,199,89,0.15)]' : 'bg-[rgba(255,59,48,0.15)]')
+      : (percent >= 0 ? 'bg-[rgba(255,59,48,0.15)]' : 'bg-[rgba(52,199,89,0.15)]');
   };
 
+  // ECharts Option for Sentiment Gauge
+  const getGaugeOption = (score: number) => ({
+    series: [
+      {
+        type: 'gauge',
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 1,
+        splitNumber: 5,
+        itemStyle: {
+          color: '#58D9F9',
+          shadowColor: 'rgba(0,138,255,0.45)',
+          shadowBlur: 10,
+          shadowOffsetX: 2,
+          shadowOffsetY: 2
+        },
+        progress: {
+          show: true,
+          roundCap: true,
+          width: 8
+        },
+        pointer: {
+          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+          length: '12%',
+          width: 10,
+          offsetCenter: [0, '-60%'],
+          itemStyle: {
+            color: 'auto'
+          }
+        },
+        axisLine: {
+          roundCap: true,
+          lineStyle: {
+            width: 8
+          }
+        },
+        axisTick: {
+          splitNumber: 2,
+          lineStyle: {
+            width: 2,
+            color: '#999'
+          }
+        },
+        splitLine: {
+          length: 8,
+          lineStyle: {
+            width: 3,
+            color: '#999'
+          }
+        },
+        axisLabel: {
+          distance: 10,
+          color: '#999',
+          fontSize: 10
+        },
+        title: {
+          show: false
+        },
+        detail: {
+          show: false
+        },
+        data: [{ value: score }]
+      }
+    ]
+  });
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-fade-in pb-24 lg:pb-6">
+      <div className="flex flex-col space-y-1 mb-2">
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">概览</h1>
+        <p className="text-sm text-[var(--color-text-secondary)]">欢迎回来，今日市场情绪 {sentimentLabel}</p>
+      </div>
+
       {/* 第一行：资产全景 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 总资产卡片 */}
-        <div className="card lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">资产全景</h2>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">市场模式:</span>
+        <div className="glass-card lg:col-span-2 p-6 hover-lift relative overflow-hidden">
+          {/* Background Glow */}
+          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 bg-purple-500/10 blur-3xl rounded-full pointer-events-none"></div>
+
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <h2 className="text-base font-medium text-[var(--color-text-secondary)]">总资产</h2>
+            <div className="flex items-center space-x-1 bg-[var(--color-surface-1)]/50 rounded-full p-1 border border-white/5">
               <button
-                onClick={() => setUsMarket(!usMarket)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${usMarket ? 'bg-[var(--color-profit-down)]/20 text-[var(--color-profit-down)]' : 'bg-[var(--color-profit-up)]/20 text-[var(--color-profit-up)]'}`}
+                onClick={() => setUsMarket(false)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${!usMarket ? 'bg-[var(--color-surface-4)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
               >
-                {usMarket ? '美股' : 'A股'}
+                A股
+              </button>
+              <button
+                onClick={() => setUsMarket(true)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${usMarket ? 'bg-[var(--color-surface-4)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
+              >
+                美股
               </button>
             </div>
           </div>
-          <div className="space-y-4">
+
+          <div className="space-y-2 relative z-10">
             <div className="flex items-baseline space-x-4">
-              <span className="text-3xl font-bold numbers">¥{assetData.totalAssets.toLocaleString()}</span>
-              <span className={clsx('text-lg font-semibold flex items-center space-x-1', getProfitColor(assetData.todayPnLPercent))}>
-                {assetData.todayPnLPercent >= 0 && <span>↑</span>}
-                {assetData.todayPnLPercent < 0 && <span>↓</span>}
-                <span>+¥{assetData.todayPnL.toLocaleString()} ({assetData.todayPnLPercent}%)</span>
+              <span className="text-4xl font-bold numbers tracking-tight text-white">
+                {portfolioLoading ? '...' : `¥${totalValue.toLocaleString()}`}
               </span>
             </div>
-            <div className="text-[var(--color-text-secondary)] text-sm">
-              更新时间: 14:30:25
+            <div className="flex items-center space-x-3 mt-2">
+              <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio), getProfitBgColor(totalProfitLossRatio))}>
+                {totalProfitLoss >= 0 ? '+' : ''}{totalProfitLoss.toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{(totalProfitLossRatio * 100).toFixed(2)}%)
+              </span>
+              <span className="text-xs text-[var(--color-text-muted)]">今日盈亏</span>
             </div>
           </div>
         </div>
 
         {/* Ruo情绪指数 */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Ruo 情绪指数</h3>
-          <div className="relative h-32 flex flex-col items-center justify-center">
-            {/* 半圆仪表盘 */}
-            <div className="absolute inset-0 flex items-end justify-center">
-              <div className="w-48 h-24 rounded-t-full border-b-4 border-[var(--color-surface-3)]"></div>
-            </div>
-            {/* 指针 */}
-            <div
-              className="absolute w-1 h-32 bg-[var(--color-ruo-purple)] rounded-full transform origin-bottom transition-transform duration-500"
-              style={{ transform: `rotate(${assetData.sentimentScore * 180 - 90}deg)` }}
-            ></div>
-            <div className="relative z-10 text-center">
-              <div className="text-2xl font-bold text-[var(--color-ruo-purple)]">{assetData.sentiment}</div>
-              <div className="text-sm text-[var(--color-text-secondary)] mt-1">
-                今日市场情绪分歧较大，建议观望
-              </div>
-            </div>
+        <div className="glass-card p-6 flex flex-col justify-between hover-lift">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-base font-medium text-[var(--color-text-secondary)]">Ruo 情绪指数</h3>
+            <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/20">{sentimentLabel}</span>
+          </div>
+
+          <div className="h-28 w-full flex items-center justify-center -mt-4">
+            <ReactECharts
+              option={getGaugeOption(sentimentScore)}
+              style={{ height: '100%', width: '100%' }}
+              notMerge={true}
+            />
+          </div>
+
+          <div className="text-center mt-[-10px]">
+            <p className="text-2xl font-bold text-white numbers">{sentimentScore * 100}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">分歧较大，建议观望</p>
           </div>
         </div>
       </div>
@@ -122,97 +226,171 @@ const DashboardPage: React.FC = () => {
       {/* 第二行：核心动态 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 持仓异动卡片 */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">持仓异动</h3>
+        <div className="glass-card p-6 hover-lift">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-base font-medium text-white flex items-center">
+              <span className="mr-2 text-lg">📊</span> 持仓异动
+            </h3>
+            <span className="text-xs text-[var(--color-text-muted)]">Top 3 Movers</span>
+          </div>
+
           <div className="space-y-3">
-            {portfolioMovements.map((stock, index) => (
-              <div
-                key={index}
-                className={clsx(
-                  'p-3 rounded-lg transition-all hover:bg-[var(--color-surface-3)]',
-                  getProfitBgColor(stock.changePercent)
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{stock.code}</div>
-                    <div className="text-sm text-[var(--color-text-secondary)]">{stock.name}</div>
-                  </div>
-                  <div className={clsx('text-right', getProfitColor(stock.changePercent))}>
-                    <div className="text-lg font-semibold numbers">{stock.changePercent}%</div>
-                    <div className="text-sm">{stock.price}</div>
+            {portfolioLoading ? (
+              <div className="text-center py-8 text-[var(--color-text-muted)]">加载中...</div>
+            ) : portfolioMovements.length === 0 ? (
+              <div className="text-center py-8 text-[var(--color-text-muted)]">暂无持仓数据</div>
+            ) : (
+              portfolioMovements.map((stock, index) => (
+                <div
+                  key={index}
+                  className="group bg-[var(--color-surface-1)]/40 hover:bg-[var(--color-surface-3)] p-3 rounded-xl transition-all border border-white/5 cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={clsx("w-1 h-8 rounded-full", stock.changePercent >= 0 ? "bg-[#FF3B30]" : "bg-[#34C759]")}></div>
+                      <div>
+                        <div className="font-bold text-sm text-white group-hover:text-purple-400 transition-colors">{stock.name}</div>
+                        <div className="text-xs text-[var(--color-text-secondary)] font-mono">{stock.code}</div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className={clsx('text-sm font-bold numbers', getProfitColor(stock.changePercent))}>
+                        {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent}%
+                      </div>
+                      <div className="text-xs text-[var(--color-text-secondary)] numbers">¥{stock.price}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
-        {/* AI必读 */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">AI 必读</h3>
-          <div className="space-y-4">
-            {aiNews.map((news) => (
-              <div key={news.id} className="p-3 rounded-lg hover:bg-[var(--color-surface-3)] transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="text-sm text-[var(--color-text-secondary)]">
-                    {news.source} · {news.time}
-                  </div>
-                </div>
-                <div className="font-medium mb-2">{news.summary}</div>
-                {/* 情感倾向条 */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-[var(--color-text-secondary)]">利空</span>
-                  <div className="flex-1 h-1 bg-[var(--color-surface-3)] rounded-full relative">
-                    <div
-                      className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-[var(--color-ruo-purple)] rounded-full -mt-1.5"
-                      style={{ left: `${news.sentiment * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-xs text-[var(--color-text-secondary)]">利好</span>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="text-xs text-[var(--color-text-secondary)]">关联股票:</span>
-                  {news.relatedStocks.map((stock, idx) => (
-                    <span key={idx} className="text-xs text-[var(--color-ruo-purple)] cursor-pointer hover:underline">
-                      {stock}
-                      {idx < news.relatedStocks.length - 1 && ', '}
-                    </span>
-                  ))}
-                </div>
+        {/* 快讯 */}
+        <div className="glass-card p-6 hover-lift flex flex-col h-[400px]">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-base font-medium text-white flex items-center">
+              <span className="mr-2 text-lg">⚡</span> 7x24 快讯
+            </h3>
+            <div className="flex items-center space-x-2">
+              {newsLoading && <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>}
+            </div>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+            {newsLoading && newsList.length === 0 ? (
+              <div className="text-center text-[var(--color-text-secondary)] py-10">
+                加载中...
               </div>
-            ))}
+            ) : newsList.length === 0 ? (
+              <div className="text-center text-[var(--color-text-secondary)] py-10">
+                暂无快讯
+              </div>
+            ) : (
+              newsList.map((news) => (
+                <div
+                  key={news.id}
+                  className="relative pl-4 border-l border-[var(--color-surface-4)] hover:border-purple-500/50 transition-colors py-1 group cursor-pointer"
+                  onClick={() => setSelectedNews(news)}
+                >
+                  <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-[var(--color-surface-4)] group-hover:bg-purple-500 transition-colors border-2 border-[var(--color-surface-2)]"></div>
+                  <div className="mb-1 flex items-center space-x-2">
+                    <span className="text-xs text-[var(--color-text-secondary)] font-mono opacity-80">
+                      {formatTimeAgo(news.publishTime)}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] border border-white/5">
+                      {news.source === 'cls' ? '财联社' : news.source === 'xueqiu' ? '雪球' : news.source}
+                    </span>
+                  </div>
+                  <h4 className="text-sm text-gray-300 group-hover:text-white transition-colors leading-relaxed line-clamp-2">
+                    {news.title || news.content.slice(0, 100)}
+                  </h4>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
       {/* 第三行：风险雷达 */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">风险雷达</h3>
+      <div className="glass-card p-6 hover-lift mb-6">
+        <h3 className="text-base font-medium text-white flex items-center mb-4">
+          <span className="mr-2 text-lg">📡</span> 风险雷达
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {riskAlerts.map((alert, index) => (
             <div
               key={index}
               className={clsx(
-                'p-4 rounded-lg border-l-4',
+                'p-4 rounded-xl border border-dashed transition-all duration-300',
                 alert.type === 'warning'
-                  ? 'bg-[var(--color-warning)]/10 border-[var(--color-warning)]'
-                  : 'bg-[var(--color-surface-3)] border-[var(--color-ruo-purple)]'
+                  ? 'bg-orange-500/5 border-orange-500/30 hover:bg-orange-500/10'
+                  : 'bg-blue-500/5 border-blue-500/30 hover:bg-blue-500/10'
               )}
             >
               <div className="flex items-start space-x-3">
                 <span className={clsx(
-                  'text-xl',
-                  alert.type === 'warning' ? 'text-[var(--color-warning)]' : 'text-[var(--color-ruo-purple)]'
+                  'text-lg mt-0.5',
+                  alert.type === 'warning' ? 'text-orange-500' : 'text-blue-500'
                 )}>
                   {alert.type === 'warning' ? '⚠️' : 'ℹ️'}
                 </span>
-                <p className="text-sm">{alert.message}</p>
+                <div>
+                  <h5 className={clsx('text-sm font-bold mb-1', alert.type === 'warning' ? 'text-orange-400' : 'text-blue-400')}>
+                    {alert.type === 'warning' ? '风险提示' : '建议'}
+                  </h5>
+                  <p className="text-sm text-gray-400">{alert.message}</p>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+
+      {/* 新闻详情弹窗 */}
+      {
+        selectedNews && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setSelectedNews(null)}>
+            <div className="glass-card w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <div className="flex items-center space-x-3">
+                  <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/20">
+                    {selectedNews.source === 'cls' ? '财联社' : selectedNews.source === 'xueqiu' ? '雪球' : selectedNews.source}
+                  </span>
+                  <span className="text-sm text-[var(--color-text-secondary)] font-mono">
+                    {formatTimeAgo(selectedNews.publishTime)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedNews(null)}
+                  className="p-1 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                {selectedNews.title && <h3 className="text-xl font-bold mb-6 text-white leading-tight">{selectedNews.title}</h3>}
+                <div className="whitespace-pre-wrap text-gray-300 leading-7 text-base font-light">
+                  {selectedNews.content}
+                </div>
+                {selectedNews.aiAnalysis && (
+                  <div className="mt-8 p-5 bg-purple-500/5 rounded-xl border border-purple-500/10">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <span className="text-purple-400 text-lg">🤖</span>
+                      <h4 className="text-sm font-bold text-purple-400">AI 智能解读</h4>
+                    </div>
+                    <p className="text-sm text-gray-400 leading-relaxed italic">{selectedNews.aiAnalysis}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      }
     </div>
   );
 };

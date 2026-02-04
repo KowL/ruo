@@ -31,7 +31,7 @@ export const getKLineData = async (
   period: 'daily' | 'weekly' | 'monthly' = 'daily',
   limit: number = 60
 ): Promise<KLineData[]> => {
-  const response = await client.get<any, ApiResponse<KLineData[]>>(`/kline/${symbol}`, {
+  const response = await client.get<any, ApiResponse<KLineData[]>>(`/stock/kline/${symbol}`, {
     params: { period, limit },
   });
   return response.data || [];

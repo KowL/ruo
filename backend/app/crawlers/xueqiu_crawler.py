@@ -104,13 +104,13 @@ class XueqiuCrawler:
             self.session.headers.update({'Cookie': f'xq_a_token={token}'})
         return self.session
 
-    def get_with_retry(self, url: str, max_retries: int = 3) -> Optional[requests.Response]:
+    def get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> Optional[requests.Response]:
         """带重试的GET请求"""
         session = self._get_session_with_token()
 
         for attempt in range(max_retries):
             try:
-                response = session.get(url, timeout=self.timeout)
+                response = session.get(url, timeout=self.timeout, **kwargs)
                 response.raise_for_status()
                 return response
             except requests.exceptions.RequestException as e:
@@ -150,7 +150,7 @@ class XueqiuCrawler:
                 'count': str(limit),
             }
 
-            response = self.get_with_retry(api_url + '?' + urlencode(params))
+            response = self.get_with_retry(api_url, params=params)
             if not response:
                 return []
 

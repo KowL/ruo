@@ -68,7 +68,17 @@ class PortfolioService:
             if existing:
                 raise ValueError(f"持仓已存在: {stock_name} ({symbol})")
 
-            # 3. 创建持仓记录
+            # 3. 获取实时价格作为初始 current_price
+            initial_current_price = cost_price
+            try:
+                realtime_info = self.market_service.get_realtime_price(symbol)
+                if realtime_info and realtime_info.get('price', 0) > 0:
+                    initial_current_price = realtime_info['price']
+                    logger.info(f"获取到实时价格: {symbol} = {initial_current_price}")
+            except Exception as e:
+                logger.warning(f"添加持仓时获取实时价格失败，使用成本价: {e}")
+
+            # 4. 创建持仓记录
             portfolio = Portfolio(
                 user_id=user_id,
                 symbol=symbol,
@@ -77,7 +87,8 @@ class PortfolioService:
                 quantity=quantity,
                 strategy_tag=strategy_tag,
                 notes=notes,
-                is_active=1
+                is_active=1,
+                current_price=initial_current_price # 使用实时价格
             )
 
             self.db.add(portfolio)
@@ -123,14 +134,17 @@ class PortfolioService:
                     "totalCost": 0.0
                 }
 
-            # 2. 构建持仓列表（使用成本价作为当前价，前端单独调用行情接口）
+            # 2. 构建持仓列表（使用实时价格）
             items = []
             total_cost = 0.0
+            total_market_value = 0.0
 
             for portfolio in portfolios:
-                cost = portfolio.cost_price * portfolio.quantity
-
-                total_cost += cost
+                # 计算实时盈亏
+                pl_data = self.calculate_profit_loss(portfolio)
+                
+                total_cost += pl_data['costValue']
+                total_market_value += pl_data['marketValue']
 
                 items.append({
                     "id": portfolio.id,
@@ -138,22 +152,27 @@ class PortfolioService:
                     "name": portfolio.name,
                     "costPrice": portfolio.cost_price,
                     "quantity": portfolio.quantity,
-                    "currentPrice": portfolio.cost_price,  # 暂时使用成本价
-                    "marketValue": round(cost, 2),
-                    "costValue": round(cost, 2),
-                    "profitLoss": 0.0,
-                    "profitLossRatio": 0.0,
-                    "changePct": 0.0,
+                    "currentPrice": pl_data['currentPrice'],
+                    "marketValue": round(pl_data['marketValue'], 2),
+                    "costValue": round(pl_data['costValue'], 2),
+                    "profitLoss": round(pl_data['profitLoss'], 2),
+                    "profitLossRatio": round(pl_data['profitLossRatio'], 4),
+                    "changePct": pl_data['changePct'],
                     "strategyTag": portfolio.strategy_tag,
                     "notes": portfolio.notes,
                     "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
                     "hasNewNews": False
                 })
 
+            total_profit_loss = total_market_value - total_cost
+            total_profit_loss_ratio = (total_profit_loss / total_cost) if total_cost > 0 else 0
+
             return {
                 "items": items,
-                "totalValue": round(total_cost, 2),
-                "totalCost": round(total_cost, 2)
+                "totalValue": round(total_market_value, 2),
+                "totalCost": round(total_cost, 2),
+                "totalProfitLoss": round(total_profit_loss, 2),
+                "totalProfitLossRatio": round(total_profit_loss_ratio, 4)
             }
 
         except Exception as e:
@@ -288,15 +307,27 @@ class PortfolioService:
             盈亏信息
         """
         try:
-            # 获取实时价格
-            realtime = self.market_service.get_realtime_price(portfolio.symbol)
-
-            if not realtime:
-                current_price = portfolio.cost_price
-                change_pct = 0
+            # 直接从数据库获取缓存的实时价格
+            current_price = portfolio.current_price if portfolio.current_price > 0 else portfolio.cost_price
+            
+            # 涨跌幅计算 (API不再直接提供，需自行计算或从其他地方获取，为了MVP简单起见，这里简化处理)
+            # 如果后台任务能同步更新 changePct 到数据库最好，但目前只添加了 current_price
+            # 我们动态计算 changePct
+            if portfolio.cost_price > 0:
+                 # 注意：这里计算的是相对于成本的涨跌幅，实际上 PortfolioListResponse 需要的是当日涨跌幅
+                 # 这是一个妥协：因为我们不调用 API 了，所以无法获得准确的 "今日涨跌幅" (ChangePct)
+                 # 除非数据库也缓存了 changePct, open_price 等。
+                 # 用户需求是 "不要调用获取行情接口"，意味着接受一定的时效延迟或数据缺失。
+                 # 为了保持 UI 不报错，我们这里只能计算【持仓盈亏比例】或者 0。
+                 # 更好的做法是 DB 增加 change_pct 字段。
+                 # 既然只加了 current_price，我们暂时返回 0 或估算值。
+                 
+                 # 修正：前端显示的 changePct 通常指今日涨跌幅。没有实时数据无法计算。
+                 # 暂时设置为 0，或者如果用户允许，我们可以在 price_task 里顺便把 change_pct 也存了。
+                 # 鉴于只加了 current_price 列，这里暂且设为 0，或者基于昨日收盘价(未知)。
+                 change_pct = 0.0
             else:
-                current_price = realtime['price']
-                change_pct = realtime['changePct']
+                 change_pct = 0.0
 
             # 计算盈亏
             cost = portfolio.cost_price * portfolio.quantity

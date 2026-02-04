@@ -17,20 +17,24 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # 数据库配置
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "ruo"
-    POSTGRES_PASSWORD: str = "123456"
-    POSTGRES_DB: str = "ruo"
+    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "postgres")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "ruo_user")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "ruo_password")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "ruo_db")
 
     @property
     def DATABASE_URL(self) -> str:
         """动态生成数据库连接 URL"""
+        # 优先使用环境变量中的 DATABASE_URL
+        env_db_url = os.getenv("DATABASE_URL")
+        if env_db_url:
+            return env_db_url
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
 
     # Redis 配置
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
 
     # LLM 配置
     OPENAI_API_KEY: str = ""

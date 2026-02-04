@@ -44,7 +44,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
             {news.relationStocks.map((symbol, idx) => (
               <span key={idx} className="text-xs text-[var(--color-ruo-purple)] cursor-pointer hover:underline">
                 {symbol}
-                {idx < news.relationStocks.length - 1 && ', '}
+                {news.relationStocks && idx < news.relationStocks.length - 1 && ', '}
               </span>
             ))}
           </div>

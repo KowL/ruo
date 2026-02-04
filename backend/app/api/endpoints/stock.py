@@ -144,6 +144,46 @@ async def get_stock_detail(
         raise HTTPException(status_code=500, detail=f"获取股票详情失败: {str(e)}")
 
 
+@router.get("/kline/{symbol}", summary="获取K线数据", tags=["股票查询"])
+async def get_kline_data(
+    symbol: str,
+    period: str = Query("daily", regex="^(daily|weekly|monthly)$", description="周期: daily, weekly, monthly"),
+    limit: int = Query(60, ge=1, le=500, description="数据条数")
+):
+    """
+    获取股票 K 线数据
+
+    **参数：**
+    - symbol: 股票代码
+    - period: 周期 (daily, weekly, monthly)
+    - limit: 返回数据条数 (默认 60)
+
+    **返回：**
+    - K Line Data List
+    """
+    try:
+        kline = market_service.get_kline_data(symbol, period, limit)
+        
+        # AkShare 有时返回空列表也不会报错，需要处理
+        if not kline:
+            # 尝试返回空列表而不是 404，方便前端处理 "暂无数据"
+            return {
+                "status": "success",
+                "data": [],
+                "count": 0
+            }
+
+        return {
+            "status": "success",
+            "data": kline,
+            "count": len(kline)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取K线数据失败: {str(e)}")
+
 @router.post("/batch/realtime", summary="批量获取实时行情", tags=["股票查询"])
 async def batch_get_realtime_prices(
     symbols: list[str]

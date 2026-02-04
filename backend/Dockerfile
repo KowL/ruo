@@ -12,10 +12,14 @@ RUN apt-get update && apt-get install -y \
 # 复制依赖文件并安装 Python 依赖
 COPY backend/requirements.txt* backend/pyproject.toml* backend/uv.lock* ./
 
-# 安装 uv 包管理器和依赖
-RUN pip install --no-cache-dir uv && \
-    if [ -f pyproject.toml ]; then \
-        uv pip install --system -r pyproject.toml || pip install --no-cache-dir -r requirements.txt 2>/dev/null || true; \
+# 安装 uv 包管理器
+RUN pip install --no-cache-dir uv
+
+# 安装 pyproject.toml 中的所有依赖
+RUN if [ -f pyproject.toml ]; then \
+    uv pip install --system --no-cache . ; \
+    elif [ -f requirements.txt ]; then \
+    pip install --no-cache-dir -r requirements.txt; \
     fi
 
 # 安装必要的 Python 包（确保关键依赖）
@@ -27,7 +31,8 @@ RUN pip install --no-cache-dir \
     redis \
     celery \
     httpx \
-    python-dotenv
+    python-dotenv \
+    pydantic-settings
 
 # 复制应用代码
 COPY backend/app ./app

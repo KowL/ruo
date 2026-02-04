@@ -1,20 +1,9 @@
 -- PostgreSQL Database Initialization SQL Script
 -- Includes: User, Portfolio, News, Stock Tables
+-- Note: User and database are created by Docker Compose environment variables
 
--- 1. Create User
-CREATE USER ruo WITH PASSWORD "123456";
-
--- 2. Create Database
-CREATE DATABASE ruo OWNER ruo;
-
--- 3. Grant Privileges
-GRANT ALL PRIVILEGES ON DATABASE ruo TO ruo;
-
--- 4. Connect to New Database
-\c ruo
-
--- 5. Grant Schema Privileges
-GRANT ALL ON SCHEMA public TO ruo;
+-- Grant Schema Privileges (database already created by Docker)
+GRANT ALL ON SCHEMA public TO ruo_user;
 
 -- ==================== News Table ====================
 
@@ -129,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_stock_price_stock_id ON stock_price(stock_id);
 CREATE INDEX IF NOT EXISTS idx_stock_price_timestamp ON stock_price(timestamp);
 
 -- Sample Data (Optional - Commented Out)
-INSERT INTO user (username, email, password_hash) VALUES
+INSERT INTO users (username, email, password_hash) VALUES
 ('admin', 'admin@ruo.com', '$2b$12$w8F...');
 
 INSERT INTO portfolio (user_id, symbol, name, cost_price, quantity, current_price, strategy_tag) VALUES

@@ -1,8 +1,6 @@
 """
 Celery 配置文件 - Celery Configuration
 根据 DESIGN_NEWS.md 设计文档更新
-
-原有的 StockNews/NewsAnalysis 相关任务已移除，只保留 RawNews 相关任务
 """
 from celery import Celery
 from celery.schedules import crontab
@@ -22,6 +20,8 @@ celery_app = Celery(
     backend=CELERY_RESULT_BACKEND,
     include=[
         'app.tasks.news_fetch_tasks',  # 新闻抓取任务
+        'app.tasks.price_tasks',       # 价格更新任务
+        'app.tasks.stock_tasks',       # 股票同步任务
     ]
 )
 
@@ -36,11 +36,6 @@ celery_app.conf.update(
     accept_content=['json'],
     result_serializer='json',
 
-    # 任务路由
-    task_routes={
-        'app.tasks.news_fetch_tasks.*': {'queue': 'news_fetch_queue'},  # 新闻抓取任务
-    },
-
     # 任务默认参数
     task_default_queue='default',
     task_default_exchange='default',
@@ -48,6 +43,24 @@ celery_app.conf.update(
 
     # 定时任务 - 根据 DESIGN_NEWS.md 设计
     beat_schedule={
+        # === 股票同步任务 ===
+        'sync-stocks-daily': {
+            'task': 'app.tasks.stock_tasks.sync_stocks_task',
+            'schedule': crontab(hour=0, minute=0),  # 每天凌晨 0:00
+            'options': {
+                'expires': 3600,
+            }
+        },
+
+        # === 价格更新任务 ===
+        'update-portfolio-prices-every-20s': {
+            'task': 'app.tasks.price_tasks.update_portfolio_prices_task',
+            'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
+            'options': {
+                'expires': 60,
+            }
+        },
+
         # === 新闻抓取任务 ===
 
         # 财联社实时任务：每 60 秒触发一次（侧重时效性）
@@ -101,6 +114,10 @@ celery_app.conf.update(
 
     # 任务重试配置
     task_annotations={
+        # 价格更新任务
+        'app.tasks.price_tasks.update_portfolio_prices_task': {
+            'rate_limit': '50/m',
+        },
         # 新闻抓取任务重试配置
         'app.tasks.news_fetch_tasks.fetch_cls_news_task': {
             'autoretry_for': (Exception,),

@@ -29,11 +29,7 @@ const Button: React.FC<ButtonProps> = ({
     danger: { backgroundColor: 'var(--color-profit-up)', color: 'white' },
   };
 
-  const variantHoverStyles = {
-    primary: { },
-    secondary: { backgroundColor: 'var(--color-surface-4)' },
-    danger: { },
-  };
+
 
   return (
     <button

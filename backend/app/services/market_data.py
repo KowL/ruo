@@ -64,47 +64,40 @@ class MarketDataService:
     def search_stock(self, keyword: str) -> List[Dict]:
         """
         搜索股票（自动补全）
-
-        Args:
-            keyword: 股票代码或名称，如 "000001" 或 "平安"
-
-        Returns:
-            股票列表
+        
+        优化：从本地数据库搜索，速度更快，支持离线
         """
         try:
-            # 检查缓存
-            cache_key = f"search:{keyword}"
-            if cache_key in self.cache:
-                cached_data, cached_time = self.cache[cache_key]
-                if time.time() - cached_time < self.cache_ttl:
-                    logger.debug(f"从缓存返回搜索结果: {keyword}")
-                    return cached_data
-
-            # 获取股票列表
-            stock_info = ak.stock_info_a_code_name()
-
-            # 搜索匹配
+            from app.core.database import get_db
+            from app.models.stock import Stock
+            from sqlalchemy.orm import Session
+            
+            # 使用 DB session
+            db: Session = next(get_db())
+            
+            # 搜索匹配 (代码或名称)
             keyword = keyword.strip().upper()
+            
+            # 使用 ILIKE 进行模糊匹配，限制 10 条
+            stocks = db.query(Stock).filter(
+                (Stock.symbol.like(f"%{keyword}%")) | 
+                (Stock.name.like(f"%{keyword}%"))
+            ).limit(10).all()
+            
             results = []
+            for stock in stocks:
+                results.append({
+                    'symbol': stock.symbol,
+                    'name': stock.name,
+                    'market': stock.market if stock.market else self._get_market_name(stock.symbol),
+                    'price': stock.current_price if stock.current_price is not None else 0.0,
+                    'changePct': stock.change_pct if stock.change_pct is not None else 0.0,
+                    'change': 0.0, 
+                })
+            
+            db.close()
 
-            for _, row in stock_info.iterrows():
-                code = row['code']
-                name = row['name']
 
-                # 匹配代码或名称
-                if keyword in code or keyword in name:
-                    results.append({
-                        'symbol': code,
-                        'name': name,
-                        'market': self._get_market_name(code)
-                    })
-
-                    # 限制返回数量
-                    if len(results) >= 10:
-                        break
-
-            # 缓存结果
-            self.cache[cache_key] = (results, time.time())
 
             return results
 
@@ -246,23 +239,41 @@ class MarketDataService:
                     logger.debug(f"从缓存返回K线数据: {symbol} {period}")
                     return cached_data
 
+            # 计算开始日期（大致估算，多取一些以防节假日）
+            # 每日数据：limit * 2 天
+            # 每周数据：limit * 10 天
+            # 每月数据：limit * 40 天
+            days_map = {'daily': 2, 'weekly': 10, 'monthly': 40}
+            delta_days = limit * days_map.get(period, 2) + 30  # 额外加30天缓冲
+            start_date = (datetime.now() - timedelta(days=delta_days)).strftime('%Y%m%d')
+            end_date = datetime.now().strftime('%Y%m%d')
+
+            # According to AkShare documentation: https://akshare.akfamily.xyz/data/stock/stock.html#id23
+            # stock_zh_a_hist(symbol="000001", period="daily", start_date="20170301", end_date='20210907', adjust="qfq")
+            
             # 根据周期选择 AkShare 接口
             if period == 'daily':
                 df = ak.stock_zh_a_hist(
                     symbol=symbol,
                     period='daily',
-                    adjust='qfq'  # 前复权
+                    start_date=start_date,
+                    end_date=end_date,
+                    adjust='qfq'
                 )
             elif period == 'weekly':
                 df = ak.stock_zh_a_hist(
                     symbol=symbol,
                     period='weekly',
+                    start_date=start_date,
+                    end_date=end_date,
                     adjust='qfq'
                 )
             elif period == 'monthly':
                 df = ak.stock_zh_a_hist(
                     symbol=symbol,
                     period='monthly',
+                    start_date=start_date,
+                    end_date=end_date,
                     adjust='qfq'
                 )
             else:
@@ -286,6 +297,9 @@ class MarketDataService:
                     'close': float(row['收盘']),
                     'volume': float(row['成交量']),
                     'amount': float(row['成交额']) if '成交额' in row else 0,
+                    'change': float(row['涨跌额']) if '涨跌额' in row else 0,
+                    'changePct': float(row['涨跌幅']) if '涨跌幅' in row else 0,
+                    'turnover': float(row['换手率']) if '换手率' in row else 0,
                 })
 
             # 缓存结果

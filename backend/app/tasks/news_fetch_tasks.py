@@ -10,10 +10,12 @@
 import logging
 from typing import Dict
 from datetime import datetime, timezone
+from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
 
+@shared_task(name='app.tasks.news_fetch_tasks.fetch_cls_news_task')
 def fetch_cls_news_task(limit: int = 50) -> Dict:
     """
     财联社实时新闻抓取任务
@@ -84,6 +86,7 @@ def fetch_cls_news_task(limit: int = 50) -> Dict:
         }
 
 
+@shared_task(name='app.tasks.news_fetch_tasks.fetch_xueqiu_news_task')
 def fetch_xueqiu_news_task(limit: int = 50) -> Dict:
     """
     雪球快讯抓取任务
@@ -162,6 +165,7 @@ def fetch_xueqiu_news_task(limit: int = 50) -> Dict:
         }
 
 
+@shared_task(name='app.tasks.news_fetch_tasks.refresh_xueqiu_token_task')
 def refresh_xueqiu_token_task() -> Dict:
     """
     雪球 Token 刷新任务
@@ -212,6 +216,7 @@ def refresh_xueqiu_token_task() -> Dict:
         }
 
 
+@shared_task(name='app.tasks.news_fetch_tasks.batch_fetch_news_task')
 def batch_fetch_news_task() -> Dict:
     """
     批量新闻抓取任务（聚合所有数据源）

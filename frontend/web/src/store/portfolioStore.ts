@@ -6,6 +6,8 @@ interface PortfolioState {
   portfolios: Portfolio[];
   totalValue: number;
   totalCost: number;
+  totalProfitLoss: number;
+  totalProfitLossRatio: number;
   loading: boolean;
   error: string | null;
 
@@ -19,6 +21,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   portfolios: [],
   totalValue: 0,
   totalCost: 0,
+  totalProfitLoss: 0,
+  totalProfitLossRatio: 0,
   loading: false,
   error: null,
 
@@ -32,6 +36,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         portfolios: data.items,
         totalValue: data.totalValue,
         totalCost: data.totalCost,
+        totalProfitLoss: data.totalProfitLoss,
+        totalProfitLossRatio: data.totalProfitLossRatio,
         loading: false,
       });
     } catch (error: any) {
@@ -57,6 +63,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         portfolios: portfolioData.items,
         totalValue: portfolioData.totalValue,
         totalCost: portfolioData.totalCost,
+        totalProfitLoss: portfolioData.totalProfitLoss,
+        totalProfitLossRatio: portfolioData.totalProfitLossRatio,
         loading: false,
       });
       console.log('列表刷新成功');
@@ -77,6 +85,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         portfolios: data.items,
         totalValue: data.totalValue,
         totalCost: data.totalCost,
+        totalProfitLoss: data.totalProfitLoss,
+        totalProfitLossRatio: data.totalProfitLossRatio,
         loading: false,
       });
     } catch (error: any) {

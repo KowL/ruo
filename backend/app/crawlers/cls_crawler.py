@@ -16,7 +16,7 @@ class ClsCrawler:
     """财联社爬虫"""
 
     def __init__(self):
-        self.base_url = "https://api.cls.cn"
+        self.base_url = "https://www.cls.cn"
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -28,11 +28,11 @@ class ClsCrawler:
         self.session = requests.Session()
         self.session.headers.update(self.headers)
 
-    def get_with_retry(self, url: str, max_retries: int = 3) -> Optional[requests.Response]:
+    def get_with_retry(self, url: str, max_retries: int = 3, **kwargs) -> Optional[requests.Response]:
         """带重试的GET请求"""
         for attempt in range(max_retries):
             try:
-                response = self.session.get(url, timeout=self.timeout)
+                response = self.session.get(url, timeout=self.timeout, **kwargs)
                 response.raise_for_status()
                 return response
             except requests.exceptions.RequestException as e:
@@ -62,7 +62,7 @@ class ClsCrawler:
         """
         try:
             # 财联社电报 API
-            api_url = f"{self.base_url}/telegraphList"
+            api_url = f"{self.base_url}/nodeapi/telegraphList"
             params = {
                 'os': 'web',
                 'rn': limit,
@@ -77,27 +77,32 @@ class ClsCrawler:
 
             data = response.json()
 
-            if data.get('code') != 200:
+            # 新 API 使用 error 字段，0 表示成功
+            if data.get('error') != 0:
                 logger.error(f"财联社 API 返回错误: {data.get('msg', 'Unknown error')}")
                 return []
 
-            telegraph_list = data.get('data', {}).get('telegraph', [])
+            # 新 API 数据在 data.roll_data 中
+            telegraph_list = data.get('data', {}).get('roll_data', [])
             news_list = []
 
             for item in telegraph_list:
                 try:
-                    # 财联社没有唯一 ID，使用内容 hash 作为 external_id
-                    content_hash = self._generate_content_hash(
-                        item.get('content', '') + str(item.get('time', 0))
-                    )
+                    # 新 API 有 id 字段，可以直接使用
+                    external_id = str(item.get('id', ''))
+                    if not external_id:
+                        # 如果没有 id，使用内容 hash 作为 external_id
+                        external_id = self._generate_content_hash(
+                            item.get('content', '') + str(item.get('ctime', 0))
+                        )
 
                     news_item = {
                         'source': 'cls',
-                        'external_id': content_hash,
-                        'title': item.get('brief', ''),  # 财联社有 brief 字段
+                        'external_id': external_id,
+                        'title': item.get('title', '') or item.get('brief', ''),  # 优先使用 title
                         'content': item.get('content', ''),
                         'raw_json': str(item),  # 存储原始数据
-                        'publish_time': self._parse_timestamp(item.get('time', 0)),
+                        'publish_time': self._parse_timestamp(item.get('ctime', 0)),  # 使用 ctime
                     }
                     news_list.append(news_item)
 

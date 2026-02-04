@@ -54,10 +54,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         style={{ backgroundColor: 'var(--color-surface-2)', borderColor: 'var(--color-surface-4)' }}
       >
         {/* Logo */}
-        <div className="p-4 border-b" style={{ borderColor: 'var(--color-surface-4)' }}>
+        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-surface-4)' }}>
           <button
             onClick={handleLogoClick}
-            className="flex items-center space-x-2 w-full"
+            className="flex items-center space-x-2"
           >
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center text-black font-bold"
@@ -68,6 +68,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {!sidebarCollapsed && (
               <span className="text-xl font-bold">Ruo</span>
             )}
+          </button>
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="text-[var(--color-text-secondary)] hover:text-white"
+          >
+            {sidebarCollapsed ? '>>' : '<<'}
           </button>
         </div>
 

@@ -18,6 +18,17 @@ class Stock(Base):
     industry = Column(String(50))  # 所属行业
     market = Column(String(20))  # 市场（主板/创业板/科创板）
     is_active = Column(Boolean, default=True)  # 是否在交易
+
+    # 扩展行情数据 (实时/今日)
+    current_price = Column(Float)       # 最新价
+    change_pct = Column(Float)          # 涨跌幅 (%)
+    volume = Column(Float)              # 成交量 (手)
+    amount = Column(Float)              # 成交额 (元)
+    turnover_rate = Column(Float)       # 换手率 (%)
+    pe_dynamic = Column(Float)          # 市盈率(动态)
+    pb = Column(Float)                  # 市净率
+    total_market_cap = Column(Float)    # 总市值 (元)
+    circulating_market_cap = Column(Float) # 流通市值 (元)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

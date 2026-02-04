@@ -44,6 +44,9 @@ export interface News {
   relationStock?: string;  // 新闻关联的股票代码，逗号分隔，如 "600519,000001"
   relationStocks?: string[]; // 解析后的关联股票代码数组
   aiAnalysis?: string;    // AI 分析总结
+  sentimentScore?: number; // 情绪分数 0-1,用于前端过滤
+  isFavorite?: boolean;    // 是否收藏
+  symbol?: string;         // 主要关联股票代码
 }
 
 // K线数据
@@ -54,6 +57,10 @@ export interface KLineData {
   low: number;
   close: number;
   volume: number;
+  amount?: number;
+  change?: number;
+  changePct?: number;
+  turnover?: number;
 }
 
 // API 响应
@@ -68,7 +75,19 @@ export interface PortfolioListResponse {
   items: Portfolio[];
   totalValue: number;
   totalCost: number;
+  totalProfitLoss: number;
+  totalProfitLossRatio: number;
 }
 
 // 策略标签类型
+// 策略标签类型
 export type StrategyTag = '打板' | '低吸' | '趋势' | '其他';
+
+// 股票搜索结果
+export interface StockSearchResult {
+  symbol: string;
+  name: string;
+  market: string;
+  price?: number;
+  changePct?: number;
+}

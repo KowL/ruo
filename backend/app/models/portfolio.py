@@ -21,7 +21,9 @@ class Portfolio(Base):
     strategy_tag = Column(String(20))  # 策略标签：打板/低吸/趋势
 
     # 计算字段（可以在查询时计算）
-    # current_price - 通过 API 实时获取
+    # current_price - 缓存的实时价格（由后台任务更新）
+    current_price = Column(Float, default=0.0)
+    
     # profit_loss - 盈亏金额 = (current_price - cost_price) * quantity
     # profit_loss_ratio - 盈亏比 = (current_price - cost_price) / cost_price
 
