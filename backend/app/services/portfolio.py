@@ -131,8 +131,11 @@ class PortfolioService:
                 return {
                     "items": [],
                     "totalValue": 0.0,
-                    "totalCost": 0.0
+                    "totalCost": 0.0,
+                    "totalProfitLoss": 0.0,
+                    "totalProfitLossRatio": 0.0
                 }
+
 
             # 2. 构建持仓列表（使用实时价格）
             items = []

@@ -21,9 +21,10 @@ const DashboardPage: React.FC = () => {
   }, []); // Run once on mount
 
   // Top Movers (Sort by absolute change percent)
-  const portfolioMovements = [...portfolios]
-    .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+  const portfolioMovements = [...(portfolios || [])]
+    .sort((a, b) => Math.abs(b.changePct || 0) - Math.abs(a.changePct || 0))
     .slice(0, 3)
+
     .map(p => ({
       code: p.symbol,
       name: p.name,
@@ -189,13 +190,14 @@ const DashboardPage: React.FC = () => {
           <div className="space-y-2 relative z-10">
             <div className="flex items-baseline space-x-4">
               <span className="text-4xl font-bold numbers tracking-tight text-white">
-                {portfolioLoading ? '...' : `¥${totalValue.toLocaleString()}`}
+                {portfolioLoading ? '...' : `¥${(totalValue || 0).toLocaleString()}`}
               </span>
             </div>
             <div className="flex items-center space-x-3 mt-2">
-              <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio), getProfitBgColor(totalProfitLossRatio))}>
-                {totalProfitLoss >= 0 ? '+' : ''}{totalProfitLoss.toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{(totalProfitLossRatio * 100).toFixed(2)}%)
+              <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio || 0), getProfitBgColor(totalProfitLossRatio || 0))}>
+                {totalProfitLoss >= 0 ? '+' : ''}{(totalProfitLoss || 0).toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{((totalProfitLossRatio || 0) * 100).toFixed(2)}%)
               </span>
+
               <span className="text-xs text-[var(--color-text-muted)]">今日盈亏</span>
             </div>
           </div>
