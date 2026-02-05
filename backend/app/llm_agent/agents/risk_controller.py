@@ -5,7 +5,7 @@
 """
 
 import pandas as pd
-from state import ResearchState
+from app.llm_agent.state import ResearchState
 
 
 def node_risk_controller(state: ResearchState) -> ResearchState:

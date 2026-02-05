@@ -89,7 +89,7 @@ def fetch_cls_news_task(limit: int = 50) -> Dict:
 @shared_task(name='app.tasks.news_fetch_tasks.fetch_xueqiu_news_task')
 def fetch_xueqiu_news_task(limit: int = 50) -> Dict:
     """
-    雪球快讯抓取任务
+    雪球热贴抓取任务
 
     根据设计文档，每 120 秒触发一次，侧重社区和综合快讯
 
@@ -114,9 +114,9 @@ def fetch_xueqiu_news_task(limit: int = 50) -> Dict:
             logger.warning(f"[雪球] Redis 连接失败，将使用本地 Token: {e}")
             redis_client = None
 
-        # 2. 抓取雪球快讯
+        # 2. 抓取雪球热门帖子
         crawler = get_xueqiu_crawler(redis_client)
-        raw_news_list = crawler.fetch_flash_news(limit)
+        raw_news_list = crawler.fetch_hot_posts(limit)
 
         if not raw_news_list:
             logger.info("[雪球] 没有新新闻")

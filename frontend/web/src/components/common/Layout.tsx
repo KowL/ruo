@@ -36,6 +36,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/', label: '首页', icon: '🏠' },
     { path: '/portfolio', label: '持仓', icon: '📊' },
     { path: '/news', label: '情报', icon: '📰' },
+    { path: '/analysis', label: '复盘', icon: '🧠' },
+    { path: '/opening-analysis', label: '开盘', icon: '🌅' },
     { path: '/chart', label: 'K线', icon: '📈' },
   ];
 

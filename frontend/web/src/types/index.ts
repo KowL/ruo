@@ -13,6 +13,7 @@ export interface Portfolio {
   changePct: number;
   strategyTag: string;
   notes?: string;
+  market?: string;
   hasNewNews: boolean;
   createdAt: string;
 }

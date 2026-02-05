@@ -131,23 +131,25 @@ class XueqiuCrawler:
                 else:
                     return None
 
-    def fetch_flash_news(self, limit: int = 50) -> List[Dict]:
+    def fetch_hot_posts(self, limit: int = 20) -> List[Dict]:
         """
-        抓取雪球 7x24 快讯
+        抓取雪球今日热门帖子
 
         Args:
             limit: 抓取数量
 
         Returns:
-            新闻列表
+            帖子列表
         """
         try:
-            # 雪球 7x24 快讯 API
-            api_url = f"{self.base_url}/statuses/liveroom_v2.json"
+            # 雪球热门帖子 API
+            api_url = f"{self.base_url}/statuses/hot/list_v2.json"
             params = {
                 'since_id': '-1',
                 'max_id': '-1',
-                'count': str(limit),
+                'size': str(limit),
+                'type': 'status',
+                'category': '-1',
             }
 
             response = self.get_with_retry(api_url, params=params)
@@ -155,41 +157,54 @@ class XueqiuCrawler:
                 return []
 
             data = response.json()
-
-            if data.get('code') != 0:
-                logger.error(f"雪球 API 返回错误: {data.get('error_description', 'Unknown error')}")
-                return []
-
-            statuses = data.get('data', {}).get('statuses', [])
+            
+            # API 可能会返回 items 列表
+            items = data.get('items', [])
+            if not items and 'data' in data:
+                 items = data['data']
+                 
             news_list = []
 
-            for item in statuses:
+            for item in items:
                 try:
-                    # 使用雪球的 status_id 作为 external_id
-                    external_id = item.get('id', '')
-
-                    # 提取内容（可能是纯文本或 HTML）
-                    content = item.get('description', '') or item.get('text', '')
+                    # 原始贴子数据可能在 original_status 中 (如果是转发)
+                    # 但热门帖子通常是直接的主贴
+                    status = item.get('original_status', item)
+                    
+                    external_id = str(status.get('id', ''))
+                    
+                    # 提取标题和内容
+                    title = status.get('title', '')
+                    content = status.get('text', '') or status.get('description', '')
+                    
+                    # 如果没有标题，尝试从内容截取
+                    if not title and content:
+                        # 移除HTML标签后截取
+                        import re
+                        clean_text = re.sub(r'<[^>]+>', '', content)
+                        title = clean_text[:30] + '...' if len(clean_text) > 30 else clean_text
 
                     news_item = {
                         'source': 'xueqiu',
                         'external_id': external_id,
-                        'title': '',  # 快讯通常没有标题
+                        'title': title,
                         'content': content,
                         'raw_json': json.dumps(item, ensure_ascii=False),
-                        'publish_time': self._parse_timestamp(item.get('created_at', 0)),
+                        'publish_time': self._parse_timestamp(status.get('created_at', 0)),
+                        'author': status.get('user', {}).get('screen_name', 'Unknown'),
+                        'url': f"https://xueqiu.com{status.get('target', '')}"
                     }
                     news_list.append(news_item)
 
                 except Exception as e:
-                    logger.debug(f"解析雪球快讯项失败: {e}")
+                    logger.debug(f"解析雪球热贴项失败: {e}")
                     continue
 
-            logger.info(f"雪球抓取成功: {len(news_list)} 条")
+            logger.info(f"雪球热贴抓取成功: {len(news_list)} 条")
             return news_list
 
         except Exception as e:
-            logger.error(f"雪球抓取失败: {e}")
+            logger.error(f"雪球热贴抓取失败: {e}")
             return []
 
     def _parse_timestamp(self, timestamp: int) -> datetime:

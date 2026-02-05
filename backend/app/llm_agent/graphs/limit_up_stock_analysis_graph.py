@@ -12,28 +12,21 @@ import json
 import traceback
 from pathlib import Path
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # 加载密钥
 load_dotenv()
 
-# 导入模块化组件
-import sys
-from pathlib import Path
-
-# 添加项目根目录到 Python 路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from state import ResearchState
-from agent import (
+from app.llm_agent.state import ResearchState
+from app.llm_agent.agents import (
     node_data_officer,
     node_strategist,
     node_risk_controller,
     node_day_trading_coach,
     node_finalize_report
 )
-from llm_factory import get_shared_llm
+from app.core.llm_factory import get_shared_llm
+
 
 # =======================
 # 🧭 条件路由函数
@@ -127,27 +120,15 @@ def create_research_graph(llm=None):
     app = workflow.compile()
     return app
 
-# === 缓存配置 ===
-CACHE_DIR = Path("cache/daily_research")
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+# === 数据库与缓存逻辑 ===
 
-# 新增函数：保存报告到本地
-def save_report_to_cache(state: dict, date: str):
-    """将分析结果持久化到本地缓存"""
-    # 创建日期子目录
-    date_dir = CACHE_DIR / date
-    date_dir.mkdir(exist_ok=True)
-
-    # 保存完整状态（用于调试和后续工作流）
-    state_path = date_dir / "state.json"
-    with open(state_path, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2, default=str)
-
-    # 生成并保存 Markdown 报告（给人看）
+def save_report_to_db(state: dict, date: str):
+    """将分析结果持久化到数据库"""
+    # 生成 Markdown 报告内容（用于兼容老版本或直接展示）
     md_content = f"""
 # 📊 AI投研日报：{date}
 
-📅 分析时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+📅 分析时间：{datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")}
 {'-'*50}
 
 ## 📈 数据官简报
@@ -167,66 +148,100 @@ def save_report_to_cache(state: dict, date: str):
             md_content += f"""
 ### {item['name']} ({item['code']})
 - **操作建议**：{item['action']}
-- **梯队地位**：{item.get('tier_rank', '?')}
-- **情绪周期**：{item.get('mood_cycle', '?')}
-- **理想买点**：{item['entry_point']}
-- **止损价**：{item.get('stop_loss', '?')} 元
-- **目标价**：{item.get('take_profit', '?')} 元
-- **风险收益比**：{item.get('risk_reward_ratio', '?')}
-- **风险信号**：{item.get('risk_signal', '无')}
 - **逻辑**：{item['reason']}
 """
 
     md_content += f"\n\n---\n📌 综合建议：短线选手可在控制仓位前提下参与高确定性机会..."
 
-    md_path = date_dir / "report.md"
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write(md_content.strip())
+    # ✅ 数据库持久化
+    try:
+        from app.core.database import SessionLocal
+        from app.models.stock import AnalysisReport
+        
+        # 统一日期格式处理
+        report_date = datetime.strptime(date, "%Y-%m-%d")
+        
+        db = SessionLocal()
+        try:
+            # 检查是否已存在
+            existing = db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == "GLOBAL",
+                AnalysisReport.report_date == report_date,
+                AnalysisReport.report_type == "limit-up"
+            ).first()
+            
+            # 将完整的 state 序列化为 JSON 字符串存入 content
+            # 这样前端收到的 content 就是完整的分析结果，而不仅仅是 md
+            state_json = json.dumps(state, ensure_ascii=False, indent=2, default=str)
+            
+            if existing:
+                existing.content = md_content.strip()
+                existing.data = state_json
+                existing.summary = state.get('data_officer_report', '')
+            else:
+                new_report = AnalysisReport(
+                    symbol="GLOBAL",
+                    report_date=report_date,
+                    report_type="limit-up",
+                    content=md_content.strip(),
+                    data=state_json,
+                    summary=state.get('data_officer_report', ''),
+                    confidence=1.0
+                )
+                db.add(new_report)
+            
+            db.commit()
+            print(f"✅ 报告已同步到数据库: {date} (GLOBAL/limit-up)")
+        except Exception as db_err:
+            db.rollback()
+            print(f"❌ 数据库保存失败: {db_err}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"❌ 数据库保存异常: {e}")
 
-    # （可选）保存原始数据
-    if "raw_limit_ups" in state:
-        import pickle
-        pkl_path = date_dir / "raw_data.pkl"
-        with open(pkl_path, "wb") as f:
-            pickle.dump(pd.DataFrame(state["raw_limit_ups"]), f)
+def get_cached_report(date: str) -> dict:
+    """从数据库获取已存在的分析报告"""
+    try:
+        from app.core.database import SessionLocal
+        from app.models.stock import AnalysisReport
+        
+        report_date = datetime.strptime(date, "%Y-%m-%d")
+        db = SessionLocal()
+        try:
+            report = db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == "GLOBAL",
+                AnalysisReport.report_date == report_date,
+                AnalysisReport.report_type == "limit-up"
+            ).first()
+            
+            if report and report.content:
+                try:
+                    return json.loads(report.content)
+                except:
+                    return None
+            return None
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"❌ 读取数据库缓存异常: {e}")
+        return None
 
-    print(f"✅ 报告已缓存至: {date_dir}")
-
-# 新增函数：检查是否已有缓存
-def is_cached(date: str) -> bool:
-    """判断某日的分析报告是否已存在"""
-    date_dir = CACHE_DIR / date
-    return date_dir.exists() and (date_dir / "report.md").exists()
-
-# 主入口函数：支持缓存读取与写入
+# 主入口函数：完全依赖数据库
 def run_ai_research_analysis(date: str, force_rerun: bool = False, llm=None) -> dict:
     """
     启动完整的涨停股 AI 投研分析流程
-    支持缓存机制：若已存在且未强制重跑，则直接返回缓存结果
-
-    Args:
-        date: 分析日期，格式为 YYYY-MM-DD
-        force_rerun: 是否强制重新运行，忽略缓存
-        llm: 可选的 LLM 实例，如果不提供则使用共享实例
-
-    Returns:
-        包含分析结果的字典
     """
-    cache_file = CACHE_DIR / date / "state.json"
-
-    # ✅ 检查缓存是否存在
-    if not force_rerun and is_cached(date):
-        try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cached_state = json.load(f)
+    # ✅ 检查数据库缓存是否存在
+    if not force_rerun:
+        cached_state = get_cached_report(date)
+        if cached_state:
             return {
                 "success": True,
                 "result": cached_state,
                 "cached": True,
-                "message": f"使用缓存结果（{date}）"
+                "message": f"使用数据库缓存结果（{date}）"
             }
-        except Exception as e:
-            print(f"读取缓存失败: {e}")
 
     # 🔁 否则执行完整分析流程
     try:
@@ -260,14 +275,14 @@ def run_ai_research_analysis(date: str, force_rerun: bool = False, llm=None) -> 
         if final_state is None:
             raise ValueError("图执行未产生任何输出")
 
-        # ✅ 执行完成后立即缓存
-        save_report_to_cache(final_state, date)
+        # ✅ 执行完成后立即存入数据库
+        save_report_to_db(final_state, date)
 
         return {
             "success": True,
             "result": final_state,
             "cached": False,
-            "message": f"新生成报告并已缓存"
+            "message": f"新生成报告并已存入数据库"
         }
 
     except Exception as e:

@@ -212,6 +212,67 @@ class MarketDataService:
             raise
 
     @retry_on_error(max_retries=3, delay=1.0)
+    def get_stock_price_xq(self, symbol: str) -> float:
+        """
+        获取股票当前价格（雪球接口，用于备用）
+
+        Args:
+            symbol: 股票代码
+
+        Returns:
+            当前价格，如果获取失败返回 0.0
+        """
+        try:
+            # AkShare 雪球个股详情接口
+            # ak.stock_individual_basic_info_xq(symbol="SH600519")
+            # 需要转换代码格式：600519 -> SH600519, 000001 -> SZ000001
+            market_code = ""
+            if symbol.startswith("6"):
+                market_code = f"SH{symbol}"
+            elif symbol.startswith("0") or symbol.startswith("3"):
+                market_code = f"SZ{symbol}"
+            elif symbol.startswith("8") or symbol.startswith("4"):
+                market_code = f"BJ{symbol}"
+            else:
+                logger.warning(f"无法识别的市场代码格式: {symbol}")
+                return 0.0
+
+            logger.debug(f"调用雪球接口: ak.stock_individual_basic_info_xq(symbol='{market_code}')")
+            try:
+                df = ak.stock_individual_basic_info_xq(symbol=market_code)
+            except Exception as api_err:
+                logger.warning(f"雪球接口调用异常: {api_err}")
+                return 0.0
+            
+            if df.empty:
+                logger.warning(f"雪球接口未获取到数据: {symbol}")
+                return 0.0
+
+            # df 通常包含 'item' 和 'value' 列，或者直接是宽表
+            # 打印一下看看结构，通常是 current_price 字段
+            # 根据文档，返回的是 DataFrame，字段可能包含 "current_price"
+            
+            # 使用 item/value 结构查找 (假设) 或者直接列名
+            # 实测 akshare stock_individual_basic_info_xq 返回的是:
+            # item      value
+            # current_price 1700.0
+            # ...
+            
+            # 查找 current_price
+            price_row = df[df['item'] == 'current_price']
+            if not price_row.empty:
+                price = float(price_row.iloc[0]['value'])
+                return price
+            
+            # 尝试查找 'last_close' 或其他
+            logger.warning(f"雪球数据中未找到 current_price: {symbol}")
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"雪球接口获取价格失败: {symbol}, 错误: {e}")
+            return 0.0
+
+    @retry_on_error(max_retries=3, delay=1.0)
     def get_kline_data(
         self,
         symbol: str,

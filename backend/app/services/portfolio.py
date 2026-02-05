@@ -28,8 +28,10 @@ class PortfolioService:
     def add_portfolio(
         self,
         symbol: str,
+        name: str,
         cost_price: float,
         quantity: float,
+        market: Optional[str] = None,
         strategy_tag: Optional[str] = None,
         user_id: int = 1,
         notes: Optional[str] = None
@@ -39,8 +41,10 @@ class PortfolioService:
 
         Args:
             symbol: 股票代码
+            name: 股票名称
             cost_price: 成本价
             quantity: 持仓数量
+            market: 市场名称
             strategy_tag: 策略标签（打板/低吸/趋势）
             user_id: 用户ID（默认1）
             notes: 备注
@@ -49,14 +53,10 @@ class PortfolioService:
             添加成功的持仓基本信息（不含实时行情）
         """
         try:
-            # 1. 获取股票基本信息（只需要名称）
-            stock_info = self.market_service.get_stock_info(symbol)
-            if not stock_info:
-                # 如果获取不到详细信息，使用代码作为名称
-                stock_name = symbol
-                logger.warning(f"无法获取股票信息: {symbol}，使用代码作为名称")
-            else:
-                stock_name = stock_info['name']
+            # 1. 使用前端传递的股票名称
+            stock_name = name
+            
+            # 2. 检查是否已存在（同一用户同一股票）
 
             # 2. 检查是否已存在（同一用户同一股票）
             existing = self.db.query(Portfolio).filter(
@@ -75,14 +75,32 @@ class PortfolioService:
                 if realtime_info and realtime_info.get('price', 0) > 0:
                     initial_current_price = realtime_info['price']
                     logger.info(f"获取到实时价格: {symbol} = {initial_current_price}")
+                else:
+                    # 获取实时价格失败或价格为0，尝试使用雪球接口作为备用
+                    logger.warning(f"获取实时价格为空或0，尝试使用雪球接口: {symbol}")
+                    xq_price = self.market_service.get_stock_price_xq(symbol)
+                    if xq_price > 0:
+                        initial_current_price = xq_price
+                        logger.info(f"从雪球获取到价格: {symbol} = {initial_current_price}")
+                    else:
+                        logger.warning(f"雪球接口也无法获取价格，使用成本价: {symbol}")
+
             except Exception as e:
-                logger.warning(f"添加持仓时获取实时价格失败，使用成本价: {e}")
+                logger.warning(f"添加持仓时获取实时价格失败，尝试使用雪球接口: {e}")
+                try:
+                    xq_price = self.market_service.get_stock_price_xq(symbol)
+                    if xq_price > 0:
+                        initial_current_price = xq_price
+                        logger.info(f"异常后从雪球获取到价格: {symbol} = {initial_current_price}")
+                except Exception as ex:
+                    logger.warning(f"雪球接口备用获取失败: {ex}")
 
             # 4. 创建持仓记录
             portfolio = Portfolio(
                 user_id=user_id,
                 symbol=symbol,
                 name=stock_name,
+                market=market,
                 cost_price=cost_price,
                 quantity=quantity,
                 strategy_tag=strategy_tag,

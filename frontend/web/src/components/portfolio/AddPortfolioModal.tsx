@@ -8,9 +8,11 @@ interface AddPortfolioModalProps {
   onClose: () => void;
   onSubmit: (data: {
     symbol: string;
+    name: string;
     costPrice: number;
     quantity: number;
     strategyTag?: string;
+    market?: string;
   }) => Promise<void>;
 }
 
@@ -21,6 +23,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
     costPrice: '',
     quantity: '',
     strategyTag: '' as StrategyTag | '',
+    market: '',
   });
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
@@ -50,6 +53,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
       ...formData,
       symbol: stock.symbol,
       name: stock.name,
+      market: stock.market,
     });
     setSearchResults([]);
   };
@@ -60,9 +64,11 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
     try {
       await onSubmit({
         symbol: formData.symbol,
+        name: formData.name,
         costPrice: parseFloat(formData.costPrice),
         quantity: parseFloat(formData.quantity),
         strategyTag: formData.strategyTag || undefined,
+        market: formData.market,
       });
       // 重置表单
       setFormData({
@@ -71,6 +77,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
         costPrice: '',
         quantity: '',
         strategyTag: '',
+        market: '',
       });
       // 成功后关闭模态框
       onClose();

@@ -7,7 +7,7 @@
 import pandas as pd
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from state import ResearchState
+from app.llm_agent.state import ResearchState
 import os
 
 

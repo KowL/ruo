@@ -5,6 +5,8 @@ import PortfolioPage from './pages/PortfolioPage';
 import NewsPage from './pages/NewsPage';
 import ChartPage from './pages/ChartPage';
 import StockDetailPage from './pages/StockDetailPage';
+import StockAnalysisPage from './pages/StockAnalysisPage';
+import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/chart" element={<ChartPage />} />
           <Route path="/stock/:symbol" element={<StockDetailPage />} />
+          <Route path="/analysis" element={<StockAnalysisPage />} />
+          <Route path="/opening-analysis" element={<OpeningAnalysisPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

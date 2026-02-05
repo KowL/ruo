@@ -23,6 +23,8 @@ router = APIRouter()
 class PortfolioAddRequest(BaseModel):
     """添加持仓请求模型"""
     symbol: str = Field(..., description="股票代码，如 000001", min_length=6, max_length=6)
+    name: str = Field(..., description="股票名称")
+    market: Optional[str] = Field(None, description="市场名称, 如 SH SZ")
     costPrice: float = Field(..., description="成本价", gt=0)
     quantity: float = Field(..., description="持仓数量", gt=0)
     strategyTag: Optional[str] = Field(None, description="策略标签：打板/低吸/趋势")
@@ -32,6 +34,8 @@ class PortfolioAddRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "symbol": "000001",
+                "name": "平安银行",
+                "market": "SZ",
                 "costPrice": 10.5,
                 "quantity": 1000,
                 "strategyTag": "趋势",
@@ -88,6 +92,8 @@ async def add_portfolio(
         service = PortfolioService(db)
         result = service.add_portfolio(
             symbol=request.symbol,
+            name=request.name,
+            market=request.market,
             cost_price=request.costPrice,
             quantity=request.quantity,
             strategy_tag=request.strategyTag,

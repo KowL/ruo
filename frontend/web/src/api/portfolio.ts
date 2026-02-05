@@ -12,6 +12,8 @@ export const getPortfolioList = async (userId: number = 1): Promise<PortfolioLis
 // 添加持仓
 export const addPortfolio = async (data: {
   symbol: string;
+  name: string;
+  market?: string;
   costPrice: number;
   quantity: number;
   strategyTag?: string;

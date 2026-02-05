@@ -52,6 +52,8 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
       console.log('正在添加持仓...', data);
       await addPortfolio({
         symbol: data.symbol,
+        name: data.name,
+        market: data.market,
         costPrice: data.costPrice,
         quantity: data.quantity,
         strategyTag: data.strategyTag,

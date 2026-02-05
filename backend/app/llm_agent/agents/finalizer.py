@@ -4,7 +4,7 @@
 负责汇总所有分析结果，生成最终的投研报告
 """
 
-from state import ResearchState
+from app.llm_agent.state import ResearchState
 
 
 def node_finalize_report(state: ResearchState) -> ResearchState:

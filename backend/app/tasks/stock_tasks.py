@@ -26,10 +26,13 @@ def sync_stocks_task() -> Dict:
 
         logger.info("[股票同步] 开始同步A股数据 (含行情)")
         
-        # 1. 获取所有A股实时行情
-        # columns: 代码, 名称, 最新价, 涨跌幅, 成交量, 成交额, 换手率, 市盈率-动态, 市净率, 总市值, 流通市值, ...
+        # 1. 获取所有A股实时行情 (Sina接口)
+        # columns: 代码, 名称, 最新价, 涨跌额, 涨跌幅, 买入, 卖出, 昨收, 今开, 最高, 最低, 成交量, 成交额, 时间戳
+        # 注意: Sina接口可能不包含市盈率、市净率、市值等数据，需做容错处理
         start_time = time.time()
-        df = ak.stock_zh_a_spot_em()
+        # ak.stock_zh_a_spot() 返回的数据列名通常为: 代码, 名称, 最新价, 涨跌额, 涨跌幅, ...
+        # 代码列可能包含前缀, 如 sh600000, sz000001
+        df = ak.stock_zh_a_spot()
         
         if df.empty:
             logger.warning("[股票同步] 获取到的股票列表为空")
@@ -43,11 +46,17 @@ def sync_stocks_task() -> Dict:
         updated_count = 0
         
         # 获取现有所有股票，构建字典映射 {symbol: stock_obj}
+        # 数据库中保存的是纯数字代码
         existing_stocks = db.query(Stock).all()
         stock_map = {s.symbol: s for s in existing_stocks}
         
-        for _, row in df.iterrows():
-            symbol = str(row['代码'])
+        batch_size = 500
+        for i, (_, row) in enumerate(df.iterrows()):
+            raw_symbol = str(row['代码'])
+            # Sina返回的代码可能带字母前缀(sh/sz/bj)，去除非数字字符以获取纯数字ID
+            import re
+            symbol = re.sub(r'\D', '', raw_symbol)
+            
             name = str(row['名称'])
             
             # 数据转换 (处理非数字情况)
@@ -57,15 +66,17 @@ def sync_stocks_task() -> Dict:
                 except:
                     return 0.0
 
-            current_price = safe_float(row['最新价'])
-            change_pct = safe_float(row['涨跌幅'])
-            volume = safe_float(row['成交量'])
-            amount = safe_float(row['成交额'])
-            turnover_rate = safe_float(row['换手率'])
-            pe_dynamic = safe_float(row['市盈率-动态'])
-            pb = safe_float(row['市净率'])
-            total_market_cap = safe_float(row['总市值'])
-            circulating_market_cap = safe_float(row['流通市值'])
+            current_price = safe_float(row.get('最新价', 0))
+            change_pct = safe_float(row.get('涨跌幅', 0)) # Sina通常有涨跌幅
+            volume = safe_float(row.get('成交量', 0))
+            amount = safe_float(row.get('成交额', 0))
+            
+            # Sina接口缺失的字段，默认为0
+            turnover_rate = 0.0 
+            pe_dynamic = 0.0
+            pb = 0.0
+            total_market_cap = 0.0
+            circulating_market_cap = 0.0
 
             # 简单判断市场
             market = 'Unknown'
@@ -85,11 +96,11 @@ def sync_stocks_task() -> Dict:
                 stock.change_pct = change_pct
                 stock.volume = volume
                 stock.amount = amount
-                stock.turnover_rate = turnover_rate
-                stock.pe_dynamic = pe_dynamic
-                stock.pb = pb
-                stock.total_market_cap = total_market_cap
-                stock.circulating_market_cap = circulating_market_cap
+                # stock.turnover_rate = turnover_rate # 缺失不更新，避免覆盖已有数据
+                # stock.pe_dynamic = pe_dynamic
+                # stock.pb = pb
+                # stock.total_market_cap = total_market_cap
+                # stock.circulating_market_cap = circulating_market_cap
                 stock.updated_at = datetime.now()
                 updated_count += 1
             else:
@@ -111,6 +122,14 @@ def sync_stocks_task() -> Dict:
                 )
                 db.add(new_stock)
                 added_count += 1
+            
+            # 批量提交
+            if (i + 1) % batch_size == 0:
+                try:
+                    db.commit()
+                except Exception as e:
+                    logger.error(f"[股票同步] 批量提交失败 (row {i}): {e}")
+                    db.rollback()
         
         db.commit()
         db.close()

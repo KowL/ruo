@@ -16,6 +16,7 @@ class Portfolio(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)  # MVP 默认用户
     symbol = Column(String(10), nullable=False, index=True)  # 股票代码，如 000001
     name = Column(String(50), nullable=False)  # 股票名称，如 平安银行
+    market = Column(String(50))  # 市场：上海主板/深圳主板等
     cost_price = Column(Float, nullable=False)  # 成本价
     quantity = Column(Float, nullable=False)  # 持仓数量（股数）
     strategy_tag = Column(String(20))  # 策略标签：打板/低吸/趋势

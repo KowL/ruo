@@ -46,79 +46,94 @@ class AnalysisState(TypedDict, total=False):
     error: Optional[str]
 
 def read_yesterday_report(state: AnalysisState) -> AnalysisState:
-    """读取昨日报告并筛选涨停股票"""
+    """读取昨日报告并筛选涨停股票（从数据库读取）"""
     try:
-        # 使用获取上一个交易日的方法（跳过周末和节假日）
-        yesterday = get_previous_trading_day()
-        cache_dir = f'cache/daily_research/{yesterday}'
-        report_path = os.path.join(cache_dir, "state.json")
+        from app.core.database import SessionLocal
+        from app.models.stock import AnalysisReport
         
-        if os.path.exists(report_path):
-            with open(report_path, 'r', encoding='utf-8') as f:
-                report_data = json.load(f)
+        # 使用获取上一个交易日的方法（跳过周末和节假日）
+        yesterday_str = get_previous_trading_day()
+        yesterday_date = datetime.strptime(yesterday_str, "%Y-%m-%d")
+        
+        print(f"🔄 正在尝试从数据库读取昨日({yesterday_str})的涨停分析报告...")
+        
+        db = SessionLocal()
+        try:
+            # 查询昨日的 limit-up 报告
+            report = db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == "GLOBAL",
+                AnalysisReport.report_date == yesterday_date,
+                AnalysisReport.report_type == "limit-up"
+            ).first()
             
-            # 昨日涨停的股票 - 转换为DataFrame并标准化字段名
-            raw_limit_ups = report_data.get('raw_limit_ups', [])
-            if raw_limit_ups and isinstance(raw_limit_ups, list) and len(raw_limit_ups) > 0:
-                try:
-                    limit_up_stocks = pd.DataFrame(raw_limit_ups)
-                    # 标准化字段名
-                    if '代码' in limit_up_stocks.columns:
-                        limit_up_stocks.rename(columns={'代码': 'stock_code', '名称': 'stock_name', '涨跌幅': 'change_rate_yesterday'}, inplace=True)
-                    if 'stock_code' in limit_up_stocks.columns:
-                        limit_up_stocks['stock_code'] = limit_up_stocks['stock_code'].astype(str).str.zfill(6)
-                except Exception as e:
-                    print(f"⚠️ 转换涨停股票数据失败: {e}")
+            if report and report.data:
+                report_data = json.loads(report.data)
+                
+                # 昨日涨停的股票 - 转换为DataFrame并标准化字段名
+                raw_limit_ups = report_data.get('raw_limit_ups', [])
+                if raw_limit_ups and isinstance(raw_limit_ups, list) and len(raw_limit_ups) > 0:
+                    try:
+                        limit_up_stocks = pd.DataFrame(raw_limit_ups)
+                        # 标准化字段名
+                        if '代码' in limit_up_stocks.columns:
+                            limit_up_stocks.rename(columns={'代码': 'stock_code', '名称': 'stock_name', '涨跌幅': 'change_rate_yesterday'}, inplace=True)
+                        if 'stock_code' in limit_up_stocks.columns:
+                            limit_up_stocks['stock_code'] = limit_up_stocks['stock_code'].astype(str).str.zfill(6)
+                    except Exception as e:
+                        print(f"⚠️ 转换涨停股票数据失败: {e}")
+                        limit_up_stocks = pd.DataFrame()
+                else:
                     limit_up_stocks = pd.DataFrame()
-            else:
-                limit_up_stocks = pd.DataFrame()
-            
-            # 短线龙头助手建议的涨停股票 - 转换为DataFrame
-            coach_data = report_data.get('day_trading_coach_advice', [])
-            if coach_data and isinstance(coach_data, list) and len(coach_data) > 0:
-                try:
-                    coach_recommended = pd.DataFrame(coach_data)
-                    # 确保有stock_code字段
-                    if 'code' in coach_recommended.columns:
-                        coach_recommended.rename(columns={'code': 'stock_code'}, inplace=True)
-                    if 'stock_code' in coach_recommended.columns:
-                        coach_recommended['stock_code'] = coach_recommended['stock_code'].astype(str).str.zfill(6)
-                except Exception as e:
-                    print(f"⚠️ 转换短线龙头助手数据失败: {e}")
+                
+                # 短线龙头助手建议的涨停股票 - 转换为DataFrame
+                coach_data = report_data.get('day_trading_coach_advice', [])
+                if coach_data and isinstance(coach_data, list) and len(coach_data) > 0:
+                    try:
+                        coach_recommended = pd.DataFrame(coach_data)
+                        # 确保有stock_code字段
+                        if 'code' in coach_recommended.columns:
+                            coach_recommended.rename(columns={'code': 'stock_code'}, inplace=True)
+                        if 'stock_code' in coach_recommended.columns:
+                            coach_recommended['stock_code'] = coach_recommended['stock_code'].astype(str).str.zfill(6)
+                    except Exception as e:
+                        print(f"⚠️ 转换短线龙头助手数据失败: {e}")
+                        coach_recommended = pd.DataFrame()
+                else:
                     coach_recommended = pd.DataFrame()
+                
+                # 创建 yesterday_report（可选，主要用于兼容性）
+                yesterday_report = None
+                if 'stocks' in report_data and isinstance(report_data['stocks'], list):
+                    try:
+                        yesterday_report = pd.DataFrame(report_data['stocks'])
+                    except Exception as e:
+                        print(f"⚠️ 转换 stocks 数据失败: {e}")
+                        yesterday_report = pd.DataFrame()
+                
+                print(f"✅ 成功从数据库读取昨日报告")
+                print(f"📊 昨日涨停股票: {len(limit_up_stocks)} 只")
+                print(f"🎯 短线龙头助手建议股票: {len(coach_recommended)} 只")
+                
+                if len(limit_up_stocks) > 0:
+                    print("昨日涨停股票列表:")
+                    for _, stock in limit_up_stocks.head(5).iterrows():
+                        print(f"  - {stock.get('stock_name', 'N/A')} ({stock.get('stock_code', 'N/A')})")
+                
+                return {
+                    **state,
+                    'yesterday_report': yesterday_report if yesterday_report is not None else pd.DataFrame(),
+                    'limit_up_stocks': limit_up_stocks,
+                    'coach_recommended': coach_recommended,
+                    'error': None
+                }
+                
             else:
-                coach_recommended = pd.DataFrame()
-            
-            # 创建 yesterday_report（可选，主要用于兼容性）
-            yesterday_report = None
-            if 'stocks' in report_data and isinstance(report_data['stocks'], list):
-                try:
-                    yesterday_report = pd.DataFrame(report_data['stocks'])
-                except Exception as e:
-                    print(f"⚠️ 转换 stocks 数据失败: {e}")
-                    yesterday_report = pd.DataFrame()
-            
-            print(f"✅ 成功读取昨日报告")
-            print(f"📊 昨日涨停股票: {len(limit_up_stocks)} 只")
-            print(f"🎯 短线龙头助手建议股票: {len(coach_recommended)} 只")
-            
-            if len(limit_up_stocks) > 0:
-                print("昨日涨停股票列表:")
-                for _, stock in limit_up_stocks.head(5).iterrows():
-                    print(f"  - {stock.get('stock_name', 'N/A')} ({stock.get('stock_code', 'N/A')})")
-            
-            return {
-                **state,
-                'yesterday_report': yesterday_report if yesterday_report is not None else pd.DataFrame(),
-                'limit_up_stocks': limit_up_stocks,
-                'coach_recommended': coach_recommended,
-                'error': None
-            }
-            
-        else:
-            error_msg = f"昨日报告文件 {report_path} 不存在"
-            print(f"❌ {error_msg}")
-            return {**state, 'error': error_msg}
+                error_msg = f"数据库中未找到昨日({yesterday_str})的 limit-up 报告"
+                print(f"❌ {error_msg}")
+                return {**state, 'error': error_msg}
+                
+        finally:
+            db.close()
         
     except Exception as e:
         error_msg = f"读取昨日报告失败: {str(e)}"
@@ -560,14 +575,104 @@ def create_opening_analysis_workflow():
     app = workflow.compile()
     return app
 
-def main():
-    """主函数：运行开盘分析工作流"""
-    print("=" * 60)
-    print("🚀 启动涨停股票开盘分析工作流")
-    print("=" * 60)
-    
+def save_report_to_db(state: dict, date: str):
+    """将分析结果持久化到数据库"""
+    # 生成 Markdown 报告内容（用于兼容老版本或直接展示）
+    md_content = state.get('final_report', '')
+    if not md_content:
+        # 如果没有生成报告，尝试重新构建
+        pass
+
+    # ✅ 数据库持久化
     try:
-        # 创建工作流
+        from app.core.database import SessionLocal
+        from app.models.stock import AnalysisReport
+        
+        # 统一日期格式处理
+        report_date = datetime.strptime(date, "%Y-%m-%d")
+        
+        db = SessionLocal()
+        try:
+            # 检查是否已存在
+            existing = db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == "GLOBAL",
+                AnalysisReport.report_date == report_date,
+                AnalysisReport.report_type == "opening_analysis"
+            ).first()
+            
+            # 将完整的 state 序列化为 JSON 字符串存入 content
+            state_json = json.dumps(state, ensure_ascii=False, indent=2, default=str)
+            
+            if existing:
+                existing.content = md_content.strip()
+                existing.data = state_json
+                existing.summary = "开盘分析报告"
+            else:
+                new_report = AnalysisReport(
+                    symbol="GLOBAL",
+                    report_date=report_date,
+                    report_type="opening_analysis",
+                    content=md_content.strip(),
+                    data=state_json,
+                    summary="开盘分析报告",
+                    confidence=1.0
+                )
+                db.add(new_report)
+            
+            db.commit()
+            print(f"✅ 报告已同步到数据库: {date} (GLOBAL/opening_analysis)")
+        except Exception as db_err:
+            db.rollback()
+            print(f"❌ 数据库保存失败: {db_err}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"❌ 数据库保存异常: {e}")
+
+def get_cached_report(date: str) -> dict:
+    """从数据库获取已存在的分析报告"""
+    try:
+        from app.core.database import SessionLocal
+        from app.models.stock import AnalysisReport
+        
+        report_date = datetime.strptime(date, "%Y-%m-%d")
+        db = SessionLocal()
+        try:
+            report = db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == "GLOBAL",
+                AnalysisReport.report_date == report_date,
+                AnalysisReport.report_type == "opening_analysis"
+            ).first()
+            
+            if report and report.data:
+                try:
+                    return json.loads(report.data)
+                except:
+                    return None
+            return None
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"❌ 读取数据库缓存异常: {e}")
+        return None
+
+def run_opening_analysis(date: str, force_rerun: bool = False) -> dict:
+    """
+    启动开盘分析工作流
+    """
+    # ✅ 检查数据库缓存是否存在
+    if not force_rerun:
+        cached_state = get_cached_report(date)
+        if cached_state:
+            return {
+                "success": True,
+                "result": cached_state,
+                "cached": True,
+                "message": f"使用数据库缓存结果（{date}）"
+            }
+
+    # 🔁 否则执行完整分析流程
+    try:
         app = create_opening_analysis_workflow()
         
         # 初始化状态（字典格式）
@@ -588,22 +693,46 @@ def main():
         
         # 检查是否有错误
         if final_state.get('error'):
-            print(f"\n❌ 工作流执行失败: {final_state['error']}")
-            return
+            return {
+                "success": False,
+                "error": final_state['error'],
+                "message": f"工作流执行失败: {final_state['error']}"
+            }
         
-        # 输出最终报告
-        if final_state.get('final_report'):
-            print("\n" + "=" * 60)
-            print("📄 最终分析报告")
-            print("=" * 60)
-            print(final_state['final_report'])
-        
-        print("\n✅ 工作流执行完成！")
-        
+        # ✅ 执行完成后立即存入数据库
+        save_report_to_db(final_state, date)
+
+        return {
+            "success": True,
+            "result": final_state,
+            "cached": False,
+            "message": f"新生成报告并已存入数据库"
+        }
+
     except Exception as e:
-        print(f"\n❌ 工作流执行异常: {str(e)}")
         import traceback
-        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "message": "执行异常"
+        }
+
+def main():
+    """主函数：测试运行"""
+    print("=" * 60)
+    print("🚀 启动涨停股票开盘分析工作流")
+    print("=" * 60)
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    result = run_opening_analysis(today, force_rerun=True)
+    
+    if result['success']:
+        print("\n✅ 分析完成")
+        if result['result'].get('final_report'):
+             print(result['result']['final_report'][:500] + "...")
+    else:
+        print(f"\n❌ 分析失败: {result.get('error')}")
 
 if __name__ == "__main__":
     main()

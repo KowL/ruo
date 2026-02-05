@@ -29,3 +29,11 @@ api_router.include_router(
     prefix="/news",
     tags=["新闻情报"]
 )
+
+from .endpoints import analysis
+# 市场分析 API
+api_router.include_router(
+    analysis.router,
+    prefix="/analysis",
+    tags=["市场分析"]
+)

@@ -64,7 +64,8 @@ class AnalysisReport(Base):
     symbol = Column(String(10), nullable=False, index=True)
     report_date = Column(DateTime(timezone=True), nullable=False, index=True)
     report_type = Column(String(50), nullable=False)  # daily/weekly/special
-    content = Column(Text, nullable=False)  # JSON 格式的完整报告
+    content = Column(Text, nullable=False)  # 最终展示的 Markdown 报告
+    data = Column(Text)  # 原始 JSON 格式的状态数据
     summary = Column(Text)  # 简要总结
     recommendation = Column(String(20))  # buy/hold/sell
     confidence = Column(Float)  # 置信度 0-1
