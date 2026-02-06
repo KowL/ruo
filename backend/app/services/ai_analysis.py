@@ -8,14 +8,20 @@ MVP v0.1
 - 生成一句话摘要
 - 判断情感倾向(利好/中性/利空)
 """
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from sqlalchemy.orm import Session
 import logging
 import json
 import os
+from datetime import datetime
 from dotenv import load_dotenv
+from sqlalchemy import func
+from langchain_core.messages import SystemMessage, HumanMessage
 
-from app.models.news import StockNews, NewsAnalysis
+from app.models.news import News
+from app.models.stock import AnalysisReport
+from app.services.market_data import get_market_data_service
+from app.core.llm_factory import LLMFactory
 
 # 确保加载环境变量
 load_dotenv()
@@ -43,89 +49,53 @@ SENTIMENT_ANALYSIS_PROMPT = """你是一位专业的股票分析师。请分析�
 3. sentiment_score 必须是 1-5 的整数
 """
 
+KLINE_ANALYSIS_PROMPT = """你是一位精通在A股市场的技术面分析大师。请根据提供的股票K线数据（日线），进行专业的技术分析。
+
+股票代码: {symbol}
+数据包含: 日期, 开盘, 最高, 最低, 收盘, 成交量, 涨跌幅
+
+最近 {days} 个交易日数据如下:
+{kline_data}
+
+请基于以上数据，严格按照以下 JSON 格式输出分析报告（不要包含 Markdown 代码块标记，只输出纯 JSON）：
+
+{{
+    "summary": "简短的一句话行情总结（50字以内）",
+    "trend": "当前趋势（如：上升趋势、下降趋势、震荡整理、底部反弹等）",
+    "support_resistance": {{
+        "support": "预计支撑位价格（数值）",
+        "resistance": "预计压力位价格（数值）",
+        "analysis": "关于支撑位和压力位的简要说明"
+    }},
+    "technical_pattern": "识别出的技术形态（如：金叉、死叉、多头排列、底背离、双底等，如果没有明显形态则填'无明显形态'）",
+    "signals": [
+        "识别出的关键信号1",
+        "识别出的关键信号2"
+    ],
+    "recommendation": "买入 / 增持 / 持有 / 减持 / 卖出 （五选一）",
+    "confidence": 0.0到1.0之间的置信度数值,
+    "suggestion": "针对短线操作的具体建议（100字以内）"
+}}
+
+注意：
+1. 分析要客观、严谨，基于数据。
+2. 支撑位和压力位要给出具体价格参考。
+3. recommendation 必须是指定枚举值之一。
+"""
+
 
 class AIAnalysisService:
     """AI 分析服务类"""
 
     def __init__(self, db: Session):
         self.db = db
-        self.llm_client = None
-        self.model_name = None
-        self._init_llm()
-
-    def _init_llm(self):
-        """初始化 LLM 客户端"""
         try:
-            # 重新加载环境变量确保获取最新配置
-            load_dotenv(override=True)
-
-            # 优先级顺序: ARK(火山方舟) > DeepSeek > DASHSCOPE(阿里百炼) > OpenAI
-            api_key = None
-            base_url = None
-            model_name = None
-
-            # 获取所有可能的API配置
-            ark_key = os.getenv('ARK_API_KEY', '')
-            deepseek_key = os.getenv('DEEPSEEK_API_KEY', '')
-            dashscope_key = os.getenv('DASHSCOPE_API_KEY', '')
-            openai_key = os.getenv('OPENAI_API_KEY', '')
-
-            logger.info(f"检测到的API配置: ARK={bool(ark_key and ark_key != 'your_ark_api_key_here')}, "
-                       f"DeepSeek={bool(deepseek_key and deepseek_key != 'your_deepseek_api_key_here')}, "
-                       f"DashScope={bool(dashscope_key and dashscope_key != 'your_dashscope_api_key_here')}, "
-                       f"OpenAI={bool(openai_key and openai_key != 'your_openai_api_key_here')}")
-
-            # 方式1: 尝试火山方舟 ARK (使用DeepSeek-V3模型)
-            if ark_key and ark_key != 'your_ark_api_key_here':
-                api_key = ark_key
-                base_url = 'https://ark.cn-beijing.volces.com/api/v3'
-                model_name = 'deepseek-v3-2-251201'
-                logger.info("使用火山方舟 DeepSeek-V3 API")
-
-            # 方式2: 尝试 DeepSeek 官方
-            elif deepseek_key and deepseek_key != 'your_deepseek_api_key_here':
-                api_key = deepseek_key
-                base_url = os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
-                model_name = 'deepseek-chat'
-                logger.info("使用 DeepSeek 官方 API")
-
-            # 方式3: 尝试阿里百炼 (通过OpenAI兼容接口)
-            elif dashscope_key and dashscope_key != 'your_dashscope_api_key_here':
-                api_key = dashscope_key
-                base_url = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-                model_name = 'qwen-turbo'  # 使用通义千问
-                logger.info("使用阿里百炼(通义千问) API")
-
-            # 方式4: 尝试 OpenAI
-            elif openai_key and openai_key != 'your_openai_api_key_here':
-                api_key = openai_key
-                base_url = 'https://api.openai.com/v1'
-                model_name = 'gpt-3.5-turbo'
-                logger.info("使用 OpenAI API")
-
-            if not api_key:
-                logger.warning("未配置 LLM API Key,AI 分析功能将使用规则模拟")
-                # 不返回，使用模拟模式
-                self._use_mock_mode = True
-                return
-
-            # 使用 OpenAI SDK(兼容多种API)
-            from openai import OpenAI
-
-            self.llm_client = OpenAI(
-                api_key=api_key,
-                base_url=base_url
-            )
-            self.model_name = model_name
-            self._use_mock_mode = False
-
-            logger.info(f"LLM 客户端初始化成功: {model_name}")
-
+            self.llm = LLMFactory.get_instance()
+            self.model_name = getattr(self.llm, "model_name", "unknown")
         except Exception as e:
-            logger.error(f"LLM 客户端初始化失败: {e}，将使用规则模拟")
-            self.llm_client = None
+            logger.error(f"LLMFactory 初始化失败: {e}")
+            self.llm = None
             self.model_name = None
-            self._use_mock_mode = True
 
     def analyze_news(self, news_id: int) -> Optional[Dict]:
         """
@@ -139,50 +109,45 @@ class AIAnalysisService:
         """
         try:
             # 1. 查询新闻
-            news = self.db.query(StockNews).filter(StockNews.id == news_id).first()
+            news = self.db.query(News).filter(News.id == news_id).first()
 
             if not news:
                 raise ValueError(f"新闻不存在: ID={news_id}")
 
             # 2. 检查是否已分析
-            existing_analysis = self.db.query(NewsAnalysis).filter(
-                NewsAnalysis.news_id == news_id
-            ).first()
-
-            if existing_analysis:
+            if news.ai_analysis:
                 logger.info(f"新闻已分析过,跳过: ID={news_id}")
-                return self._analysis_to_dict(existing_analysis)
+                try:
+                    return json.loads(news.ai_analysis)
+                except:
+                    pass
 
-            # 3. 调用 LLM 分析 (或使用规则模拟)
-            if self._use_mock_mode or not self.llm_client:
-                logger.info(f"使用规则模拟进行分析: ID={news_id}")
-                analysis_result = self._mock_analyze(
-                    stock_code=news.stock_code,
-                    title=news.title,
-                    content=news.raw_content or news.title
-                )
-            else:
-                analysis_result = self._call_llm(
-                    stock_code=news.stock_code,
-                    title=news.title,
-                    content=news.raw_content or news.title
-                )
-
-            # 4. 保存分析结果
-            analysis = NewsAnalysis(
-                news_id=news_id,
-                ai_summary=analysis_result['ai_summary'],
-                sentiment_label=analysis_result['sentiment_label'],
-                sentiment_score=analysis_result['sentiment_score'],
-                llm_model=self.model_name or 'unknown'
+            # 3. 调用 LLM 分析
+            if not self.llm:
+                 raise ValueError("LLM 客户端未初始化，无法进行分析")
+                 
+            # 需要从 relation_stock 中获取股票代码，或者如果是一般新闻则可能没有特定代码
+            # News 模型没有 stock_code 字段，只有 relation_stock (text)
+            stock_code = "UNKNOWN"
+            if news.relation_stock:
+                stock_code = news.relation_stock.split(',')[0]
+                
+            analysis_result = self._call_llm(
+                stock_code=stock_code,
+                title=news.title,
+                content=news.content or news.title
             )
 
-            self.db.add(analysis)
+            # 4. 保存分析结果
+            # 将结果保存到 ai_analysis 字段 (JSON 字符串)
+            analysis_json = json.dumps(analysis_result, ensure_ascii=False)
+            news.ai_analysis = analysis_json
+            
             self.db.commit()
-            self.db.refresh(analysis)
+            self.db.refresh(news)
 
             logger.info(f"新闻分析成功: ID={news_id}, 情感={analysis_result['sentiment_label']}")
-            return self._analysis_to_dict(analysis)
+            return analysis_result
 
         except Exception as e:
             self.db.rollback()
@@ -205,12 +170,11 @@ class AIAnalysisService:
         """
         try:
             # 查询未分析的新闻
-            unanalyzed_news = self.db.query(StockNews).outerjoin(
-                NewsAnalysis, StockNews.id == NewsAnalysis.news_id
-            ).filter(
-                StockNews.stock_code == symbol,
-                NewsAnalysis.id.is_(None)  # 没有分析记录
-            ).order_by(StockNews.publish_time.desc()).limit(limit).all()
+            # News.relation_stock 包含 symbol
+            unanalyzed_news = self.db.query(News).filter(
+                News.relation_stock.like(f"%{symbol}%"),
+                News.ai_analysis.is_(None)
+            ).order_by(News.publish_time.desc()).limit(limit).all()
 
             analyzed_count = 0
             failed_count = 0
@@ -232,6 +196,134 @@ class AIAnalysisService:
         except Exception as e:
             logger.error(f"批量分析新闻失败: {symbol}, 错误: {e}")
             return {"analyzed": 0, "failed": 0}
+
+    def analyze_kline(self, symbol: str, days: int = 20) -> Dict:
+        """
+        K线 AI 分析
+
+        Args:
+            symbol: 股票代码
+            days: 分析最近 N 天的数据
+
+        Returns:
+            分析结果字典
+        """
+        try:
+            logger.info(f"开始 K线 AI 分析: {symbol}, days={days}")
+            
+            # 1. 获取 K 线数据
+            market_service = get_market_data_service()
+            kline_data = market_service.get_kline_data(symbol, period='daily', limit=days)
+            
+            if not kline_data:
+                raise ValueError(f"未获取到K线数据: {symbol}")
+            
+            # 格式化数据供 LLM 使用
+            kline_str_list = []
+            for k in kline_data:
+                # 日期, 开, 高, 低, 收, 量, 幅
+                line = f"{k['date']}: 开{k['open']}, 高{k['high']}, 低{k['low']}, 收{k['close']}, 量{k['volume']}, 幅{k['changePct']}%"
+                kline_str_list.append(line)
+            
+            kline_text = "\\n".join(kline_str_list)
+            
+            # 2. 调用 LLM 分析
+            prompt = KLINE_ANALYSIS_PROMPT.format(
+                symbol=symbol,
+                days=days,
+                kline_data=kline_text
+            )
+            
+            if not self.llm:
+                 raise ValueError("LLM 客户端未初始化，无法进行分析")
+
+            messages = [
+                SystemMessage(content="你是一位专业的股票技术分析师。"),
+                HumanMessage(content=prompt)
+            ]
+            response = self.llm.invoke(messages)
+            
+            content = response.content.strip()
+            
+            # 提取 JSON
+            if '```json' in content:
+                content = content.split('```json')[1].split('```')[0].strip()
+            elif '```' in content:
+                content = content.split('```')[1].split('```')[0].strip()
+            
+            analysis_result = json.loads(content)
+            
+            # 3. 保存报告
+            today = datetime.now().strftime('%Y-%m-%d')
+            report = AnalysisReport(
+                symbol=symbol,
+                report_date=today,
+                report_type='kline_analysis',
+                content=self._generate_kline_markdown(symbol, analysis_result),
+                data=json.dumps(analysis_result, ensure_ascii=False),
+                summary=analysis_result.get('summary', ''),
+                recommendation=analysis_result.get('recommendation', '持有'),
+                confidence=analysis_result.get('confidence', 0.5)
+            )
+            
+            # 检查当日是否已有报告，若有则更新
+            existing = self.db.query(AnalysisReport).filter(
+                AnalysisReport.symbol == symbol,
+                AnalysisReport.report_date == today,
+                AnalysisReport.report_type == 'kline_analysis'
+            ).first()
+            
+            if existing:
+                existing.content = report.content
+                existing.data = report.data
+                existing.summary = report.summary
+                existing.recommendation = report.recommendation
+                existing.confidence = report.confidence
+                existing.created_at = func.now() # Update time
+            else:
+                self.db.add(report)
+            
+            self.db.commit()
+            
+            return analysis_result
+            
+        except Exception as e:
+            logger.error(f"K线分析失败: {symbol}, 错误: {e}")
+            self.db.rollback()
+            raise
+
+    def _generate_kline_markdown(self, symbol: str, result: Dict) -> str:
+        """生成 Markdown 格式报告"""
+        return f"""# {symbol} K线技术分析报告
+
+**日期**: {datetime.now().strftime('%Y-%m-%d')}
+**评级**: {result.get('recommendation')} (置信度: {result.get('confidence')})
+
+## 摘要
+{result.get('summary')}
+
+## 趋势分析
+**当前趋势**: {result.get('trend')}
+
+## 关键点位
+- **支撑位**: {result.get('support_resistance', {}).get('support')}
+- **压力位**: {result.get('support_resistance', {}).get('resistance')}
+- **分析**: {result.get('support_resistance', {}).get('analysis')}
+
+## 技术形态
+{result.get('technical_pattern')}
+
+## 关键信号
+{chr(10).join(['- ' + s for s in result.get('signals', [])])}
+
+## 操作建议
+{result.get('suggestion')}
+
+---
+*注：本报告由 AI 自动生成，仅供参考，不构成投资建议。*
+"""
+
+
 
     def _call_llm(self, stock_code: str, title: str, content: str) -> Dict:
         """
@@ -258,18 +350,14 @@ class AIAnalysisService:
             )
 
             # 调用 LLM
-            response = self.llm_client.chat.completions.create(
-                model=self.model_name or "gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "你是一位专业的股票分析师,擅长分析新闻对股价的影响。"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=200
-            )
-
+            messages = [
+                SystemMessage(content="你是一位专业的股票分析师,擅长分析新闻对股价的影响。"),
+                HumanMessage(content=prompt)
+            ]
+            response = self.llm.invoke(messages)
+            
             # 解析响应
-            content = response.choices[0].message.content.strip()
+            content = response.content.strip()
 
             # 提取 JSON
             if '```json' in content:
@@ -306,63 +394,6 @@ class AIAnalysisService:
             logger.error(f"调用 LLM 失败: {e}")
             raise
 
-    def _mock_analyze(self, stock_code: str, title: str, content: str) -> Dict:
-        """
-        规则模拟分析 (当LLM不可用时)
 
-        Args:
-            stock_code: 股票代码
-            title: 新闻标题
-            content: 新闻内容
 
-        Returns:
-            分析结果
-        """
-        # 简单的关键词规则
-        positive_keywords = ['增长', '上涨', '利好', '超预期', '盈利', '突破', '创新高', '回购', '分红', '业绩']
-        negative_keywords = ['下跌', '利空', '亏损', '风险', '下调', '减持', '诉讼', '处罚', '暴跌']
-
-        text = (title + ' ' + content).lower()
-
-        positive_count = sum(1 for kw in positive_keywords if kw in text)
-        negative_count = sum(1 for kw in negative_keywords if kw in text)
-
-        # 判断情感
-        if positive_count > negative_count:
-            if positive_count >= 3:
-                sentiment_label = '利好'
-                sentiment_score = 4.5
-            else:
-                sentiment_label = '利好'
-                sentiment_score = 4.0
-        elif negative_count > positive_count:
-            if negative_count >= 3:
-                sentiment_label = '利空'
-                sentiment_score = 1.5
-            else:
-                sentiment_label = '利空'
-                sentiment_score = 2.0
-        else:
-            sentiment_label = '中性'
-            sentiment_score = 3.0
-
-        # 生成摘要（取标题前50字）
-        ai_summary = title[:50] if len(title) <= 50 else title[:47] + '...'
-
-        return {
-            'ai_summary': ai_summary,
-            'sentiment_label': sentiment_label,
-            'sentiment_score': sentiment_score
-        }
-
-    def _analysis_to_dict(self, analysis: NewsAnalysis) -> Dict:
-        """转换分析结果为字典"""
-        return {
-            'id': analysis.id,
-            'newsId': analysis.news_id,
-            'aiSummary': analysis.ai_summary,
-            'sentimentLabel': analysis.sentiment_label,
-            'sentimentScore': analysis.sentiment_score,
-            'llmModel': analysis.llm_model,
-            'createdAt': analysis.created_at.strftime('%Y-%m-%d %H:%M:%S') if analysis.created_at else None
-        }
+    # _analysis_to_dict helper is no longer needed as we return dict or None directly

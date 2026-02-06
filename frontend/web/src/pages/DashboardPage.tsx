@@ -6,8 +6,6 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import ReactECharts from 'echarts-for-react';
 
 const DashboardPage: React.FC = () => {
-  const [usMarket, setUsMarket] = useState(false);
-
   // Real Portfolio Data
   const { portfolios, totalValue, totalProfitLoss, totalProfitLossRatio, fetchPortfolios, loading: portfolioLoading } = usePortfolioStore();
 
@@ -76,16 +74,13 @@ const DashboardPage: React.FC = () => {
   ];
 
   const getProfitColor = (percent: number) => {
-    return usMarket
-      ? (percent >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]')
-      : (percent >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]');
+    // CN Market: Red up, Green down
+    return percent >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]';
   };
 
   const getProfitBgColor = (percent: number) => {
-    // Using opacity directly in color for better glass effect overlay
-    return usMarket
-      ? (percent >= 0 ? 'bg-[rgba(52,199,89,0.15)]' : 'bg-[rgba(255,59,48,0.15)]')
-      : (percent >= 0 ? 'bg-[rgba(255,59,48,0.15)]' : 'bg-[rgba(52,199,89,0.15)]');
+    // CN Market: Red up, Green down (with opacity)
+    return percent >= 0 ? 'bg-[rgba(255,59,48,0.15)]' : 'bg-[rgba(52,199,89,0.15)]';
   };
 
   // ECharts Option for Sentiment Gauge
@@ -171,20 +166,7 @@ const DashboardPage: React.FC = () => {
 
           <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-base font-medium text-[var(--color-text-secondary)]">总资产</h2>
-            <div className="flex items-center space-x-1 bg-[var(--color-surface-1)]/50 rounded-full p-1 border border-white/5">
-              <button
-                onClick={() => setUsMarket(false)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${!usMarket ? 'bg-[var(--color-surface-4)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
-              >
-                A股
-              </button>
-              <button
-                onClick={() => setUsMarket(true)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${usMarket ? 'bg-[var(--color-surface-4)] text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
-              >
-                美股
-              </button>
-            </div>
+            {/* Market toggle removed */}
           </div>
 
           <div className="space-y-2 relative z-10">

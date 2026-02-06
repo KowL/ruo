@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { getKLineData } from '@/api/stock';
 import KLineChart from '@/components/chart/KLineChart';
@@ -6,7 +7,7 @@ import Loading from '@/components/common/Loading';
 import { KLineData } from '@/types';
 import clsx from 'clsx';
 
-type AILayer = 'support' | 'pattern' | 'signal';
+// type AILayer = 'support';
 
 const ChartPage: React.FC = () => {
   const { portfolios } = usePortfolioStore();
@@ -14,27 +15,94 @@ const ChartPage: React.FC = () => {
   const [selectedName, setSelectedName] = useState<string>('');
   const [klineData, setKlineData] = useState<KLineData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [aiLayers, setAiLayers] = useState<Record<AILayer, boolean>>({
+  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'min'>('min');
+  const [aiLayers, setAiLayers] = useState<{ support: boolean }>({
     support: false,
-    pattern: false,
-    signal: false,
   });
-  const [usMarket, setUsMarket] = useState(false);
+
+
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [preClose, setPreClose] = useState<number>(0);
+  const [isReportOpen, setIsReportOpen] = useState(true);
+
+  const [searchParams] = useSearchParams();
+  const urlSymbol = searchParams.get('symbol');
 
   useEffect(() => {
-    // 默认选择第一个持仓
-    if (portfolios.length > 0 && !selectedSymbol) {
+    // Priority: URL Param > Current Selection > Default to First Portfolio
+    if (urlSymbol && urlSymbol !== selectedSymbol) {
+      const p = portfolios.find(p => p.symbol === urlSymbol);
+      if (p) {
+        setSelectedSymbol(p.symbol);
+        setSelectedName(p.name);
+      } else {
+        // Even if not in portfolio (e.g. from external link), allow it if needed, or just set symbol
+        setSelectedSymbol(urlSymbol);
+        // Name might be missing, maybe fetch or default
+        setSelectedName(urlSymbol);
+      }
+    } else if (portfolios.length > 0 && !selectedSymbol && !urlSymbol) {
       setSelectedSymbol(portfolios[0].symbol);
       setSelectedName(portfolios[0].name);
     }
-  }, [portfolios, selectedSymbol]);
+  }, [portfolios, selectedSymbol, urlSymbol]);
 
   useEffect(() => {
     if (selectedSymbol) {
-      fetchKLineData(selectedSymbol, period);
+      if (period === 'min') {
+        fetchTimeShareData(selectedSymbol);
+      } else {
+        fetchKLineData(selectedSymbol, period);
+      }
     }
+
+    // Auto-refresh for time-sharing (min) data every 30 seconds
+    let intervalId: NodeJS.Timeout;
+    if (selectedSymbol && period === 'min') {
+      intervalId = setInterval(() => {
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        const timeVal = hour * 100 + minute;
+
+        // Trading hours: 09:30 - 11:30, 13:00 - 15:00
+        // Relaxed slightly to ensure we capture open/close ticks (e.g. 9:29 - 15:05)
+        const isTrading = (timeVal >= 929 && timeVal <= 1135) || (timeVal >= 1259 && timeVal <= 1505);
+
+        if (isTrading) {
+          fetchTimeShareData(selectedSymbol, true); // Silent update
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedSymbol, period]);
+
+  // Separate effect for AI Analysis - fetch only when symbol changes
+  useEffect(() => {
+    if (selectedSymbol) {
+      fetchAIAnalysis(selectedSymbol);
+    }
+  }, [selectedSymbol]);
+
+  const fetchTimeShareData = async (symbol: string, silent: boolean = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const { fetchIntradayData } = await import('@/api/stock');
+      const { preClose, trends, name } = await fetchIntradayData(symbol);
+      setKlineData(trends as any);
+      setPreClose(preClose);
+      if (name && name !== selectedName && name !== symbol) {
+        setSelectedName(name);
+      }
+    } catch (error) {
+      console.error('Fetch time share failed:', error);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
 
   const fetchKLineData = async (symbol: string, period: 'daily' | 'weekly' | 'monthly') => {
     setLoading(true);
@@ -48,22 +116,32 @@ const ChartPage: React.FC = () => {
     }
   };
 
-  const handleSelectStock = (symbol: string, name: string) => {
-    setSelectedSymbol(symbol);
-    setSelectedName(name);
+  const fetchAIAnalysis = async (symbol: string) => {
+    setAiAnalysis(null);
+    try {
+      // Dynamic import to avoid circular dependency issues if any
+      const { getAnalysisReport } = await import('@/api/analysis');
+      const today = new Date().toISOString().split('T')[0];
+      // Try to get today's report
+      const res = await getAnalysisReport('kline_analysis', today, symbol);
+      if (res && res.success && res.result && res.result.data) {
+        setAiAnalysis(res.result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI analysis:', error);
+    }
   };
 
-  const toggleAILayer = (layer: AILayer) => {
-    setAiLayers(prev => ({
-      ...prev,
-      [layer]: !prev[layer],
-    }));
+
+
+  const toggleSupport = () => {
+    setAiLayers(prev => ({ ...prev, support: !prev.support }));
   };
 
-  if (portfolios.length === 0) {
+  if (portfolios.length === 0 && !selectedSymbol) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-[var(--color-text-secondary)]">请先添加持仓股票</p>
+        <p className="text-[var(--color-text-secondary)]">请先添加持仓股票，或通过链接访问</p>
       </div>
     );
   }
@@ -72,34 +150,38 @@ const ChartPage: React.FC = () => {
     <div className="h-full flex flex-col p-6 space-y-6">
       {/* 顶部控制栏 */}
       <div className="flex flex-col space-y-4">
-        {/* 股票选择器 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4">K 线实验室</h2>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {portfolios.map((portfolio) => (
-              <button
-                key={portfolio.symbol}
-                onClick={() => handleSelectStock(portfolio.symbol, portfolio.name)}
-                className={clsx(
-                  'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
-                  selectedSymbol === portfolio.symbol
-                    ? 'bg-[var(--color-ruo-purple)]/20 text-[var(--color-ruo-purple)] border border-[var(--color-ruo-purple)]/30'
-                    : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]/80'
-                )}
-              >
-                {portfolio.name}
-              </button>
-            ))}
+        {/* 顶部标题栏：股票信息 + AI分析按钮 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+              {selectedName} <span className="text-lg text-[var(--color-text-secondary)] font-normal">({selectedSymbol})</span>
+            </h1>
+          </div>
+
+          <div className="flex gap-3">
+            {/* AI Analysis Button placeholder - logic reuse or new one? User requested "Add AI Analysis Button" */}
+            {/* We can reuse the one from StockDetail or just a visual one that maybe toggles the AI layer or opens modal? */}
+            {/* Based on previous StockDetail implementation, it opened a drawer. Here we have AI Layers inline. */}
+            {/* Let's double check if we can trigger an analysis run here. For now, visual button as requested. */}
+            <button
+              onClick={() => fetchAIAnalysis(selectedSymbol)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors shadow-lg shadow-purple-900/20"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              AI 深度分析
+            </button>
           </div>
         </div>
 
-        {/* 控制按钮组 */}
+        {/* 控制按钮组：周期选择 */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* 周期选择 */}
           <div className="flex items-center space-x-4">
             <span className="text-sm text-[var(--color-text-secondary)]">周期:</span>
             <div className="flex space-x-1">
-              {(['daily', 'weekly', 'monthly'] as const).map((p) => (
+              {(['min', 'daily', 'weekly', 'monthly'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
@@ -110,54 +192,47 @@ const ChartPage: React.FC = () => {
                       : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]'
                   )}
                 >
-                  {p === 'daily' ? '日K' : p === 'weekly' ? '周K' : '月K'}
+                  {p === 'min' ? '分时' : p === 'daily' ? '日K' : p === 'weekly' ? '周K' : '月K'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 市场模式切换 */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-[var(--color-text-secondary)]">市场模式:</span>
-            <button
-              onClick={() => setUsMarket(!usMarket)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${usMarket ? 'bg-[var(--color-profit-down)]/20 text-[var(--color-profit-down)]' : 'bg-[var(--color-profit-up)]/20 text-[var(--color-profit-up)]'}`}
-            >
-              {usMarket ? '美股' : 'A股'}
-            </button>
-          </div>
+          {/* 市场模式切换 (已移除，默认A股) */}
         </div>
       </div>
 
+
       {/* K线图表区 */}
       <div className="flex-1 flex flex-col card overflow-hidden">
-        {/* AI 图层开关 */}
-        <div className="p-4 border-b border-[var(--color-surface-3)]">
-          <div className="flex items-center space-x-2 flex-wrap gap-2">
-            <span className="text-sm text-[var(--color-text-secondary)]">AI 图层:</span>
-            <div className="flex space-x-1">
-              {[
-                { key: 'support' as AILayer, label: '识别支撑位', icon: '📏' },
-                { key: 'pattern' as AILayer, label: '识别形态', icon: '📐' },
-                { key: 'signal' as AILayer, label: '买卖点提示', icon: '💡' },
-              ].map((layer) => (
-                <button
-                  key={layer.key}
-                  onClick={() => toggleAILayer(layer.key)}
-                  className={clsx(
-                    'px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center space-x-1',
-                    aiLayers[layer.key]
-                      ? 'bg-[var(--color-ruo-purple)]/20 text-[var(--color-ruo-purple)] border border-[var(--color-ruo-purple)]/30'
-                      : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]/80'
-                  )}
-                >
-                  <span>{layer.icon}</span>
-                  <span>{layer.label}</span>
-                </button>
-              ))}
+        {/* AI 图层开关 - 仅在非分时模式显示 */}
+        {period !== 'min' && (
+          <div className="p-4 border-b border-[var(--color-surface-3)]">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-[var(--color-text-secondary)]">AI 辅助:</span>
+                  <label className="relative inline-flex items-center cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={aiLayers.support}
+                      onChange={toggleSupport}
+                    />
+                    <div className="w-11 h-6 bg-[var(--color-surface-4)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-ruo-purple)]"></div>
+                    <span className="ml-2 text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-ruo-purple)] transition-colors">
+                      支撑/压力位
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {!aiAnalysis && selectedSymbol && (
+                <span className="text-xs text-gray-500">(暂无AI分析数据, 仅显示模拟演示)</span>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* 图表内容 */}
         <div className="flex-1 overflow-hidden">
@@ -171,26 +246,155 @@ const ChartPage: React.FC = () => {
             </div>
           ) : (
             <div className="h-full p-4">
-              <KLineChart data={klineData} symbol={selectedSymbol} name={selectedName} aiLayers={aiLayers} />
+              <div className="h-full p-4">
+                <KLineChart
+                  data={klineData}
+                  symbol={selectedSymbol}
+                  name={selectedName}
+                  period={period}
+                  preClose={preClose}
+                  aiLayers={aiLayers}
+                  aiAnalysis={aiAnalysis}
+                />
+              </div>
             </div>
           )}
         </div>
 
         {/* AI 图层说明（当有图层开启时显示） */}
-        {Object.values(aiLayers).some(Boolean) && (
+        {period !== 'min' && Object.values(aiLayers).some(Boolean) && (
           <div className="p-4 border-t border-[var(--color-surface-3)] bg-[var(--color-ruo-purple)]/5">
-            <div className="text-sm text-[var(--color-text-secondary)] space-y-1">
-              <p className="font-medium text-[var(--color-ruo-purple)] mb-2">AI 分析说明:</p>
+            <div className="text-sm text-[var(--color-text-secondary)] space-y-2">
+              <p className="font-medium text-[var(--color-ruo-purple)] mb-2 flex items-center gap-2">
+                <span>🤖 AI 核心观点:</span>
+                {aiAnalysis && <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">置信度: {aiAnalysis.confidence}</span>}
+              </p>
+
               {aiLayers.support && (
-                <p>• <span className="text-[var(--color-ruo-purple)]">支撑位识别:</span> 紫色虚线标注关键支撑位，价格在此处可能反弹</p>
-              )}
-              {aiLayers.pattern && (
-                <p>• <span className="text-[var(--color-ruo-purple)]">形态识别:</span> 自动识别常见K线形态，预示未来走势</p>
-              )}
-              {aiLayers.signal && (
-                <p>• <span className="text-[var(--color-ruo-purple)]">买卖点提示:</span> 箭头标注技术性买卖信号，仅供参考</p>
+                <div className="mb-2">
+                  <p className="font-bold text-gray-300">📐 支撑/压力:</p>
+                  {aiAnalysis?.support_resistance ? (
+                    <p className="pl-4 text-gray-400">
+                      {aiAnalysis.support_resistance.analysis} (支撑: <span className="text-purple-400">{aiAnalysis.support_resistance.support}</span>, 压力: <span className="text-orange-400">{aiAnalysis.support_resistance.resistance}</span>)
+                    </p>
+                  ) : (
+                    <p className="pl-4 text-gray-500 italic">正在使用模拟算法计算近期高低点...</p>
+                  )}
+                </div>
               )}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI 分析报告模块 */}
+      <div className="card overflow-hidden transition-all duration-300">
+        <button
+          onClick={() => setIsReportOpen(!isReportOpen)}
+          className="w-full flex items-center justify-between p-4 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] transition-colors border-b border-[var(--color-surface-3)]"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold flex items-center gap-2">
+              🧠 AI 深度分析报告
+              {aiAnalysis && (
+                <span className={clsx(
+                  "text-xs px-2 py-0.5 rounded",
+                  aiAnalysis.recommendation === '买入' ? "bg-red-500/20 text-red-400" :
+                    aiAnalysis.recommendation === '卖出' ? "bg-green-500/20 text-green-400" :
+                      "bg-gray-500/20 text-gray-400"
+                )}>
+                  {aiAnalysis.recommendation} (置信度: {aiAnalysis.confidence})
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+            <span className="text-sm">{isReportOpen ? '收起' : '展开'}</span>
+            <svg
+              className={clsx("w-5 h-5 transition-transform duration-200", isReportOpen ? "rotate-180" : "")}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {/* 报告内容 */}
+        {isReportOpen && (
+          <div className="p-4 bg-[var(--color-surface-1)]">
+            {aiAnalysis ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 左侧：核心结论 */}
+                <div className="space-y-4">
+                  <div className="p-3 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+                    <h3 className="text-sm text-[var(--color-text-secondary)] mb-1">行情摘要</h3>
+                    <p className="text-[var(--color-text-primary)] font-medium">{aiAnalysis.summary}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">趋势分析</h3>
+                    <p className="text-[var(--color-text-primary)] mb-2">
+                      <span className="text-purple-400 font-bold">{aiAnalysis.trend}</span>
+                    </p>
+                    <p className="text-sm text-gray-400">{aiAnalysis.technical_pattern}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">关键点位</h3>
+                    <div className="flex gap-4 mb-2">
+                      <div className="flex-1 p-2 bg-red-500/10 border border-red-500/20 rounded text-center">
+                        <div className="text-xs text-red-400">压力位</div>
+                        <div className="text-lg font-bold text-red-500">{aiAnalysis.support_resistance?.resistance || '--'}</div>
+                      </div>
+                      <div className="flex-1 p-2 bg-green-500/10 border border-green-500/20 rounded text-center">
+                        <div className="text-xs text-green-400">支撑位</div>
+                        <div className="text-lg font-bold text-green-500">{aiAnalysis.support_resistance?.support || '--'}</div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 bg-[var(--color-surface-2)] p-2 rounded">{aiAnalysis.support_resistance?.analysis}</p>
+                  </div>
+                </div>
+
+                {/* 右侧：信号与建议 */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">关键信号</h3>
+                    {aiAnalysis.signals && aiAnalysis.signals.length > 0 ? (
+                      <ul className="space-y-2">
+                        {aiAnalysis.signals.map((signal: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
+                            <span className="text-purple-500 mt-0.5">•</span>
+                            <span>{signal}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">无明显信号</p>
+                    )}
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-3)] border border-[var(--color-surface-4)]">
+                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2">💡 操作建议</h3>
+                    <p className="text-[var(--color-text-primary)] leading-relaxed">
+                      {aiAnalysis.suggestion}
+                    </p>
+                  </div>
+
+                  <div className="text-xs text-gray-600 text-right mt-4">
+                    * AI分析基于历史数据，仅供参考，不构成投资建议
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-secondary)]">
+                <svg className="w-12 h-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+                <p>点击上方 "AI 深度分析" 按钮生成报告</p>
+              </div>
+            )}
           </div>
         )}
       </div>

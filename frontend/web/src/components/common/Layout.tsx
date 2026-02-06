@@ -33,12 +33,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [copilotOpen]);
 
   const navItems = [
-    { path: '/', label: '首页', icon: '🏠' },
-    { path: '/portfolio', label: '持仓', icon: '📊' },
-    { path: '/news', label: '情报', icon: '📰' },
-    { path: '/analysis', label: '复盘', icon: '🧠' },
-    { path: '/opening-analysis', label: '开盘', icon: '🌅' },
-    { path: '/chart', label: 'K线', icon: '📈' },
+    { path: '/', label: '首页' },
+    { path: '/portfolio', label: '持仓' },
+    { path: '/news', label: '情报' },
+    { path: '/analysis', label: '复盘' },
+    { path: '/opening-analysis', label: '开盘' },
   ];
 
   const handleLogoClick = () => {
@@ -86,15 +85,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               key={item.path}
               to={item.path}
               className={clsx(
-                'flex items-center space-x-3 px-4 py-3 mx-2 mb-1 rounded-lg transition-all',
+                'flex items-center justify-center px-4 py-3 mx-2 mb-1 rounded-lg transition-all',
                 location.pathname === item.path
                   ? 'bg-[var(--color-surface-3)] text-[var(--color-brand)]'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
               )}
             >
-              <span className="text-xl">{item.icon}</span>
-              {!sidebarCollapsed && (
-                <span className="font-medium">{item.label}</span>
+              {!sidebarCollapsed ? (
+                <span className="font-bold text-lg">{item.label}</span>
+              ) : (
+                <span className="font-bold text-base">{item.label.substring(0, 1)}</span>
               )}
             </Link>
           ))}
@@ -104,11 +104,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="p-4 border-t" style={{ borderColor: 'var(--color-surface-4)' }}>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="flex items-center space-x-3 w-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            className="flex items-center justify-center w-full text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
           >
-            <span className="text-xl">⚙️</span>
-            {!sidebarCollapsed && (
-              <span className="font-medium">设置</span>
+            {!sidebarCollapsed ? (
+              <span className="font-bold text-lg">设置</span>
+            ) : (
+              <span className="font-bold text-base">设</span>
             )}
           </button>
         </div>

@@ -90,7 +90,7 @@ const PortfolioPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioWithStrategy | null>(null);
-  const [usMarket, setUsMarket] = useState(false);
+
   const total_profit_loss = totalValue - totalCost;
 
   useEffect(() => {
@@ -143,19 +143,17 @@ const PortfolioPage: React.FC = () => {
 
   const handleRowClick = (portfolio: PortfolioWithStrategy) => {
     // 点击持仓行跳转到股票详情页
-    navigate(`/stock/${portfolio.symbol}`);
+    // 点击持仓行跳转到K线页面
+    navigate(`/chart?symbol=${portfolio.symbol}`);
   };
 
   const getProfitColor = (percent: number) => {
-    return usMarket
-      ? (percent >= 0 ? 'text-[var(--color-profit-down)]' : 'text-[var(--color-loss-down)]')
-      : (percent >= 0 ? 'text-[var(--color-profit-up)]' : 'text-[var(--color-loss-up)]');
+    // A-Share Default: Red Up, Green Down
+    return percent >= 0 ? 'text-[var(--color-profit-up)]' : 'text-[var(--color-loss-up)]';
   };
 
   const getProfitBgColor = (percent: number) => {
-    return usMarket
-      ? (percent >= 0 ? 'bg-[var(--color-profit-down)]/20' : 'bg-[var(--color-loss-down)]/20')
-      : (percent >= 0 ? 'bg-[var(--color-profit-up)]/20' : 'bg-[var(--color-loss-up)]/20');
+    return percent >= 0 ? 'bg-[var(--color-profit-up)]/20' : 'bg-[var(--color-loss-up)]/20';
   };
 
   if (loading && portfolios.length === 0) {
@@ -168,15 +166,7 @@ const PortfolioPage: React.FC = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">持仓总览</h2>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-[var(--color-text-secondary)]">市场模式:</span>
-            <button
-              onClick={() => setUsMarket(!usMarket)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${usMarket ? 'bg-[var(--color-profit-down)]/20 text-[var(--color-profit-down)]' : 'bg-[var(--color-profit-up)]/20 text-[var(--color-profit-up)]'}`}
-            >
-              {usMarket ? '美股' : 'A股'}
-            </button>
-          </div>
+
         </div>
         <div className="grid grid-cols-3 gap-6">
           <div>

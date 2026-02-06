@@ -1,12 +1,13 @@
 import json
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.llm_agent.graphs.limit_up_stock_analysis_graph import run_ai_research_analysis
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.models.stock import AnalysisReport
+from app.services.ai_analysis import AIAnalysisService
 
 router = APIRouter()
 
@@ -199,3 +200,82 @@ async def get_analysis_report(
         raise HTTPException(status_code=400, detail="日期格式无效，请使用 YYYY-MM-DD")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class KlineAnalysisRequest(BaseModel):
+    symbol: str = Field(..., description="股票代码")
+    force_rerun: bool = False
+
+
+def background_kline_analysis_task(symbol: str, days: int, force_rerun: bool):
+    """
+    后台K线分析任务
+    """
+    task_key = f"kline_{symbol}_{datetime.now().strftime('%Y%m%d')}"
+    try:
+        active_tasks.add(task_key)
+        print(f"🚀 开始后台K线分析任务: {task_key}")
+        
+        db = SessionLocal()
+        try:
+            service = AIAnalysisService(db)
+            service.analyze_kline(symbol, days)
+        finally:
+            db.close()
+            
+        print(f"✅ 后台K线分析任务完成: {task_key}")
+    except Exception as e:
+        print(f"❌ 后台K线分析任务失败 ({task_key}): {e}")
+    finally:
+        active_tasks.discard(task_key)
+
+
+@router.post("/kline", response_model=AnalysisResponse)
+async def run_kline_analysis(
+    background_tasks: BackgroundTasks,
+    request: KlineAnalysisRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    运行K线 AI 分析（异步模式）
+    """
+    task_key = f"kline_{request.symbol}_{datetime.now().strftime('%Y%m%d')}"
+    
+    # 1. 检查是否已经在运行中
+    if task_key in active_tasks:
+        return AnalysisResponse(
+            success=True,
+            message=f"股票 {request.symbol} 分析进行中，请等待",
+            cached=False
+        )
+    
+    # 2. 检查当日是否已分析
+    if not request.force_rerun:
+        today = datetime.now().strftime('%Y-%m-%d')
+        report_date = datetime.strptime(today, "%Y-%m-%d")
+        existing = db.query(AnalysisReport).filter(
+            AnalysisReport.symbol == request.symbol,
+            AnalysisReport.report_date == report_date,
+            AnalysisReport.report_type == 'kline_analysis'
+        ).first()
+        
+        if existing:
+            return AnalysisResponse(
+                success=True,
+                message="分析已完成，请查询报告。",
+                cached=True
+            )
+    
+    # 3. 启动后台任务 - 默认分析90天
+    background_tasks.add_task(
+        background_kline_analysis_task, 
+        request.symbol, 
+        90, 
+        request.force_rerun
+    )
+    
+    return AnalysisResponse(
+        success=True,
+        message=f"已启动 {request.symbol} K线分析",
+        cached=False
+    )

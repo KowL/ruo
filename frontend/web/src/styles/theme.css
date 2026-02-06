@@ -29,7 +29,7 @@
 
   /* 布局尺寸 */
   --sidebar-collapsed: 64px;
-  --sidebar-expanded: 240px;
+  --sidebar-expanded: 180px;
   --copilot-width: 320px;
 }
 
