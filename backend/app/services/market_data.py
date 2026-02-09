@@ -237,9 +237,10 @@ class MarketDataService:
                 logger.warning(f"无法识别的市场代码格式: {symbol}")
                 return 0.0
 
-            logger.debug(f"调用雪球接口: ak.stock_individual_basic_info_xq(symbol='{market_code}')")
+            logger.debug(f"调用雪球接口: ak.stock_individual_spot_xq(symbol='{market_code}')")
             try:
-                df = ak.stock_individual_basic_info_xq(symbol=market_code)
+                # 使用 stock_individual_spot_xq 获取实时行情
+                df = ak.stock_individual_spot_xq(symbol=market_code)
             except Exception as api_err:
                 logger.warning(f"雪球接口调用异常: {api_err}")
                 return 0.0
@@ -248,24 +249,20 @@ class MarketDataService:
                 logger.warning(f"雪球接口未获取到数据: {symbol}")
                 return 0.0
 
-            # df 通常包含 'item' 和 'value' 列，或者直接是宽表
-            # 打印一下看看结构，通常是 current_price 字段
-            # 根据文档，返回的是 DataFrame，字段可能包含 "current_price"
-            
-            # 使用 item/value 结构查找 (假设) 或者直接列名
-            # 实测 akshare stock_individual_basic_info_xq 返回的是:
-            # item      value
-            # current_price 1700.0
-            # ...
-            
-            # 查找 current_price
-            price_row = df[df['item'] == 'current_price']
+            # df columns: [item, value]
+            # 查找 '现价'
+            price_row = df[df['item'] == '现价']
             if not price_row.empty:
-                price = float(price_row.iloc[0]['value'])
-                return price
+                val = price_row.iloc[0]['value']
+                # 处理可能的非数字情况
+                try:
+                    price = float(val)
+                    return price
+                except (ValueError, TypeError):
+                    logger.warning(f"雪球价格无法转换为浮点数: {val}")
+                    return 0.0
             
-            # 尝试查找 'last_close' 或其他
-            logger.warning(f"雪球数据中未找到 current_price: {symbol}")
+            logger.warning(f"雪球数据中未找到 '现价': {symbol}")
             return 0.0
 
         except Exception as e:

@@ -20,6 +20,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.models.news import News
 from app.models.stock import AnalysisReport
+from app.models.portfolio import Portfolio
 from app.services.market_data import get_market_data_service
 from app.core.llm_factory import LLMFactory
 
@@ -56,6 +57,9 @@ KLINE_ANALYSIS_PROMPT = """你是一位精通在A股市场的技术面分析大�
 
 最近 {days} 个交易日数据如下:
 {kline_data}
+
+当前用户的持仓情况（可选参考）：
+{portfolio_info}
 
 请基于以上数据，严格按照以下 JSON 格式输出分析报告（不要包含 Markdown 代码块标记，只输出纯 JSON）：
 
@@ -227,11 +231,26 @@ class AIAnalysisService:
             
             kline_text = "\\n".join(kline_str_list)
             
-            # 2. 调用 LLM 分析
+            # 3. 获取持仓信息 (MVP user_id=1)
+            portfolio_info = "用户当前无持仓。"
+            try:
+                portfolio = self.db.query(Portfolio).filter(
+                    Portfolio.user_id == 1,
+                    Portfolio.symbol == symbol,
+                    Portfolio.is_active == 1
+                ).first()
+                
+                if portfolio:
+                    portfolio_info = f"用户持有 {portfolio.quantity} 股，成本价 {portfolio.cost_price}，策略: {portfolio.strategy_tag or '无'}。请结合成本价给出操作建议（如止盈止损）。"
+            except Exception as e:
+                logger.warning(f"获取持仓信息失败: {e}")
+
+            # 4. 调用 LLM 分析
             prompt = KLINE_ANALYSIS_PROMPT.format(
                 symbol=symbol,
                 days=days,
-                kline_data=kline_text
+                kline_data=kline_text,
+                portfolio_info=portfolio_info
             )
             
             if not self.llm:

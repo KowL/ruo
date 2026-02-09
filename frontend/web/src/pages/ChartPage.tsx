@@ -4,6 +4,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { getKLineData } from '@/api/stock';
 import KLineChart from '@/components/chart/KLineChart';
 import Loading from '@/components/common/Loading';
+import Modal from '@/components/common/Modal'; // Import Modal
 import { KLineData } from '@/types';
 import clsx from 'clsx';
 
@@ -83,9 +84,44 @@ const ChartPage: React.FC = () => {
   // Separate effect for AI Analysis - fetch only when symbol changes
   useEffect(() => {
     if (selectedSymbol) {
-      fetchAIAnalysis(selectedSymbol);
+      // Initial load: check for existing, but don't prompt re-analyze if found
+      // Actually fetchAIAnalysis implementation logic:
+      // if checkExisting=true, it shows modal if found.
+      // We probably want to just load it if it exists, without showing modal initially.
+      // But fetchAIAnalysis logic I wrote shows modal if found.
+      // I should tweak fetchAIAnalysis to separate "Check and Load" vs "Check and Prompt".
+
+      // Let's modify fetchAIAnalysis slightly in next step or use a separate loader?
+      // Or just load it differently. 
+      // For now, let's just calling it.
+      // Wait, if I call fetchAIAnalysis(symbol), it defaults checkExisting=true -> prompts modal.
+      // Users don't want a modal popped up just by switching stock if a report exists.
+      // So I need a way to 'just load' without prompting.
+
+      // I'll update fetchAIAnalysis to accept a 'silent' param for modal?
+      // Let's do that in a separate edit or assume the previous tool call already defined it.
+      // In the previous tool call, I defined: fetchAIAnalysis(symbol, checkExisting=true)
+      // If checkExisting is true, it shows modal.
+
+      // I should update useEffect to call a function that just loads.
+      loadExistingAnalysis(selectedSymbol);
     }
   }, [selectedSymbol]);
+
+  const loadExistingAnalysis = async (symbol: string) => {
+    try {
+      const { getAnalysisReport } = await import('@/api/analysis');
+      const today = new Date().toISOString().split('T')[0];
+      const res = await getAnalysisReport('kline_analysis', today, symbol);
+      if (res && res.success && res.result) {
+        const data = res.result.data || res.result;
+        if (res.result.date) data.reportDate = res.result.date;
+        setAiAnalysis(data);
+      } else {
+        setAiAnalysis(null);
+      }
+    } catch (e) { setAiAnalysis(null); }
+  };
 
   const fetchTimeShareData = async (symbol: string, silent: boolean = false) => {
     if (!silent) setLoading(true);
@@ -116,20 +152,77 @@ const ChartPage: React.FC = () => {
     }
   };
 
-  const fetchAIAnalysis = async (symbol: string) => {
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [showReanalyzeModal, setShowReanalyzeModal] = useState(false);
+
+  const runAnalysis = async (symbol: string, forceRerun: boolean) => {
+    setAnalysisLoading(true);
+    setShowReanalyzeModal(false);
     setAiAnalysis(null);
     try {
-      // Dynamic import to avoid circular dependency issues if any
-      const { getAnalysisReport } = await import('@/api/analysis');
+      const { getAnalysisReport, runKlineAnalysis } = await import('@/api/analysis');
       const today = new Date().toISOString().split('T')[0];
-      // Try to get today's report
-      const res = await getAnalysisReport('kline_analysis', today, symbol);
-      if (res && res.success && res.result && res.result.data) {
-        setAiAnalysis(res.result.data);
+
+      const runRes = await runKlineAnalysis(symbol, forceRerun);
+
+      if (runRes && runRes.success) {
+        let attempts = 0;
+        const maxAttempts = 20;
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const res = await getAnalysisReport('kline_analysis', today, symbol);
+            if (res && res.success && res.result) {
+              const data = res.result.data || res.result;
+              if (res.result.date) {
+                data.reportDate = res.result.date;
+              }
+              setAiAnalysis(data);
+              clearInterval(pollInterval);
+              setAnalysisLoading(false);
+            }
+          } catch (e) { }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setAnalysisLoading(false);
+          }
+        }, 3000);
+      } else {
+        setAnalysisLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch AI analysis:', error);
+    } catch (e) {
+      console.error(e);
+      setAnalysisLoading(false);
     }
+  };
+
+  const fetchAIAnalysis = async (symbol: string, checkExisting: boolean = true) => {
+    if (!symbol) return;
+
+    if (checkExisting) {
+      setAnalysisLoading(true);
+      try {
+        const { getAnalysisReport } = await import('@/api/analysis');
+        const today = new Date().toISOString().split('T')[0];
+        const res = await getAnalysisReport('kline_analysis', today, symbol);
+
+        if (res && res.success && res.result) {
+          const data = res.result.data || res.result;
+          if (res.result.date) data.reportDate = res.result.date;
+          setAiAnalysis(data);
+          setAnalysisLoading(false);
+          // Show modal to confirm re-analysis
+          setShowReanalyzeModal(true);
+          return;
+        }
+      } catch (e) {
+        // Not found, continue to run
+      }
+    }
+
+    // If not checking existing (or not found), run analysis
+    runAnalysis(symbol, false);
   };
 
 
@@ -165,12 +258,27 @@ const ChartPage: React.FC = () => {
             {/* Let's double check if we can trigger an analysis run here. For now, visual button as requested. */}
             <button
               onClick={() => fetchAIAnalysis(selectedSymbol)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors shadow-lg shadow-purple-900/20"
+              disabled={analysisLoading}
+              className={clsx(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-lg",
+                analysisLoading
+                  ? "bg-gray-600 cursor-not-allowed text-gray-300"
+                  : "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-900/20"
+              )}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              AI 深度分析
+              {analysisLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  分析中...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  AI 深度分析
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -297,13 +405,20 @@ const ChartPage: React.FC = () => {
             <span className="text-lg font-bold flex items-center gap-2">
               🧠 AI 深度分析报告
               {aiAnalysis && (
-                <span className={clsx(
-                  "text-xs px-2 py-0.5 rounded",
-                  aiAnalysis.recommendation === '买入' ? "bg-red-500/20 text-red-400" :
-                    aiAnalysis.recommendation === '卖出' ? "bg-green-500/20 text-green-400" :
-                      "bg-gray-500/20 text-gray-400"
-                )}>
-                  {aiAnalysis.recommendation} (置信度: {aiAnalysis.confidence})
+                <span className="flex items-center gap-2">
+                  <span className={clsx(
+                    "text-xs px-2 py-0.5 rounded",
+                    aiAnalysis.recommendation === '买入' ? "bg-red-500/20 text-red-400" :
+                      aiAnalysis.recommendation === '卖出' ? "bg-green-500/20 text-green-400" :
+                        "bg-gray-500/20 text-gray-400"
+                  )}>
+                    {aiAnalysis.recommendation} (置信度: {aiAnalysis.confidence})
+                  </span>
+                  {aiAnalysis.reportDate && (
+                    <span className="text-xs text-[var(--color-text-secondary)] font-normal ml-2">
+                      {aiAnalysis.reportDate}
+                    </span>
+                  )}
                 </span>
               )}
             </span>
@@ -398,6 +513,31 @@ const ChartPage: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Re-analyze Confirmation Modal */}
+      <Modal
+        isOpen={showReanalyzeModal}
+        onClose={() => setShowReanalyzeModal(false)}
+        title="确认重新分析?"
+        footer={
+          <>
+            <button
+              onClick={() => setShowReanalyzeModal(false)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => runAnalysis(selectedSymbol, true)}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-ruo-purple)] text-white hover:bg-purple-700 transition-colors shadow-lg shadow-purple-900/20"
+            >
+              确认重新分析
+            </button>
+          </>
+        }
+      >
+        <p>检测到今日已有 AI 分析报告，是否强制重新生成？</p>
+        <p className="text-sm text-gray-500 mt-2">重新分析大约需要 1-2 分钟。</p>
+      </Modal>
     </div>
   );
 };

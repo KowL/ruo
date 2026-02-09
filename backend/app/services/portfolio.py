@@ -71,29 +71,18 @@ class PortfolioService:
             # 3. 获取实时价格作为初始 current_price
             initial_current_price = cost_price
             try:
-                realtime_info = self.market_service.get_realtime_price(symbol)
-                if realtime_info and realtime_info.get('price', 0) > 0:
-                    initial_current_price = realtime_info['price']
-                    logger.info(f"获取到实时价格: {symbol} = {initial_current_price}")
+                # 获取实时价格失败或价格为0，尝试使用雪球接口作为备用
+                logger.warning(f"获取实时价格为空或0，尝试使用雪球接口: {symbol}")
+                xq_price = self.market_service.get_stock_price_xq(symbol)
+                if xq_price > 0:
+                    initial_current_price = xq_price
+                    logger.info(f"从雪球获取到价格: {symbol} = {initial_current_price}")
                 else:
-                    # 获取实时价格失败或价格为0，尝试使用雪球接口作为备用
-                    logger.warning(f"获取实时价格为空或0，尝试使用雪球接口: {symbol}")
-                    xq_price = self.market_service.get_stock_price_xq(symbol)
-                    if xq_price > 0:
-                        initial_current_price = xq_price
-                        logger.info(f"从雪球获取到价格: {symbol} = {initial_current_price}")
-                    else:
-                        logger.warning(f"雪球接口也无法获取价格，使用成本价: {symbol}")
+                    logger.warning(f"雪球接口也无法获取价格，使用成本价: {symbol}")
+                    
 
             except Exception as e:
-                logger.warning(f"添加持仓时获取实时价格失败，尝试使用雪球接口: {e}")
-                try:
-                    xq_price = self.market_service.get_stock_price_xq(symbol)
-                    if xq_price > 0:
-                        initial_current_price = xq_price
-                        logger.info(f"异常后从雪球获取到价格: {symbol} = {initial_current_price}")
-                except Exception as ex:
-                    logger.warning(f"雪球接口备用获取失败: {ex}")
+                logger.warning(f"雪球接口备用获取失败: {e}")
 
             # 4. 创建持仓记录
             portfolio = Portfolio(
