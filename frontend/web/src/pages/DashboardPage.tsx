@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { getRawNews } from '@/api/news';
+import { getDashboardData, SentimentData, MarketBreadth, DashboardData } from '@/api/dashboard';
 import { News } from '@/types';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import ReactECharts from 'echarts-for-react';
@@ -9,30 +10,53 @@ const DashboardPage: React.FC = () => {
   // Real Portfolio Data
   const { portfolios, totalValue, totalProfitLoss, totalProfitLossRatio, fetchPortfolios, loading: portfolioLoading } = usePortfolioStore();
 
+  // Dashboard Data
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+
   useEffect(() => {
     fetchPortfolios();
+    fetchDashboardData();
+
     // Auto-refresh every 60s
     const timer = setInterval(() => {
       fetchPortfolios();
+      fetchDashboardData();
     }, 60000);
     return () => clearInterval(timer);
-  }, []); // Run once on mount
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setDashboardLoading(true);
+      const data = await getDashboardData();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('获取仪表盘数据失败:', error);
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  // Sentiment Data
+  const sentiment = dashboardData?.sentiment;
+  const sentimentScore = sentiment ? sentiment.score / 100 : 0.5;
+  const sentimentLabel = sentiment?.label || '中性';
+  const sentimentDescription = sentiment?.description || '分歧较大，建议观望';
+
+  // Market Breadth Data
+  const marketBreadth = dashboardData?.market_breadth;
 
   // Top Movers (Sort by absolute change percent)
   const portfolioMovements = [...(portfolios || [])]
     .sort((a, b) => Math.abs(b.changePct || 0) - Math.abs(a.changePct || 0))
     .slice(0, 3)
-
     .map(p => ({
       code: p.symbol,
       name: p.name,
       changePercent: p.changePct,
       price: p.currentPrice
     }));
-
-  // Mock Sentiment Data (can be connected to API later)
-  const sentimentScore = 0.45;
-  const sentimentLabel = '中性';
 
   // News Data
   const [newsList, setNewsList] = useState<News[]>([]);
@@ -201,8 +225,8 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div className="text-center mt-[-10px]">
-            <p className="text-2xl font-bold text-white numbers">{sentimentScore * 100}</p>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">分歧较大，建议观望</p>
+            <p className="text-2xl font-bold text-white numbers">{sentiment ? sentiment.score : '--'}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">{sentimentDescription}</p>
           </div>
         </div>
       </div>
