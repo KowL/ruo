@@ -28,6 +28,15 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
+# 启动时初始化数据库
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时初始化数据库"""
+    from app.core.database import init_db
+    init_db()
+    print("✅ 数据库初始化完成")
+
+
 @app.get("/")
 async def root():
     """根路径"""
