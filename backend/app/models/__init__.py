@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.portfolio import Portfolio, Trade
 from app.models.news import News
 from app.models.stock import Stock, StockPrice, AnalysisReport
+from app.models.concept import Concept, ConceptStock, StockPositioning
 
 __all__ = [
     'User',
@@ -14,5 +15,8 @@ __all__ = [
     'News',
     'Stock',
     'StockPrice',
-    'AnalysisReport'
+    'AnalysisReport',
+    'Concept',
+    'ConceptStock',
+    'StockPositioning'
 ]

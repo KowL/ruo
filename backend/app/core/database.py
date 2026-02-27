@@ -40,6 +40,6 @@ def get_db():
 def init_db():
     """初始化数据库（创建所有表）"""
     # 导入所有模型，确保它们被注册到 Base.metadata
-    from app.models import user, portfolio, news, stock
+    from app.models import user, portfolio, news, stock, concept
 
     Base.metadata.create_all(bind=engine)

@@ -3,7 +3,7 @@ API 路由模块 - MVP v0.1
 API Routes Module
 """
 from fastapi import APIRouter
-from .endpoints import portfolio, stock, news
+from .endpoints import portfolio, stock, news, concepts
 
 api_router = APIRouter()
 
@@ -36,4 +36,11 @@ api_router.include_router(
     analysis.router,
     prefix="/analysis",
     tags=["市场分析"]
+)
+
+# 概念管理 API
+api_router.include_router(
+    concepts.router,
+    prefix="/concepts",
+    tags=["概念管理"]
 )

@@ -7,6 +7,8 @@ import ChartPage from './pages/ChartPage';
 
 import StockAnalysisPage from './pages/StockAnalysisPage';
 import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
+import ConceptsPage from './pages/concepts/ConceptsPage';
+import ConceptDetailPage from './pages/concepts/ConceptDetailPage';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
 
           <Route path="/analysis" element={<StockAnalysisPage />} />
           <Route path="/opening-analysis" element={<OpeningAnalysisPage />} />
+          <Route path="/concepts" element={<ConceptsPage />} />
+          <Route path="/concepts/:id" element={<ConceptDetailPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>
