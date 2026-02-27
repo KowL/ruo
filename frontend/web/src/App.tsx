@@ -9,6 +9,7 @@ import StockAnalysisPage from './pages/StockAnalysisPage';
 import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
 import ConceptsPage from './pages/concepts/ConceptsPage';
 import ConceptDetailPage from './pages/concepts/ConceptDetailPage';
+import ConceptMonitorPage from './pages/ConceptMonitorPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/opening-analysis" element={<OpeningAnalysisPage />} />
           <Route path="/concepts" element={<ConceptsPage />} />
           <Route path="/concepts/:id" element={<ConceptDetailPage />} />
+          <Route path="/concept-monitor" element={<ConceptMonitorPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

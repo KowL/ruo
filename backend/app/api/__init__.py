@@ -3,7 +3,7 @@ API 路由模块 - MVP v0.1
 API Routes Module
 """
 from fastapi import APIRouter
-from .endpoints import portfolio, stock, news, concepts, dashboard
+from .endpoints import portfolio, stock, news, concepts, dashboard, concept_monitor
 
 api_router = APIRouter()
 
@@ -50,4 +50,11 @@ api_router.include_router(
     dashboard.router,
     prefix="/dashboard",
     tags=["仪表盘"]
+)
+
+# 概念异动监控 API
+api_router.include_router(
+    concept_monitor.router,
+    prefix="/concept-monitor",
+    tags=["概念监控"]
 )
