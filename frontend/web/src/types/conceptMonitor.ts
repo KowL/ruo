@@ -1,9 +1,7 @@
-// 概念监控相关类型
-
 export interface ConceptMovement {
   name: string;
   change_pct: number;
-  total_mv: number;  // 亿元
+  total_mv: number;
   turnover: number;
   leading_stocks: string[];
   up_count: number;
@@ -13,10 +11,10 @@ export interface ConceptMovement {
 
 export interface ConceptFundFlow {
   name: string;
-  main_net_inflow: number;  // 万元
+  main_net_inflow: number;
   main_net_inflow_pct: number;
   retail_net_inflow: number;
-  total_amount: number;  // 亿元
+  total_amount: number;
 }
 
 export interface LimitUpStock {

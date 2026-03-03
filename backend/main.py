@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import api_router
+from app.api.endpoints.websocket import websocket_endpoint
 
 # 创建 FastAPI 应用实例
 app = FastAPI(
@@ -26,6 +27,9 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# 注册 WebSocket 路由
+app.add_api_websocket_route("/ws", websocket_endpoint)
 
 
 # 启动时初始化数据库

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
-import { KLineData } from '@/types';
 
 
 interface KLineChartProps {
@@ -142,7 +141,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             axisLabel: {
               show: true,
               color: '#9ca3af',
-              interval: (index: number, value: string) => {
+              interval: (_index: number, value: string) => {
                 return ['09:30', '10:30', '11:30', '14:00', '15:00'].some(t => value.endsWith(t));
               },
               formatter: (value: string) => value.substring(value.length - 5)
@@ -244,7 +243,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
         item.turnover || 0,
         item.amount || 0
       ]);
-      const volumes = data.map((item, index) => ({
+      const volumes = data.map((item) => ({
         value: item.volume,
         itemStyle: { color: item.close >= item.open ? '#ef4444' : '#10b981' }
       }));

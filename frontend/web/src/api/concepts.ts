@@ -20,25 +20,25 @@ interface ApiResponse<T> {
 // 获取概念列表
 export const getConcepts = async (skip = 0, limit = 100): Promise<ConceptListItem[]> => {
   const response = await client.get<ApiResponse<ConceptListItem[]>>(`/concepts/?skip=${skip}&limit=${limit}`);
-  return response.data;
+  return response.data.data;
 };
 
 // 获取概念详情
 export const getConcept = async (id: number): Promise<ConceptDetail> => {
   const response = await client.get<ApiResponse<ConceptDetail>>(`/concepts/${id}`);
-  return response.data;
+  return response.data.data;
 };
 
 // 创建概念
 export const createConcept = async (data: CreateConceptRequest): Promise<Concept> => {
   const response = await client.post<ApiResponse<Concept>>('/concepts/', data);
-  return response.data;
+  return response.data.data;
 };
 
 // 更新概念
 export const updateConcept = async (id: number, data: UpdateConceptRequest): Promise<Concept> => {
   const response = await client.put<ApiResponse<Concept>>(`/concepts/${id}`, data);
-  return response.data;
+  return response.data.data;
 };
 
 // 删除概念
@@ -52,7 +52,7 @@ export const addStockToConcept = async (
   data: AddStockToConceptRequest
 ): Promise<ConceptStock> => {
   const response = await client.post<ApiResponse<ConceptStock>>(`/concepts/${conceptId}/stocks`, data);
-  return response.data;
+  return response.data.data;
 };
 
 // 更新股票定位
@@ -65,7 +65,7 @@ export const updateStockPositioning = async (
     `/concepts/${conceptId}/stocks/${stockSymbol}`,
     data
   );
-  return response.data;
+  return response.data.data;
 };
 
 // 从概念中移除股票

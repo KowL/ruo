@@ -277,7 +277,7 @@ class MarketDataService:
         limit: int = 60
     ) -> List[Dict]:
         """
-        获取 K 线数据
+        获取 K 线数据（优先从数据库读取，不足时从AKShare补充）
 
         Args:
             symbol: 股票代码
@@ -288,66 +288,54 @@ class MarketDataService:
             K 线数据列表
         """
         try:
-            # 检查缓存（K线数据可以缓存较长时间）
-            cache_key = f"kline:{symbol}:{period}:{limit}"
-            if cache_key in self.cache:
-                cached_data, cached_time = self.cache[cache_key]
-                # K线数据缓存1小时
-                if time.time() - cached_time < 3600:
-                    logger.debug(f"从缓存返回K线数据: {symbol} {period}")
-                    return cached_data
-
-            # 计算开始日期（大致估算，多取一些以防节假日）
-            # 每日数据：limit * 2 天
-            # 每周数据：limit * 10 天
-            # 每月数据：limit * 40 天
+            from app.services.kline_service import get_kline_service
+            
+            kline_service = get_kline_service()
+            
+            # 1. 优先从数据库读取
+            db_data = kline_service.get_kline_data(symbol, period, limit)
+            
+            if len(db_data) >= limit:
+                # 数据库数据充足，直接返回
+                logger.debug(f"从数据库返回K线数据: {symbol} {period}, 共{len(db_data)}条")
+                return db_data
+            
+            # 2. 数据库数据不足，从AKShare拉取补充
+            logger.info(f"数据库K线数据不足，从AKShare拉取: {symbol} {period}")
+            
+            # 计算需要的日期范围
             days_map = {'daily': 2, 'weekly': 10, 'monthly': 40}
-            delta_days = limit * days_map.get(period, 2) + 30  # 额外加30天缓冲
+            delta_days = limit * days_map.get(period, 2) + 30
             start_date = (datetime.now() - timedelta(days=delta_days)).strftime('%Y%m%d')
             end_date = datetime.now().strftime('%Y%m%d')
-
-            # According to AkShare documentation: https://akshare.akfamily.xyz/data/stock/stock.html#id23
-            # stock_zh_a_hist(symbol="000001", period="daily", start_date="20170301", end_date='20210907', adjust="qfq")
             
-            # 根据周期选择 AkShare 接口
+            # 从AKShare获取数据
             if period == 'daily':
                 df = ak.stock_zh_a_hist(
-                    symbol=symbol,
-                    period='daily',
-                    start_date=start_date,
-                    end_date=end_date,
-                    adjust='qfq'
+                    symbol=symbol, period='daily',
+                    start_date=start_date, end_date=end_date, adjust='qfq'
                 )
             elif period == 'weekly':
                 df = ak.stock_zh_a_hist(
-                    symbol=symbol,
-                    period='weekly',
-                    start_date=start_date,
-                    end_date=end_date,
-                    adjust='qfq'
+                    symbol=symbol, period='weekly',
+                    start_date=start_date, end_date=end_date, adjust='qfq'
                 )
             elif period == 'monthly':
                 df = ak.stock_zh_a_hist(
-                    symbol=symbol,
-                    period='monthly',
-                    start_date=start_date,
-                    end_date=end_date,
-                    adjust='qfq'
+                    symbol=symbol, period='monthly',
+                    start_date=start_date, end_date=end_date, adjust='qfq'
                 )
             else:
                 raise ValueError(f"不支持的周期: {period}")
-
+            
             if df.empty:
                 logger.warning(f"未找到K线数据: {symbol} {period}")
-                return []
-
-            # 只取最近 N 条
-            df = df.tail(limit)
-
+                return db_data  # 返回数据库中已有的数据
+            
             # 转换为字典列表
-            kline_data = []
+            akshare_data = []
             for _, row in df.iterrows():
-                kline_data.append({
+                akshare_data.append({
                     'date': row['日期'].strftime('%Y-%m-%d'),
                     'open': float(row['开盘']),
                     'high': float(row['最高']),
@@ -359,18 +347,31 @@ class MarketDataService:
                     'changePct': float(row['涨跌幅']) if '涨跌幅' in row else 0,
                     'turnover': float(row['换手率']) if '换手率' in row else 0,
                 })
-
-            # 缓存结果
-            self.cache[cache_key] = (kline_data, time.time())
-
-            return kline_data
-
+            
+            # 3. 保存到数据库
+            saved_count = kline_service.save_kline_data(symbol, period, akshare_data)
+            
+            if saved_count > 0:
+                # 计算均线
+                kline_service.calculate_mas(symbol, period)
+            
+            # 4. 再次从数据库读取（确保数据完整且有序）
+            final_data = kline_service.get_kline_data(symbol, period, limit)
+            
+            logger.info(f"K线数据已更新: {symbol} {period}, 返回{len(final_data)}条")
+            return final_data
+            
         except ValueError as e:
             logger.error(f"参数错误: {e}")
             raise
         except Exception as e:
             logger.error(f"获取K线数据失败: {symbol}, 错误: {e}")
-            raise
+            # 出错时尝试返回数据库中的数据
+            try:
+                from app.services.kline_service import get_kline_service
+                return get_kline_service().get_kline_data(symbol, period, limit)
+            except:
+                raise
 
     @retry_on_error(max_retries=3, delay=1.0)
     def batch_get_realtime_prices(self, symbols: List[str]) -> Dict[str, Dict]:

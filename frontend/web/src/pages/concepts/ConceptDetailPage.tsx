@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit2, TrendingUp, Building2, Zap, Crown } from 'lucide-react';
 import {
   getConcept,
-  updateConcept,
   addStockToConcept,
   updateStockPositioning,
   removeStockFromConcept,
@@ -260,9 +259,9 @@ function AddStockForm({ conceptId, onSuccess, onCancel }: AddStockFormProps) {
         return;
       }
       try {
-        const response = await searchStock(symbol);
-        if (response.data) {
-          setSearchResults(response.data.slice(0, 5));
+        const response: any[] = await searchStock(symbol);
+        if (Array.isArray(response)) {
+          setSearchResults(response.slice(0, 5));
         }
       } catch (error) {
         console.error('搜索失败:', error);

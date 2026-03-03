@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Zap, Flame, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { getMonitorDashboard, getLeadingStocks } from '../../api/conceptMonitor';
-import { MonitorDashboard, ConceptMovement, ConceptFundFlow, LeadingStock } from '../../types/conceptMonitor';
-import Card from '../../components/common/Card';
-import Loading from '../../components/common/Loading';
-import Modal from '../../components/common/Modal';
+import { TrendingUp, Activity, Zap, Flame, BarChart3, ArrowUpRight } from 'lucide-react';
+import { getMonitorDashboard, getLeadingStocks } from '../api/conceptMonitor';
+import { MonitorDashboard, ConceptMovement, ConceptFundFlow, LeadingStock } from '../types/conceptMonitor';
+import Card from '../components/common/Card';
+import Loading from '../components/common/Loading';
+import Modal from '../components/common/Modal';
 
 export default function ConceptMonitorPage() {
   const [data, setData] = useState<MonitorDashboard | null>(null);

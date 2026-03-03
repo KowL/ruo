@@ -8,10 +8,35 @@ Concept Movement Monitor Service
 - 涨停家数统计
 - 龙头股追踪
 """
-from typing import List, Dict, Any
+import concurrent.futures
+from typing import List, Dict, Any, Callable
 from datetime import datetime, timedelta
 import random
 import akshare as ak
+
+
+def timeout_call(func: Callable, timeout_seconds: int = 5, default_value: Any = None):
+    """
+    带超时保护的函数调用
+    
+    Args:
+        func: 要执行的函数
+        timeout_seconds: 超时时间（秒）
+        default_value: 超时后返回的默认值
+    
+    Returns:
+        func 的返回值，或超时返回 default_value
+    """
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(func)
+            return future.result(timeout=timeout_seconds)
+    except concurrent.futures.TimeoutError:
+        print(f"函数调用超时({timeout_seconds}s)，返回默认值")
+        return default_value
+    except Exception as e:
+        print(f"函数调用失败: {e}")
+        return default_value
 
 
 class ConceptMonitorService:
@@ -44,31 +69,30 @@ class ConceptMonitorService:
         if cached:
             return cached[:limit]
 
-        try:
-            # 获取板块数据
+        def _fetch():
             df = ak.stock_board_industry_name_em()
-
-            # 转换数据格式
             result = []
             for _, row in df.head(limit).iterrows():
                 result.append({
                     "name": row.get("板块名称", ""),
                     "change_pct": round(float(row.get("涨跌幅", 0)), 2),
-                    "total_mv": round(float(row.get("总市值", 0)) / 100000000, 2),  # 亿元
+                    "total_mv": round(float(row.get("总市值", 0)) / 100000000, 2),
                     "turnover": round(float(row.get("换手率", 0)), 2),
-                    "leading_stocks": [],  # 龙头股，后续补充
-                    "up_count": random.randint(5, 50),  # 上涨家数，模拟数据
-                    "down_count": random.randint(0, 20),  # 下跌家数，模拟数据
-                    "limit_up_count": random.randint(0, 10),  # 涨停家数，模拟数据
+                    "leading_stocks": [],
+                    "up_count": random.randint(5, 50),
+                    "down_count": random.randint(0, 20),
+                    "limit_up_count": random.randint(0, 10),
                 })
-
-            self._set_cache('movement_ranking', result)
             return result
 
-        except Exception as e:
-            print(f"获取概念涨幅排行失败: {e}")
-            # 返回模拟数据
-            return self._generate_mock_movement_data(limit)
+        result = timeout_call(_fetch, timeout_seconds=5, default_value=None)
+        
+        if result is None:
+            result = self._generate_mock_movement_data(limit)
+        else:
+            self._set_cache('movement_ranking', result)
+        
+        return result
 
     def get_fund_flow_ranking(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
@@ -78,33 +102,35 @@ class ConceptMonitorService:
         if cached:
             return cached[:limit]
 
-        try:
-            # 获取板块资金流数据
+        def _fetch():
             df = ak.stock_sector_fund_flow_rank()
-
             result = []
             for _, row in df.head(limit).iterrows():
                 result.append({
                     "name": row.get("名称", ""),
-                    "main_net_inflow": round(float(row.get("主力净流入", 0)) / 10000, 2),  # 万元
+                    "main_net_inflow": round(float(row.get("主力净流入", 0)) / 10000, 2),
                     "main_net_inflow_pct": round(float(row.get("主力净流入占比", 0)), 2),
                     "retail_net_inflow": round(float(row.get("散户净流入", 0)) / 10000, 2),
-                    "total_amount": round(float(row.get("成交额", 0)) / 100000000, 2),  # 亿元
+                    "total_amount": round(float(row.get("成交额", 0)) / 100000000, 2),
                 })
-
-            self._set_cache('fund_flow', result)
             return result
 
-        except Exception as e:
-            print(f"获取资金流入排行失败: {e}")
-            return self._generate_mock_fund_flow_data(limit)
+        result = timeout_call(_fetch, timeout_seconds=5, default_value=None)
+        
+        if result is None:
+            result = self._generate_mock_fund_flow_data(limit)
+        else:
+            self._set_cache('fund_flow', result)
+        
+        return result
 
     def get_limit_up_statistics(self) -> Dict[str, Any]:
         """
         获取涨停家数统计
+        带5秒超时保护，防止非交易日卡住
         """
-        try:
-            # 获取涨停股数据
+        def _fetch_limit_up_data():
+            """在独立线程中获取数据"""
             df = ak.stock_zt_pool_em(date=datetime.now().strftime("%Y%m%d"))
             limit_up_count = len(df)
 
@@ -138,6 +164,14 @@ class ConceptMonitorService:
                 "concept_ranking": sorted_concepts
             }
 
+        try:
+            # 使用线程池执行，设置5秒超时
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(_fetch_limit_up_data)
+                return future.result(timeout=5)
+        except concurrent.futures.TimeoutError:
+            print("获取涨停数据超时(5s)，返回模拟数据")
+            return self._generate_mock_limit_up_data()
         except Exception as e:
             print(f"获取涨停统计失败: {e}")
             return self._generate_mock_limit_up_data()
@@ -171,16 +205,13 @@ class ConceptMonitorService:
         """
         获取市场概览（涨跌家数、涨停跌停统计）
         """
-        try:
-            # 获取市场概况
+        def _fetch():
             df = ak.stock_zh_a_spot_em()
-
             up_count = len(df[df["涨跌幅"] > 0])
             down_count = len(df[df["涨跌幅"] < 0])
             flat_count = len(df[df["涨跌幅"] == 0])
             limit_up_count = len(df[df["涨跌幅"] >= 9.5])
             limit_down_count = len(df[df["涨跌幅"] <= -9.5])
-
             return {
                 "up_count": up_count,
                 "down_count": down_count,
@@ -191,17 +222,15 @@ class ConceptMonitorService:
                 "update_time": datetime.now().isoformat()
             }
 
-        except Exception as e:
-            print(f"获取市场概览失败: {e}")
-            return {
-                "up_count": 2500,
-                "down_count": 2000,
-                "flat_count": 100,
-                "limit_up_count": 50,
-                "limit_down_count": 5,
-                "total": 4600,
-                "update_time": datetime.now().isoformat()
-            }
+        return timeout_call(_fetch, timeout_seconds=5, default_value={
+            "up_count": 2500,
+            "down_count": 2000,
+            "flat_count": 100,
+            "limit_up_count": 50,
+            "limit_down_count": 5,
+            "total": 4600,
+            "update_time": datetime.now().isoformat()
+        })
 
     def _generate_mock_movement_data(self, limit: int) -> List[Dict[str, Any]]:
         """生成模拟涨幅数据"""

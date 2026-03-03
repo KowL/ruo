@@ -9,35 +9,102 @@ import time
 from typing import List, Dict, Optional
 from datetime import datetime, timezone
 
-from app.core.agent_browser import AgentBrowser
-
 logger = logging.getLogger(__name__)
 
 
 class XueqiuCrawler:
-    """雪球爬虫 - 使用 AgentBrowser (Playwright)"""
+    """雪球爬虫 - 优先使用 AgentBrowser (Playwright)，失败时使用 requests 备选"""
 
     def __init__(self, headless: bool = True):
         self.base_url = "https://xueqiu.com"
-        self.browser = AgentBrowser(headless=headless)
+        self.browser = None
+        self._headless = headless
         self._initialized = False
+        self._use_requests = False  # 是否使用备选方案
 
     def _ensure_initialized(self):
         """确保浏览器已初始化并访问过首页 (获取 Cookie)"""
-        if not self._initialized:
+        if self._initialized:
+            return
+            
+        # 尝试使用 Playwright
+        try:
+            from app.core.agent_browser import AgentBrowser
+            self.browser = AgentBrowser(headless=self._headless)
             logger.info("初始化雪球爬虫，访问首页...")
-            try:
-                self.browser.start()
-                self.browser.goto(self.base_url)
-                # 等待页面加载完成 (networkidle 通常意味着加载完毕)
-                # 增加超时时间到 15秒
-                self.browser.page.wait_for_load_state('networkidle', timeout=15000)
-                logger.info(f"雪球首页访问成功: {self.browser.page.title()}")
-                self._initialized = True
-            except Exception as e:
-                logger.error(f"初始化雪球爬虫失败: {e}")
-                # 尝试继续，也许部分加载也够了
-                self._initialized = True
+            self.browser.start()
+            self.browser.goto(self.base_url)
+            # 等待页面加载完成 (networkidle 通常意味着加载完毕)
+            # 增加超时时间到 15秒
+            self.browser.page.wait_for_load_state('networkidle', timeout=15000)
+            logger.info(f"雪球首页访问成功: {self.browser.page.title()}")
+            self._initialized = True
+        except ImportError as e:
+            logger.warning(f"Playwright 不可用，将使用 requests 备选: {e}")
+            self._use_requests = True
+            self._initialized = True
+        except Exception as e:
+            logger.warning(f"浏览器初始化失败，将使用 requests 备选: {e}")
+            self._use_requests = True
+            self._initialized = True
+
+    def _fetch_with_browser(self, url: str) -> Optional[Dict]:
+        """使用浏览器 fetch API 请求数据"""
+        if not self.browser or not self.browser._page:
+            return None
+            
+        result = self.browser.page.evaluate(f"""
+            async () => {{
+                try {{
+                    const response = await fetch('{url}', {{
+                        headers: {{
+                            'Referer': '{self.base_url}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }}
+                    }});
+                    
+                    if (!response.ok) {{
+                        const text = await response.text();
+                        return {{ error: true, status: response.status, text: text }};
+                    }}
+                    
+                    return await response.json();
+                }} catch (e) {{
+                    return {{ error: true, status: 0, text: e.toString() }};
+                }}
+            }}
+        """)
+        
+        if isinstance(result, dict) and result.get('error'):
+            logger.error(f"API 请求失败: Status {result.get('status')}, Error: {result.get('text')}")
+            return None
+            
+        return result
+        
+    def _fetch_with_requests(self, url: str) -> Optional[Dict]:
+        """使用 requests 请求数据"""
+        import requests
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Referer': self.base_url,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+        
+        try:
+            # 先访问首页获取 Cookie
+            session = requests.Session()
+            session.get(self.base_url, headers=headers, timeout=10)
+            
+            # 然后请求 API
+            response = session.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Requests 请求失败: {e}")
+            return None
 
     def fetch_hot_posts(self, limit: int = 20) -> List[Dict]:
         """
@@ -53,7 +120,6 @@ class XueqiuCrawler:
         
         try:
             # 雪球热门帖子 API (Updated to V3)
-            # V2 已废弃，V3 需要动态参数，但通过浏览器上下文 fetch 通常可以自动处理
             api_url = f"{self.base_url}/statuses/hot/listV3.json"
             params = {
                 'since_id': '-1',
@@ -67,37 +133,16 @@ class XueqiuCrawler:
             from urllib.parse import urlencode
             full_url = f"{api_url}?{urlencode(params)}"
             
-            # 使用 page.evaluate 在浏览器上下文中执行 fetch
-            # 这比 page.request.get 和 page.goto 更能模拟真实用户请求 (完全继承浏览器环境)
-            logger.info(f"在浏览器上下文中请求 API (V3): {full_url}")
+            # 根据模式选择请求方式
+            if self._use_requests:
+                logger.info(f"使用 requests 请求 API (V3): {full_url}")
+                data = self._fetch_with_requests(full_url)
+            else:
+                logger.info(f"在浏览器上下文中请求 API (V3): {full_url}")
+                data = self._fetch_with_browser(full_url)
             
-            result = self.browser.page.evaluate(f"""
-                async () => {{
-                    try {{
-                        const response = await fetch('{full_url}', {{
-                            headers: {{
-                                'Referer': '{self.base_url}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }}
-                        }});
-                        
-                        if (!response.ok) {{
-                            const text = await response.text();
-                            return {{ error: true, status: response.status, text: text }};
-                        }}
-                        
-                        return await response.json();
-                    }} catch (e) {{
-                        return {{ error: true, status: 0, text: e.toString() }};
-                    }}
-                }}
-            """)
-            
-            if isinstance(result, dict) and result.get('error'):
-                logger.error(f"API 请求失败: Status {result.get('status')}, Error: {result.get('text')}")
+            if not data:
                 return []
-                
-            data = result
             
             # API 可能会返回 items 列表
             items = data.get('items', [])

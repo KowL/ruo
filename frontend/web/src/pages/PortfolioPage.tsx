@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import AddPortfolioModal from '@/components/portfolio/AddPortfolioModal';
 import PortfolioDetailDrawer from '@/components/portfolio/PortfolioDetailDrawer';
+import AlertSettingModal from '@/components/alerts/AlertSettingModal';
 import Button from '@/components/common/Button';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
@@ -90,6 +91,7 @@ const PortfolioPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioWithStrategy | null>(null);
+  const [alertModalPortfolio, setAlertModalPortfolio] = useState<PortfolioWithStrategy | null>(null);
 
   const total_profit_loss = totalValue - totalCost;
 
@@ -251,6 +253,16 @@ const PortfolioPage: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setAlertModalPortfolio(portfolio);
+                        }}
+                        className="text-[var(--color-primary)] hover:opacity-80 transition-colors p-2 mr-2"
+                        title="预警设置"
+                      >
+                        🔔
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleDelete(portfolio.id);
                         }}
                         className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] transition-colors p-2"
@@ -288,6 +300,19 @@ const PortfolioPage: React.FC = () => {
           isOpen={!!selectedPortfolio}
           onClose={() => setSelectedPortfolio(null)}
           portfolio={selectedPortfolio}
+        />
+      )}
+
+      {/* 预警设置弹窗 */}
+      {alertModalPortfolio && (
+        <AlertSettingModal
+          isOpen={!!alertModalPortfolio}
+          onClose={() => setAlertModalPortfolio(null)}
+          portfolioId={alertModalPortfolio.id}
+          symbol={alertModalPortfolio.symbol}
+          name={alertModalPortfolio.name}
+          currentPrice={alertModalPortfolio.currentPrice}
+          costPrice={alertModalPortfolio.avgPrice}
         />
       )}
     </div>

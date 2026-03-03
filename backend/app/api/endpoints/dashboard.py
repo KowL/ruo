@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.models.news import News
 from app.models.portfolio import Portfolio
 from app.models.concept import Concept, ConceptStock
+from app.services.sentiment import get_sentiment_service
 
 router = APIRouter()
 
@@ -152,25 +153,32 @@ async def get_market_sentiment(
     db: Session = Depends(get_db)
 ):
     """
-    获取市场情绪指数
+    获取市场情绪指数（基于AI分析的新闻情感数据）
 
     **返回:**
-    - score: 情绪得分 (0-100)
+    - score: 情绪得分 (0-100, 50为中性)
     - label: 情绪标签
     - description: 情绪描述
+    - change: 较昨日变化
     - distribution: 新闻情绪分布
     """
     try:
-        # 获取最近24小时的新闻
-        recent_news = db.query(News).filter(
-            News.publish_time >= datetime.now() - timedelta(hours=24)
-        ).all()
-
-        sentiment = calculate_news_sentiment(recent_news)
+        service = get_sentiment_service(db)
+        sentiment = service.get_latest_sentiment()
 
         return {
             "status": "success",
-            "data": sentiment
+            "data": {
+                "score": sentiment['index'],
+                "label": sentiment['label'],
+                "description": f"今日市场情绪{sentiment['label']}，较昨日{'+' if sentiment['change'] > 0 else ''}{sentiment['change']}",
+                "change": sentiment['change'],
+                "distribution": {
+                    "positive": sentiment['bullish'],
+                    "neutral": sentiment['neutral'],
+                    "negative": sentiment['bearish']
+                }
+            }
         }
 
     except Exception as e:
@@ -192,11 +200,15 @@ async def get_dashboard_data(
     - recent_news_count: 最近新闻数量
     """
     try:
-        # 情绪数据
-        recent_news = db.query(News).filter(
-            News.publish_time >= datetime.now() - timedelta(hours=24)
-        ).all()
-        sentiment = calculate_news_sentiment(recent_news)
+        # 情绪数据（使用新的情绪指数服务）
+        service = get_sentiment_service(db)
+        sentiment_data = service.get_latest_sentiment()
+        sentiment = {
+            "score": sentiment_data['index'],
+            "label": sentiment_data['label'],
+            "description": f"今日市场情绪{sentiment_data['label']}，较昨日{'+' if sentiment_data['change'] > 0 else ''}{sentiment_data['change']}",
+            "change": sentiment_data['change']
+        }
 
         # 市场广度
         market_breadth = get_market_breadth()
@@ -220,7 +232,7 @@ async def get_dashboard_data(
                 "sector_rotation": sector_rotation,
                 "hot_concepts": hot_concepts,
                 "stats": {
-                    "recent_news_count": len(recent_news),
+                    "recent_news_count": sentiment_data['news_count'],
                     "portfolio_count": portfolio_count,
                     "update_time": datetime.now().isoformat()
                 }

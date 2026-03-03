@@ -22,6 +22,9 @@ celery_app = Celery(
         'app.tasks.news_fetch_tasks',  # 新闻抓取任务
         'app.tasks.price_tasks',       # 价格更新任务
         'app.tasks.stock_tasks',       # 股票同步任务
+        'app.tasks.alert_tasks',       # 预警检查任务
+        'app.tasks.kline_tasks',       # K线数据任务
+        'app.tasks.websocket_tasks',   # WebSocket推送任务
     ]
 )
 
@@ -43,6 +46,23 @@ celery_app.conf.update(
 
     # 定时任务 - 根据 DESIGN_NEWS.md 设计
     beat_schedule={
+        # === K线数据更新任务 ===
+        'update-portfolio-kline-daily': {
+            'task': 'app.tasks.kline_tasks.update_portfolio_kline',
+            'schedule': crontab(hour=20, minute=0),  # 每晚 8:00
+            'options': {
+                'expires': 3600,
+            }
+        },
+        'update-hot-stocks-kline-daily': {
+            'task': 'app.tasks.kline_tasks.update_hot_stocks_kline',
+            'schedule': crontab(hour=20, minute=30),  # 每晚 8:30
+            'kwargs': {'top_n': 100},
+            'options': {
+                'expires': 3600,
+            }
+        },
+
         # === 股票同步任务 ===
         'sync-stocks-daily': {
             'task': 'app.tasks.stock_tasks.sync_stocks_task',
@@ -58,6 +78,24 @@ celery_app.conf.update(
             'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
             'options': {
                 'expires': 60,
+            }
+        },
+
+        # === 预警检查任务 ===
+        'check-alerts-every-5-minutes': {
+            'task': 'app.tasks.alert_tasks.check_alerts_task',
+            'schedule': 300.0,  # 每 5 分钟
+            'options': {
+                'expires': 300,
+            }
+        },
+        
+        # 清理旧预警记录
+        'clean-old-alerts-daily': {
+            'task': 'app.tasks.alert_tasks.clean_old_alert_logs',
+            'schedule': crontab(hour=3, minute=0),  # 每天凌晨 3:00
+            'options': {
+                'expires': 3600,
             }
         },
 

@@ -46,7 +46,7 @@ export const getTimeShareData = async (symbol: string): Promise<TimeShareData[]>
 // --- Eastmoney Direct API Helpers ---
 
 // JSONP Helper
-const jsonp = (url: string, callbackName: string): Promise<any> => {
+const jsonp = (url: string, _callbackName: string): Promise<any> => {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     const name = `jsonp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;

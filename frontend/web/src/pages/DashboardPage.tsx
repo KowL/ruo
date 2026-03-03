@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { getRawNews } from '@/api/news';
-import { getDashboardData, SentimentData, MarketBreadth, DashboardData } from '@/api/dashboard';
+import { getDashboardData, DashboardData } from '@/api/dashboard';
+import { getOpeningReport, DailyReport } from '@/api/sentiment';
 import { News } from '@/types';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import ReactECharts from 'echarts-for-react';
@@ -12,7 +13,6 @@ const DashboardPage: React.FC = () => {
 
   // Dashboard Data
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
 
   useEffect(() => {
     fetchPortfolios();
@@ -28,13 +28,10 @@ const DashboardPage: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      setDashboardLoading(true);
       const data = await getDashboardData();
       setDashboardData(data);
     } catch (error) {
       console.error('获取仪表盘数据失败:', error);
-    } finally {
-      setDashboardLoading(false);
     }
   };
 
@@ -44,8 +41,8 @@ const DashboardPage: React.FC = () => {
   const sentimentLabel = sentiment?.label || '中性';
   const sentimentDescription = sentiment?.description || '分歧较大，建议观望';
 
-  // Market Breadth Data
-  const marketBreadth = dashboardData?.market_breadth;
+  // Market Breadth Data (保留给未来使用)
+  // const marketBreadth = dashboardData?.market_breadth;
 
   // Top Movers (Sort by absolute change percent)
   const portfolioMovements = [...(portfolios || [])]
@@ -63,6 +60,10 @@ const DashboardPage: React.FC = () => {
   const [newsLoading, setNewsLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
 
+  // Daily Report Data
+  const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(true);
+
   useEffect(() => {
     const fetchNews = async (isBackground = false) => {
       try {
@@ -76,7 +77,21 @@ const DashboardPage: React.FC = () => {
       }
     };
 
+    const fetchDailyReport = async () => {
+      try {
+        setReportLoading(true);
+        const data = await getOpeningReport();
+        setDailyReport(data);
+      } catch (error) {
+        console.error('获取每日简报失败:', error);
+      } finally {
+        setReportLoading(false);
+      }
+    };
+
     fetchNews();
+    fetchDailyReport();
+    
     const intervalId = setInterval(() => fetchNews(true), 30000); // 30s refresh for news
     return () => clearInterval(intervalId);
   }, []);
@@ -231,7 +246,57 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 第二行：核心动态 */}
+      {/* 第二行：每日简报 */}
+      <div className="glass-card p-6 hover-lift mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-base font-medium text-white flex items-center">
+            <span className="mr-2 text-lg">📰</span> 每日简报
+          </h3>
+          <div className="flex items-center space-x-2">
+            {reportLoading && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>}
+            <span className="text-xs text-[var(--color-text-muted)]">{dailyReport?.date || ''}</span>
+          </div>
+        </div>
+
+        {reportLoading ? (
+          <div className="text-center py-6 text-[var(--color-text-muted)]">加载简报...</div>
+        ) : dailyReport ? (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-4 mb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold text-white">{dailyReport.sentiment_index}</span>
+                <span className="text-sm text-[var(--color-text-muted)]">/ 100</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={clsx(
+                  "px-2 py-0.5 rounded text-xs font-medium",
+                  dailyReport.sentiment_index >= 60 ? "bg-green-500/20 text-green-400" :
+                  dailyReport.sentiment_index >= 45 ? "bg-yellow-500/20 text-yellow-400" :
+                  "bg-red-500/20 text-red-400"
+                )}>
+                  {dailyReport.sentiment_label}
+                </span>
+                {dailyReport.key_factors?.length > 0 && (
+                  <div className="flex space-x-1">
+                    {dailyReport.key_factors.slice(0, 3).map((factor, idx) => (
+                      <span key={idx} className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] border border-white/5">
+                        {factor}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+              {dailyReport.report}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 text-[var(--color-text-muted)]">暂无简报数据</div>
+        )}
+      </div>
+
+      {/* 第三行：核心动态 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 持仓异动卡片 */}
         <div className="glass-card p-6 hover-lift">
