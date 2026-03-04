@@ -277,100 +277,78 @@ class MarketDataService:
         limit: int = 60
     ) -> List[Dict]:
         """
-        获取 K 线数据（优先从数据库读取，不足时从AKShare补充）
+        获取行情数据（优先从数据库读取，不足时从 akshare 补充并缓存）
 
         Args:
             symbol: 股票代码
             period: 周期（daily/weekly/monthly）
-            limit: 返回数量
+            limit: 返回条数
 
         Returns:
-            K 线数据列表
+            行情数据列表（与原 K线接口格式相同）
         """
         try:
-            from app.services.kline_service import get_kline_service
-            
-            kline_service = get_kline_service()
-            
+            from app.services.market_price_service import get_market_price_service
+
+            price_service = get_market_price_service()
+
             # 1. 优先从数据库读取
-            db_data = kline_service.get_kline_data(symbol, period, limit)
-            
+            db_data = price_service.get_price_data(symbol, period, limit)
+
             if len(db_data) >= limit:
-                # 数据库数据充足，直接返回
-                logger.debug(f"从数据库返回K线数据: {symbol} {period}, 共{len(db_data)}条")
+                logger.debug(f"从数据库返回行情数据: {symbol} {period}, {len(db_data)} 条")
                 return db_data
-            
-            # 2. 数据库数据不足，从AKShare拉取补充
-            logger.info(f"数据库K线数据不足，从AKShare拉取: {symbol} {period}")
-            
-            # 计算需要的日期范围
+
+            # 2. 数据不足，从 akshare 补充
+            logger.info(f"数据库行情数据不足，从 akshare 拉取: {symbol} {period}")
             days_map = {'daily': 2, 'weekly': 10, 'monthly': 40}
             delta_days = limit * days_map.get(period, 2) + 30
             start_date = (datetime.now() - timedelta(days=delta_days)).strftime('%Y%m%d')
             end_date = datetime.now().strftime('%Y%m%d')
-            
-            # 从AKShare获取数据
-            if period == 'daily':
-                df = ak.stock_zh_a_hist(
-                    symbol=symbol, period='daily',
-                    start_date=start_date, end_date=end_date, adjust='qfq'
-                )
-            elif period == 'weekly':
-                df = ak.stock_zh_a_hist(
-                    symbol=symbol, period='weekly',
-                    start_date=start_date, end_date=end_date, adjust='qfq'
-                )
-            elif period == 'monthly':
-                df = ak.stock_zh_a_hist(
-                    symbol=symbol, period='monthly',
-                    start_date=start_date, end_date=end_date, adjust='qfq'
-                )
-            else:
-                raise ValueError(f"不支持的周期: {period}")
-            
-            if df.empty:
-                logger.warning(f"未找到K线数据: {symbol} {period}")
-                return db_data  # 返回数据库中已有的数据
-            
-            # 转换为字典列表
+
+            df = ak.stock_zh_a_hist(
+                symbol=symbol, period=period,
+                start_date=start_date, end_date=end_date, adjust='qfq'
+            )
+
+            if df is None or df.empty:
+                logger.warning(f"未找到行情数据: {symbol} {period}")
+                return db_data
+
             akshare_data = []
             for _, row in df.iterrows():
                 akshare_data.append({
-                    'date': row['日期'].strftime('%Y-%m-%d'),
+                    'date': row['日期'].strftime('%Y-%m-%d') if hasattr(row['日期'], 'strftime') else str(row['日期']),
                     'open': float(row['开盘']),
                     'high': float(row['最高']),
                     'low': float(row['最低']),
                     'close': float(row['收盘']),
                     'volume': float(row['成交量']),
-                    'amount': float(row['成交额']) if '成交额' in row else 0,
-                    'change': float(row['涨跌额']) if '涨跌额' in row else 0,
-                    'changePct': float(row['涨跌幅']) if '涨跌幅' in row else 0,
-                    'turnover': float(row['换手率']) if '换手率' in row else 0,
+                    'amount': float(row['成交额']) if '成交额' in row.index else 0.0,
+                    'change': float(row['涨跌额']) if '涨跌额' in row.index else 0.0,
+                    'changePct': float(row['涨跌幅']) if '涨跌幅' in row.index else 0.0,
+                    'turnover': float(row['换手率']) if '换手率' in row.index else 0.0,
                 })
-            
+
             # 3. 保存到数据库
-            saved_count = kline_service.save_kline_data(symbol, period, akshare_data)
-            
-            if saved_count > 0:
-                # 计算均线
-                kline_service.calculate_mas(symbol, period)
-            
-            # 4. 再次从数据库读取（确保数据完整且有序）
-            final_data = kline_service.get_kline_data(symbol, period, limit)
-            
-            logger.info(f"K线数据已更新: {symbol} {period}, 返回{len(final_data)}条")
-            return final_data
-            
+            saved = price_service.save_price_data(symbol, period, akshare_data)
+            if saved > 0:
+                price_service.calculate_mas(symbol, period)
+
+            # 4. 再次从数据库读取（确保有序且有均线）
+            final = price_service.get_price_data(symbol, period, limit)
+            logger.info(f"行情数据已更新: {symbol} {period}, 返回 {len(final)} 条")
+            return final
+
         except ValueError as e:
             logger.error(f"参数错误: {e}")
             raise
         except Exception as e:
-            logger.error(f"获取K线数据失败: {symbol}, 错误: {e}")
-            # 出错时尝试返回数据库中的数据
+            logger.error(f"获取行情数据失败: {symbol}, 错误: {e}")
             try:
-                from app.services.kline_service import get_kline_service
-                return get_kline_service().get_kline_data(symbol, period, limit)
-            except:
+                from app.services.market_price_service import get_market_price_service
+                return get_market_price_service().get_price_data(symbol, period, limit)
+            except Exception:
                 raise
 
     @retry_on_error(max_retries=3, delay=1.0)

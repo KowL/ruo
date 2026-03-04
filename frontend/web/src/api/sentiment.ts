@@ -1,17 +1,19 @@
 import client from './client';
 
-// 情绪指数数据
+// 情绪指数数据（基于市场行情量化，无新闻依赖）
 export interface SentimentIndex {
   date: string;
-  index: number;        // 0-100，50为中性
-  change: number;       // 较昨日变化
-  label: string;        // 情绪标签
-  bullish: number;      // 利好数量
-  bearish: number;      // 利空数量
-  neutral: number;      // 中性数量
-  avg_score: number;    // 平均评分 1-5
-  news_count: number;   // 新闻总数
-  top_factors: string[]; // 主要影响因素
+  index: number;           // 0-100，50为中性
+  change: number;          // 较昨日变化
+  label: string;           // 情绪标签
+  advance_count: number;   // 持仓上涨股数
+  decline_count: number;   // 持仓下跌股数
+  flat_count: number;      // 持仓平盘股数
+  avg_change_pct: number;  // 持仓平均涨跌幅 (%)
+  avg_turnover: number;    // 持仓平均换手率 (%)
+  volume_ratio: number;    // 成交额相对近5日均值倍数
+  market_mood: '活跃' | '正常' | '低迷'; // 市场活跃度
+  top_factors: string[];   // 主要特征描述
 }
 
 // 历史情绪数据
@@ -19,7 +21,6 @@ export interface SentimentHistoryItem {
   date: string;
   index: number;
   label: string;
-  news_count: number;
 }
 
 // 每日简报

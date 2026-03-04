@@ -82,7 +82,7 @@ Ruo 是一款 AI 智能投顾副驾系统，采用前后端分离架构：
 - **示例端点**:
   - `GET /api/v1/portfolio` - 获取持仓列表
   - `POST /api/v1/analysis/limit-up` - 触发涨停股分析
-  - `POST /api/v1/analysis/kline` - 触发K线分析
+  - `POST /api/v1/analysis/kline` - 触发行情分析
   - `GET /api/v1/analysis/report` - 获取分析报告
 
 #### 爬虫与服务层 (`/crawlers` & `/services`)

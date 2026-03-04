@@ -23,7 +23,7 @@ celery_app = Celery(
         'app.tasks.price_tasks',       # 价格更新任务
         'app.tasks.stock_tasks',       # 股票同步任务
         'app.tasks.alert_tasks',       # 预警检查任务
-        'app.tasks.kline_tasks',       # K线数据任务
+        'app.tasks.market_price_tasks', # 行情数据任务（新）
         'app.tasks.websocket_tasks',   # WebSocket推送任务
     ]
 )
@@ -46,21 +46,30 @@ celery_app.conf.update(
 
     # 定时任务 - 根据 DESIGN_NEWS.md 设计
     beat_schedule={
-        # === K线数据更新任务 ===
-        'update-portfolio-kline-daily': {
-            'task': 'app.tasks.kline_tasks.update_portfolio_kline',
-            'schedule': crontab(hour=20, minute=0),  # 每晚 8:00
-            'options': {
-                'expires': 3600,
-            }
+        # === 行情数据更新任务（日线/周线/月线独立表）===
+        # 日线：每天 17:00
+        'sync-daily-price': {
+            'task': 'app.tasks.market_price_tasks.sync_daily_price_task',
+            'schedule': crontab(hour=17, minute=0),
+            'options': {'expires': 3600},
         },
-        'update-hot-stocks-kline-daily': {
-            'task': 'app.tasks.kline_tasks.update_hot_stocks_kline',
-            'schedule': crontab(hour=20, minute=30),  # 每晚 8:30
-            'kwargs': {'top_n': 100},
-            'options': {
-                'expires': 3600,
-            }
+        # 周线：每天 17:00
+        'sync-weekly-price': {
+            'task': 'app.tasks.market_price_tasks.sync_weekly_price_task',
+            'schedule': crontab(hour=17, minute=0),
+            'options': {'expires': 3600},
+        },
+        # 月线：每天 17:00
+        'sync-monthly-price': {
+            'task': 'app.tasks.market_price_tasks.sync_monthly_price_task',
+            'schedule': crontab(hour=17, minute=0),
+            'options': {'expires': 3600},
+        },
+        # 清理超10年旧数据：每月1日 03:00
+        'cleanup-old-price-monthly': {
+            'task': 'app.tasks.market_price_tasks.cleanup_old_price_task',
+            'schedule': crontab(hour=3, minute=0, day_of_month=1),
+            'options': {'expires': 3600},
         },
 
         # === 股票同步任务 ===

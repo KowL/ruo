@@ -121,22 +121,33 @@ class DailyReportService:
             return "市场情绪低迷，建议控制仓位，等待企稳信号。"
     
     def _extract_key_points(self, sentiment: Dict) -> List[str]:
-        """提取关键要点"""
+        """提取关键要点（基于市场行情数据）"""
         points = []
-        bd = sentiment.get('breakdown', {})
-        
-        if bd.get('positive', 0) > bd.get('negative', 0):
-            points.append(f"利好新闻占主导({bd.get('positive')}条 > {bd.get('negative')}条)")
-        elif bd.get('negative', 0) > bd.get('positive', 0):
-            points.append(f"利空新闻较多({bd.get('negative')}条 > {bd.get('positive')}条)")
+        adv = sentiment.get('advance_count', 0)
+        dec = sentiment.get('decline_count', 0)
+        avg_chg = sentiment.get('avg_change_pct', 0)
+        mood = sentiment.get('market_mood', '正常')
+
+        if adv > dec:
+            points.append(f"持仓上涨居多（{adv}涨 / {dec}跌）")
+        elif dec > adv:
+            points.append(f"持仓下跌居多（{adv}涨 / {dec}跌）")
         else:
-            points.append("利好利空消息均衡")
-        
+            points.append(f"持仓涨跌均衡（{adv}涨 / {dec}跌）")
+
+        if avg_chg > 0.5:
+            points.append(f"持仓平均涨幅{avg_chg:.2f}%")
+        elif avg_chg < -0.5:
+            points.append(f"持仓平均跌幅{abs(avg_chg):.2f}%")
+
+        if mood != '正常':
+            points.append(f"市场交投{mood}")
+
         if sentiment.get('trend') == 'up':
             points.append("情绪指数呈上升趋势")
         elif sentiment.get('trend') == 'down':
             points.append("情绪指数呈下降趋势")
-        
+
         return points
     
     def _generate_outlook(self, sentiment: Dict, fund_flow: List) -> str:

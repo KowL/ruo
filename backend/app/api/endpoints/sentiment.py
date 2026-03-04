@@ -17,17 +17,21 @@ async def get_latest_sentiment(
     db: Session = Depends(get_db)
 ):
     """
-    获取今日市场情绪指数
-    
+    获取今日市场情绪指数（基于市场行情量化，无新闻依赖）
+
     **返回:**
     - date: 日期
     - index: 情绪指数 (0-100, 50为中性)
     - change: 较昨日变化
     - label: 情绪标签 (极度恐慌/恐慌/谨慎/中性/谨慎乐观/乐观/极度乐观)
-    - bullish/bearish/neutral: 利好/利空/中性新闻数量
-    - avg_score: 平均情感评分 (1-5)
-    - news_count: 新闻总数
-    - top_factors: 主要影响因素
+    - advance_count: 持仓上涨股数
+    - decline_count: 持仓下跌股数
+    - flat_count: 持仓平盘股数
+    - avg_change_pct: 持仓平均涨跌幅 (%)
+    - avg_turnover: 持仓平均换手率 (%)
+    - volume_ratio: 成交额相对近5日均值倍数
+    - market_mood: 市场活跃度 (活跃/正常/低迷)
+    - top_factors: 主要特征描述
     """
     try:
         service = get_sentiment_service(db)
@@ -47,12 +51,12 @@ async def get_sentiment_history(
 ):
     """
     获取历史情绪指数走势
-    
+
     **参数:**
     - days: 天数 (1-30, 默认7)
-    
+
     **返回:**
-    - 日期列表，包含每日情绪指数和标签
+    - 日期列表，包含每日情绪指数和标签（仅有 KLine 数据的交易日才返回）
     """
     try:
         service = get_sentiment_service(db)
