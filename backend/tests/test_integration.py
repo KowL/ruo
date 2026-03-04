@@ -17,6 +17,7 @@ class TestPortfolioAPI:
         """测试添加持仓"""
         payload = {
             "symbol": "000001",
+            "name": "平安银行",
             "costPrice": 10.5,
             "quantity": 1000,
             "strategyTag": "趋势"
@@ -31,9 +32,28 @@ class TestPortfolioAPI:
         assert data["data"]["quantity"] == 1000
         assert "profitLoss" in data["data"]
 
+    def test_add_portfolio_with_strategy(self):
+        """测试添加带有 strategyId 的持仓"""
+        payload = {
+            "symbol": "000002",
+            "name": "万科A",
+            "costPrice": 15.0,
+            "quantity": 500,
+            "strategyTag": "低吸",
+            "strategyId": 1
+        }
+
+        response = client.post("/api/v1/portfolio/add", json=payload)
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["data"]["symbol"] == "000002"
+        assert data["data"]["strategyId"] == 1
+
     def test_portfolio_list(self):
         """测试获取持仓列表"""
-        response = client.get("/api/v1/portfolio/")
+        response = client.get("/api/v1/portfolio/list")
         assert response.status_code == 200
 
         data = response.json()
@@ -46,6 +66,7 @@ class TestPortfolioAPI:
         # 先添加一个持仓
         payload = {
             "symbol": "000001",
+            "name": "平安银行",
             "costPrice": 10.5,
             "quantity": 1000,
             "strategyTag": "趋势"
@@ -60,6 +81,31 @@ class TestPortfolioAPI:
         data = response.json()
         assert data["status"] == "success"
         assert data["data"]["id"] == portfolio_id
+
+    def test_update_portfolio_strategy(self):
+        """测试更新持仓的 strategyId"""
+        # 添加测试持仓
+        payload = {
+            "symbol": "000858",
+            "name": "五粮液",
+            "costPrice": 150.0,
+            "quantity": 100
+        }
+        add_response = client.post("/api/v1/portfolio/add", json=payload)
+        portfolio_id = add_response.json()["data"]["id"]
+
+        # 更新策略
+        update_payload = {
+            "strategyId": 2,
+            "strategyTag": "白马股"
+        }
+        response = client.put(f"/api/v1/portfolio/{portfolio_id}", json=update_payload)
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["data"]["strategyId"] == 2
+        assert data["data"]["strategyTag"] == "白马股"
 
 
 class TestStockAPI:

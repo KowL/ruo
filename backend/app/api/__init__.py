@@ -62,13 +62,17 @@ api_router.include_router(
     tags=["新闻情报"]
 )
 
-from .endpoints import analysis
-# 市场分析 API
-api_router.include_router(
-    analysis.router,
-    prefix="/analysis",
-    tags=["市场分析"]
-)
+try:
+    from .endpoints import analysis
+    # 市场分析 API
+    api_router.include_router(
+        analysis.router,
+        prefix="/analysis",
+        tags=["市场分析"]
+    )
+except ImportError as e:
+    import logging
+    logging.warning(f"Failed to import analysis module: {e}")
 
 # 概念管理 API
 api_router.include_router(

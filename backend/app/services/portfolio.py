@@ -33,6 +33,7 @@ class PortfolioService:
         quantity: float,
         market: Optional[str] = None,
         strategy_tag: Optional[str] = None,
+        strategy_id: Optional[int] = None,
         user_id: int = 1,
         notes: Optional[str] = None
     ) -> Dict:
@@ -46,6 +47,7 @@ class PortfolioService:
             quantity: 持仓数量
             market: 市场名称
             strategy_tag: 策略标签（打板/低吸/趋势）
+            strategy_id: 策略ID
             user_id: 用户ID（默认1）
             notes: 备注
 
@@ -93,6 +95,7 @@ class PortfolioService:
                 cost_price=cost_price,
                 quantity=quantity,
                 strategy_tag=strategy_tag,
+                strategy_id=strategy_id,
                 notes=notes,
                 is_active=1,
                 current_price=initial_current_price # 使用实时价格
@@ -169,6 +172,8 @@ class PortfolioService:
                     "profitLossRatio": round(pl_data['profitLossRatio'], 4),
                     "changePct": pl_data['changePct'],
                     "strategyTag": portfolio.strategy_tag,
+                    "strategyId": portfolio.strategy_id,
+                    "strategyName": portfolio.strategy.name if portfolio.strategy else None,
                     "notes": portfolio.notes,
                     "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
                     "hasNewNews": False
@@ -222,6 +227,7 @@ class PortfolioService:
         cost_price: Optional[float] = None,
         quantity: Optional[float] = None,
         strategy_tag: Optional[str] = None,
+        strategy_id: Optional[int] = None,
         notes: Optional[str] = None
     ) -> Dict:
         """
@@ -232,6 +238,7 @@ class PortfolioService:
             cost_price: 新的成本价
             quantity: 新的持仓数量
             strategy_tag: 新的策略标签
+            strategy_id: 新的策略ID
             notes: 新的备注
 
         Returns:
@@ -253,6 +260,8 @@ class PortfolioService:
                 portfolio.quantity = quantity
             if strategy_tag is not None:
                 portfolio.strategy_tag = strategy_tag
+            if strategy_id is not None:
+                portfolio.strategy_id = strategy_id
             if notes is not None:
                 portfolio.notes = notes
 
@@ -391,6 +400,8 @@ class PortfolioService:
             "profitLossRatio": 0.0,
             "changePct": 0.0,
             "strategyTag": portfolio.strategy_tag,
+            "strategyId": portfolio.strategy_id,
+            "strategyName": portfolio.strategy.name if portfolio.strategy else None,
             "notes": portfolio.notes,
             "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
             "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
@@ -421,6 +432,8 @@ class PortfolioService:
             "profitLossRatio": round(profit_loss_data['profitLossRatio'], 4),
             "changePct": profit_loss_data['changePct'],
             "strategyTag": portfolio.strategy_tag,
+            "strategyId": portfolio.strategy_id,
+            "strategyName": portfolio.strategy.name if portfolio.strategy else None,
             "notes": portfolio.notes,
             "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
             "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None

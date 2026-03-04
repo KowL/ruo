@@ -28,6 +28,7 @@ class PortfolioAddRequest(BaseModel):
     costPrice: float = Field(..., description="成本价", gt=0)
     quantity: float = Field(..., description="持仓数量", gt=0)
     strategyTag: Optional[str] = Field(None, description="策略标签：打板/低吸/趋势")
+    strategyId: Optional[int] = Field(None, description="策略ID")
     notes: Optional[str] = Field(None, description="备注")
 
     class Config:
@@ -49,6 +50,7 @@ class PortfolioUpdateRequest(BaseModel):
     costPrice: Optional[float] = Field(None, description="成本价", gt=0)
     quantity: Optional[float] = Field(None, description="持仓数量", gt=0)
     strategyTag: Optional[str] = Field(None, description="策略标签")
+    strategyId: Optional[int] = Field(None, description="策略ID")
     notes: Optional[str] = Field(None, description="备注")
 
     class Config:
@@ -83,6 +85,7 @@ async def add_portfolio(
     - cost_price: 成本价
     - quantity: 持仓数量
     - strategy_tag: 策略标签（打板/低吸/趋势）
+    - strategy_id: 策略ID（可选）
     - notes: 备注（可选）
 
     **返回：**
@@ -97,6 +100,7 @@ async def add_portfolio(
             cost_price=request.costPrice,
             quantity=request.quantity,
             strategy_tag=request.strategyTag,
+            strategy_id=request.strategyId,
             user_id=user_id,
             notes=request.notes
         )
@@ -189,6 +193,7 @@ async def update_portfolio(
     - cost_price: 新的成本价（可选）
     - quantity: 新的持仓数量（可选）
     - strategy_tag: 新的策略标签（可选）
+    - strategy_id: 新的策略ID（可选）
     - notes: 新的备注（可选）
 
     **返回：**
@@ -201,6 +206,7 @@ async def update_portfolio(
             cost_price=request.costPrice,
             quantity=request.quantity,
             strategy_tag=request.strategyTag,
+            strategy_id=request.strategyId,
             notes=request.notes
         )
 

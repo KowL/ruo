@@ -20,6 +20,10 @@ class Portfolio(Base):
     cost_price = Column(Float, nullable=False)  # 成本价
     quantity = Column(Float, nullable=False)  # 持仓数量（股数）
     strategy_tag = Column(String(20))  # 策略标签：打板/低吸/趋势
+    
+    # 关联策略（可选）
+    strategy_id = Column(Integer, ForeignKey("strategies.id"), nullable=True)
+    strategy = relationship("Strategy")
 
     # 计算字段（可以在查询时计算）
     # current_price - 缓存的实时价格（由后台任务更新）
