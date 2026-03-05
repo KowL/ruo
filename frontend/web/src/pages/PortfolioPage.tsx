@@ -7,7 +7,7 @@ import AlertSettingModal from '@/components/alerts/AlertSettingModal';
 import Button from '@/components/common/Button';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
-import { formatMoney, formatPercent } from '@/utils/format';
+import { formatMoney, formatPercent, getProfitColor, getProfitBgColor } from '@/utils/format';
 import clsx from 'clsx';
 
 // 策略类型
@@ -149,14 +149,7 @@ const PortfolioPage: React.FC = () => {
     navigate(`/chart?symbol=${portfolio.symbol}`);
   };
 
-  const getProfitColor = (percent: number) => {
-    // A-Share Default: Red Up, Green Down
-    return percent >= 0 ? 'text-[var(--color-profit-up)]' : 'text-[var(--color-loss-up)]';
-  };
 
-  const getProfitBgColor = (percent: number) => {
-    return percent >= 0 ? 'bg-[var(--color-profit-up)]/20' : 'bg-[var(--color-loss-up)]/20';
-  };
 
   if (loading && portfolios.length === 0) {
     return <Loading text="加载持仓中..." />;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatMoney, formatPercent } from '@/utils/format';
+import { formatMoney, formatPercent, getProfitColor, getProfitBgColor } from '@/utils/format';
 import clsx from 'clsx';
 
 interface PortfolioDetailDrawerProps {
@@ -67,13 +67,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
     }
   }, [portfolio, simulationPrice, totalAssets]);
 
-  const getProfitColor = (percent: number) => {
-    return percent >= 0 ? 'text-[var(--color-profit-up)]' : 'text-[var(--color-loss-up)]';
-  };
 
-  const getProfitBgColor = (percent: number) => {
-    return percent >= 0 ? 'bg-[var(--color-profit-up)]/20' : 'bg-[var(--color-loss-up)]/20';
-  };
 
   if (!isOpen || !portfolio) return null;
 

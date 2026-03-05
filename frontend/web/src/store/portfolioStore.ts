@@ -29,9 +29,7 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   fetchPortfolios: async () => {
     set({ loading: true, error: null });
     try {
-      console.log('正在获取持仓列表...');
       const data: PortfolioListResponse = await getPortfolioList();
-      console.log('获取成功:', data);
       set({
         portfolios: data.items,
         totalValue: data.totalValue,
@@ -41,7 +39,6 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         loading: false,
       });
     } catch (error: any) {
-      console.error('获取持仓列表失败:', error);
       set({ error: error.message, loading: false });
     }
   },
@@ -49,7 +46,6 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   addNewPortfolio: async (data) => {
     set({ loading: true, error: null });
     try {
-      console.log('正在添加持仓...', data);
       await addPortfolio({
         symbol: data.symbol,
         name: data.name,
@@ -58,7 +54,6 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         quantity: data.quantity,
         strategyTag: data.strategyTag,
       });
-      console.log('添加成功，正在刷新列表...');
       // 重新获取列表
       const portfolioData = await getPortfolioList();
       set({
@@ -69,9 +64,7 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
         totalProfitLossRatio: portfolioData.totalProfitLossRatio,
         loading: false,
       });
-      console.log('列表刷新成功');
     } catch (error: any) {
-      console.error('添加持仓失败:', error);
       set({ error: error.message, loading: false });
       throw error;
     }

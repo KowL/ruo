@@ -5,6 +5,7 @@ import { getDashboardData, DashboardData } from '@/api/dashboard';
 import { getOpeningReport, DailyReport } from '@/api/sentiment';
 import { News } from '@/types';
 import { usePortfolioStore } from '@/store/portfolioStore';
+import { getProfitColor, getProfitBgColor } from '@/utils/format';
 import ReactECharts from 'echarts-for-react';
 
 const DashboardPage: React.FC = () => {
@@ -91,7 +92,7 @@ const DashboardPage: React.FC = () => {
 
     fetchNews();
     fetchDailyReport();
-    
+
     const intervalId = setInterval(() => fetchNews(true), 30000); // 30s refresh for news
     return () => clearInterval(intervalId);
   }, []);
@@ -112,15 +113,7 @@ const DashboardPage: React.FC = () => {
     { type: 'info', message: '现金比例偏低，建议保留10%应急资金' },
   ];
 
-  const getProfitColor = (percent: number) => {
-    // CN Market: Red up, Green down
-    return percent >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]';
-  };
 
-  const getProfitBgColor = (percent: number) => {
-    // CN Market: Red up, Green down (with opacity)
-    return percent >= 0 ? 'bg-[rgba(255,59,48,0.15)]' : 'bg-[rgba(52,199,89,0.15)]';
-  };
 
   // ECharts Option for Sentiment Gauge
   const getGaugeOption = (score: number) => ({
@@ -271,8 +264,8 @@ const DashboardPage: React.FC = () => {
                 <span className={clsx(
                   "px-2 py-0.5 rounded text-xs font-medium",
                   dailyReport.sentiment_index >= 60 ? "bg-green-500/20 text-green-400" :
-                  dailyReport.sentiment_index >= 45 ? "bg-yellow-500/20 text-yellow-400" :
-                  "bg-red-500/20 text-red-400"
+                    dailyReport.sentiment_index >= 45 ? "bg-yellow-500/20 text-yellow-400" :
+                      "bg-red-500/20 text-red-400"
                 )}>
                   {dailyReport.sentiment_label}
                 </span>

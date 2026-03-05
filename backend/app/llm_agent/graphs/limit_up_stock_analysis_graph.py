@@ -25,7 +25,7 @@ from app.llm_agent.agents import (
     node_day_trading_coach,
     node_finalize_report
 )
-from app.core.llm_factory import get_shared_llm
+from app.core.llm_factory import LLMFactory
 
 
 # =======================
@@ -49,7 +49,7 @@ def create_research_graph(llm=None):
         编译后的工作流图
     """
     if llm is None:
-        llm = get_shared_llm()
+        llm = LLMFactory.get_instance()
 
     workflow = StateGraph[ResearchState, None, ResearchState, ResearchState](ResearchState)
 

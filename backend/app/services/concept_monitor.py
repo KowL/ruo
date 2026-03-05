@@ -12,7 +12,8 @@ import concurrent.futures
 from typing import List, Dict, Any, Callable
 from datetime import datetime, timedelta
 import random
-import akshare as ak
+
+from app.utils.stock_tool import stock_tool
 
 
 def timeout_call(func: Callable, timeout_seconds: int = 5, default_value: Any = None):
@@ -63,14 +64,16 @@ class ConceptMonitorService:
     def get_concept_movement_ranking(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
         获取概念涨幅排行
-        使用 AkShare 获取板块数据
+        使用 stock_tool 获取板块数据
         """
         cached = self._get_cached_data('movement_ranking')
         if cached:
             return cached[:limit]
 
         def _fetch():
-            df = ak.stock_board_industry_name_em()
+            df = stock_tool.get_board_industry_name()
+            if df is None or df.empty:
+               return None
             result = []
             for _, row in df.head(limit).iterrows():
                 result.append({
@@ -103,7 +106,9 @@ class ConceptMonitorService:
             return cached[:limit]
 
         def _fetch():
-            df = ak.stock_sector_fund_flow_rank()
+            df = stock_tool.get_sector_fund_flow_rank()
+            if df is None or df.empty:
+                return None
             result = []
             for _, row in df.head(limit).iterrows():
                 result.append({
@@ -131,7 +136,9 @@ class ConceptMonitorService:
         """
         def _fetch_limit_up_data():
             """在独立线程中获取数据"""
-            df = ak.stock_zt_pool_em(date=datetime.now().strftime("%Y%m%d"))
+            df = stock_tool.get_limit_up_pool(date=datetime.now().strftime("%Y%m%d"))
+            if df is None or df.empty:
+                return self._generate_mock_limit_up_data()
             limit_up_count = len(df)
 
             # 按概念统计
@@ -182,8 +189,11 @@ class ConceptMonitorService:
         """
         try:
             # 获取板块成分股
-            df = ak.stock_board_industry_cons_em(symbol=concept_name)
+            df = stock_tool.get_board_industry_cons(symbol=concept_name)
 
+            if df is None or df.empty:
+                return []
+                
             result = []
             for _, row in df.head(limit).iterrows():
                 result.append({
@@ -206,7 +216,9 @@ class ConceptMonitorService:
         获取市场概览（涨跌家数、涨停跌停统计）
         """
         def _fetch():
-            df = ak.stock_zh_a_spot_em()
+            df = stock_tool.get_realtime_quotes()
+            if df is None or df.empty:
+                return None
             up_count = len(df[df["涨跌幅"] > 0])
             down_count = len(df[df["涨跌幅"] < 0])
             flat_count = len(df[df["涨跌幅"] == 0])

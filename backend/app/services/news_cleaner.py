@@ -227,13 +227,6 @@ class NewsCleaner:
         }
 
 
-# 单例管理
-_news_cleaners = {}
-
-
 def get_news_cleaner(db: Session) -> NewsCleaner:
-    """获取新闻清洗器实例（每个 Session 一个）"""
-    session_id = id(db)
-    if session_id not in _news_cleaners:
-        _news_cleaners[session_id] = NewsCleaner(db)
-    return _news_cleaners[session_id]
+    """获取新闻清洗器实例"""
+    return NewsCleaner(db)

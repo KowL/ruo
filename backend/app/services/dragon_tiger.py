@@ -7,8 +7,9 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from sqlalchemy.orm import Session
 import logging
-import akshare as ak
 import pandas as pd
+
+from app.utils.stock_tool import stock_tool
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class DragonTigerService:
         
         try:
             # 获取龙虎榜详情
-            df = ak.stock_lhb_detail_em(start_date=formatted_date, end_date=formatted_date)
+            df = stock_tool.get_dragon_tiger_data(start_date=formatted_date, end_date=formatted_date)
             
             if df is None or df.empty:
                 return []
@@ -96,7 +97,7 @@ class DragonTigerService:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
             
-            df = ak.stock_lhb_stock_detail_em(
+            df = stock_tool.get_stock_dragon_tiger_detail(
                 start_date=start_date.strftime('%Y%m%d'),
                 end_date=end_date.strftime('%Y%m%d'),
                 symbol=symbol
@@ -138,7 +139,7 @@ class DragonTigerService:
         formatted_date = date.replace('-', '')
         
         try:
-            df = ak.stock_lhb_jgmmtj_em(start_date=formatted_date, end_date=formatted_date)
+            df = stock_tool.get_institutional_dragon_tiger(start_date=formatted_date, end_date=formatted_date)
             
             if df is None or df.empty:
                 return []
@@ -179,7 +180,7 @@ class DragonTigerService:
             start_date = end_date - timedelta(days=days)
             
             # 获取营业部排行数据
-            df = ak.stock_lhb_yybph_em(
+            df = stock_tool.get_dragon_tiger_yyb_rank(
                 start_date=start_date.strftime('%Y%m%d'),
                 end_date=end_date.strftime('%Y%m%d')
             )

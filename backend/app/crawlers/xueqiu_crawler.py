@@ -29,7 +29,7 @@ class XueqiuCrawler:
             
         # 尝试使用 Playwright
         try:
-            from app.core.agent_browser import AgentBrowser
+            from app.utils.agent_browser import AgentBrowser
             self.browser = AgentBrowser(headless=self._headless)
             logger.info("初始化雪球爬虫，访问首页...")
             self.browser.start()

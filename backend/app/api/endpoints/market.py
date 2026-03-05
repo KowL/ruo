@@ -77,9 +77,9 @@ async def get_dragon_tiger_list(date: Optional[str] = None):
         龙虎榜数据
     """
     try:
-        from app.services.data_fetch import get_lhb_data
+        from app.utils.stock_tool import stock_tool
 
-        lhb_data = get_lhb_data(date)
+        lhb_data = stock_tool.get_lhb_data(date)
         return {
             "date": date,
             "data": lhb_data

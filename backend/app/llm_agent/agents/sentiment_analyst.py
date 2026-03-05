@@ -1,7 +1,7 @@
 """
 舆论分析师节点 - 分析市场情绪和新闻舆论
 """
-import akshare as ak
+from app.utils.stock_tool import stock_tool
 import pandas as pd
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
@@ -97,7 +97,7 @@ class SentimentAnalyst:
     def _get_stock_news(self, code: str, name: str) -> List[Dict[str, Any]]:
         """获取股票相关新闻"""
         try:
-            # 由于akshare新闻API可能不稳定，使用模拟数据
+            # 由于新闻API可能不稳定，使用模拟数据
             # 实际应用中可以接入其他新闻API
             logger.info(f"尝试获取股票 {name}({code}) 的新闻信息")
 
@@ -205,7 +205,7 @@ class SentimentAnalyst:
 
             # 获取股票基本信息
             try:
-                df = ak.stock_zh_a_spot_em()
+                df = stock_tool.get_realtime_quotes()
                 stock_row = df[df["代码"] == code]
 
                 if not stock_row.empty:
@@ -250,7 +250,7 @@ class SentimentAnalyst:
         """获取分析师评级"""
         try:
             # 尝试获取分析师评级数据
-            # 由于akshare可能没有直接的分析师评级接口，这里进行模拟
+            # 由于可能没有直接的分析师评级接口，这里进行模拟
 
             return {
                 "buy_count": 0,

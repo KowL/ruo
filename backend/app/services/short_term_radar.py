@@ -32,10 +32,10 @@ class ShortTermRadarService:
         signals = []
         
         try:
-            import akshare as ak
+            from app.utils.stock_tool import stock_tool
             
             # 获取当日所有股票竞价数据
-            df = ak.stock_zt_pool_em(date=datetime.now().strftime("%Y%m%d"))
+            df = stock_tool.get_limit_up_pool(date=datetime.now().strftime("%Y%m%d"))
             
             if df is None or df.empty:
                 return signals
@@ -47,7 +47,7 @@ class ShortTermRadarService:
                     name = row.get('名称', '')
                     
                     # 获取详细信息
-                    spot_df = ak.stock_zh_a_spot_em()
+                    spot_df = stock_tool.get_realtime_quotes()
                     stock_info = spot_df[spot_df['代码'] == symbol]
                     
                     if stock_info.empty:
@@ -101,10 +101,10 @@ class ShortTermRadarService:
         movers = []
         
         try:
-            import akshare as ak
+            from app.utils.stock_tool import stock_tool
             
             # 获取实时行情
-            df = ak.stock_zh_a_spot_em()
+            df = stock_tool.get_realtime_quotes()
             
             if df is None or df.empty:
                 return movers
@@ -175,10 +175,10 @@ class ShortTermRadarService:
         candidates = []
         
         try:
-            import akshare as ak
+            from app.utils.stock_tool import stock_tool
             
             # 获取涨停池数据
-            df = ak.stock_zt_pool_em(date=datetime.now().strftime("%Y%m%d"))
+            df = stock_tool.get_limit_up_pool(date=datetime.now().strftime("%Y%m%d"))
             
             if df is not None and not df.empty:
                 for _, row in df.iterrows():
@@ -202,7 +202,8 @@ class ShortTermRadarService:
                         continue
             
             # 获取即将涨停股票（涨幅 8-9.5%）
-            spot_df = ak.stock_zh_a_spot_em()
+            # 获取个股实时行情
+            spot_df = stock_tool.get_realtime_quotes()
             if spot_df is not None and not spot_df.empty:
                 for _, row in spot_df.iterrows():
                     try:

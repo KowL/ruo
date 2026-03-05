@@ -10,13 +10,11 @@ from .agent_tools import (
     calculate_risk_reward
 )
 
-from app.services.data_fetch import (
-    get_limit_up_stocks,
-    get_lhb_data,
-    get_f10_data_for_stocks
-)
+from app.utils.stock_tool import stock_tool, safe_parse_json
 
-from app.services.data_fetch import safe_parse_json
+get_limit_up_stocks = stock_tool.get_limit_up_stocks
+get_lhb_data = stock_tool.get_lhb_data
+get_f10_data_for_stocks = stock_tool.get_f10_data_for_stocks
 
 __all__ = [
     'analyze_lhb_data',

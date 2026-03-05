@@ -41,7 +41,7 @@ class _BasePrice:
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     def to_dict(self) -> dict:
-        """转换为字典格式（与原 KLineData.to_dict 兼容）"""
+        """转换为字典格式"""
         return {
             'date': self.trade_date.strftime('%Y-%m-%d'),
             'open': self.open,

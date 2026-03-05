@@ -12,9 +12,8 @@ const RealtimeNotification: React.FC = () => {
 
   const { isConnected } = useWebSocket({
     onAlert: (alert) => {
-      console.log('收到预警:', alert);
       setAlerts(prev => [alert, ...prev].slice(0, 10));
-      
+
       if (Notification.permission === 'granted') {
         new Notification('持仓预警', {
           body: `${alert.stock_name} (${alert.symbol}): ${alert.message}`,
@@ -22,8 +21,8 @@ const RealtimeNotification: React.FC = () => {
         });
       }
     },
-    onPriceUpdate: (symbol, data) => {
-      console.log(`价格更新: ${symbol}`, data);
+    onPriceUpdate: (_symbol, _data) => {
+      // 价格更新回调
     },
     onConnect: () => {
       if (isFirstConnect) {
@@ -38,9 +37,8 @@ const RealtimeNotification: React.FC = () => {
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-2">
       {/* 连接状态指示器 */}
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg ${
-        isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-      }`}>
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg ${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+        }`}>
         {isConnected ? <Wifi size={16} /> : <WifiOff size={16} />}
         <span className="text-sm font-medium">
           {isConnected ? '实时推送已连接' : '实时推送已断开'}

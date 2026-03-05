@@ -16,10 +16,10 @@ export const formatMoney = (amount: number | undefined | null): string => {
   return `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-// 格式化百分比
+// 格式化百分比（后端返回已百分化的值，如 5.23 即 5.23%）
 export const formatPercent = (value: number, decimals: number = 2): string => {
   const sign = value >= 0 ? '+' : '';
-  return `${sign}${(value * 100).toFixed(decimals)}%`;
+  return `${sign}${value.toFixed(decimals)}%`;
 };
 
 // 格式化时间
@@ -39,10 +39,24 @@ export const getRiseOrFall = (value: number): 'rise' | 'fall' | 'neutral' => {
   return 'neutral';
 };
 
-// 获取涨跌颜色类
+// 获取涨跌文本颜色类
 export const getRiseOrFallClass = (value: number): string => {
   const type = getRiseOrFall(value);
   if (type === 'rise') return 'text-red-600';
   if (type === 'fall') return 'text-green-600';
   return 'text-gray-600';
+};
+
+// 获取涨跌文本颜色（A股红涨绿跌）
+export const getProfitColor = (percent: number): string => {
+  if (percent > 0) return 'text-red-500';
+  if (percent < 0) return 'text-green-500';
+  return 'text-gray-400';
+};
+
+// 获取涨跌背景色
+export const getProfitBgColor = (percent: number): string => {
+  if (percent > 0) return 'bg-red-500/10';
+  if (percent < 0) return 'bg-green-500/10';
+  return 'bg-gray-500/10';
 };

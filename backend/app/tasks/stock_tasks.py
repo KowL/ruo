@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from celery import shared_task
 from sqlalchemy.orm import Session
-import akshare as ak
+from app.utils.stock_tool import stock_tool
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def sync_stocks_task() -> Dict:
     """
     同步所有A股基础信息及实时行情
     
-    1. 调用 ak.stock_zh_a_spot_em() 获取所有A股实时数据
+    1. 调用 stock_tool 的获取所有A股实时数据
     2. 更新 stocks 表 (基础信息 + 行情数据)
     """
     try:
@@ -30,9 +30,9 @@ def sync_stocks_task() -> Dict:
         # columns: 代码, 名称, 最新价, 涨跌额, 涨跌幅, 买入, 卖出, 昨收, 今开, 最高, 最低, 成交量, 成交额, 时间戳
         # 注意: Sina接口可能不包含市盈率、市净率、市值等数据，需做容错处理
         start_time = time.time()
-        # ak.stock_zh_a_spot() 返回的数据列名通常为: 代码, 名称, 最新价, 涨跌额, 涨跌幅, ...
-        # 代码列可能包含前缀, 如 sh600000, sz000001
-        df = ak.stock_zh_a_spot()
+        # stock_tool 返回的数据列名通常为: 代码, 名称, 最新价, 涨跌额, 涨跌幅, ...
+        # 代码列可能包含前缀
+        df = stock_tool.get_realtime_quotes()
         
         if df.empty:
             logger.warning("[股票同步] 获取到的股票列表为空")

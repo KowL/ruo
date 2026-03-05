@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 // 创建 axios 实例
 const client: AxiosInstance = axios.create({
   baseURL: '/api/v1',
-  timeout: 100000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -29,7 +29,6 @@ client.interceptors.response.use(
   (response: AxiosResponse) => {
     // 后端返回格式：{ status: 'success', data: {...} }
     // 我们直接返回整个 response.data，让各个 API 函数自己取 data 字段
-    console.log(response)
     return response.data;
   },
   (error) => {

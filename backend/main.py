@@ -2,18 +2,30 @@
 FastAPI 应用入口
 FastAPI Application Entry Point
 """
-import sys
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import api_router
 from app.api.endpoints.websocket import websocket_endpoint
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # === 启动阶段 ===
+    print("🚀 FastAPI 应用启动中...")
+    yield
+    # === 关闭阶段 ===
+    print("正在关闭 FastAPI 服务...")
+
+
 # 创建 FastAPI 应用实例
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
 # 配置 CORS
@@ -32,15 +44,6 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.add_api_websocket_route("/ws", websocket_endpoint)
 
 
-# 启动时初始化数据库
-@app.on_event("startup")
-async def startup_event():
-    """应用启动时初始化数据库"""
-    from app.core.database import init_db
-    init_db()
-    print("✅ 数据库初始化完成")
-
-
 @app.get("/")
 async def root():
     """根路径"""
@@ -55,11 +58,6 @@ async def root():
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    print("正在关闭 FastAPI 服务...")
-    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ RUN if [ -f pyproject.toml ]; then \
 # 复制应用代码
 COPY backend/app ./app
 COPY backend/main.py .
-COPY backend/init_database.py .
+
 
 # 创建必要的目录
 RUN mkdir -p /app/cache /app/logs

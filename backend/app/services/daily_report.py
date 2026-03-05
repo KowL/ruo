@@ -7,10 +7,9 @@ Daily Market Report Service
 from typing import Dict, List, Any, Optional
 from datetime import datetime, date
 from sqlalchemy.orm import Session
-import json
 import logging
 
-from app.services.sentiment_index import SentimentIndexService
+from app.services.sentiment import SentimentService
 from app.services.concept_monitor import ConceptMonitorService
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ class DailyReportService:
     
     def __init__(self, db: Session):
         self.db = db
-        self.sentiment_service = SentimentIndexService(db)
+        self.sentiment_service = SentimentService(db)
         self.concept_service = ConceptMonitorService()
     
     def generate_opening_report(self, target_date: Optional[date] = None) -> Dict[str, Any]:
@@ -30,15 +29,14 @@ class DailyReportService:
         
         **包含内容:**
         - 情绪指数概览
-        - 隔夜重要新闻
         - 热门板块排行
         - 开盘建议
         """
         if target_date is None:
             target_date = datetime.now().date()
         
-        # 获取情绪指数
-        sentiment = self.sentiment_service.calculate_daily_sentiment(target_date)
+        # 获取情绪指数（使用统一的 SentimentService）
+        sentiment = self.sentiment_service.get_latest_sentiment()
         
         # 获取板块排行
         try:
@@ -55,10 +53,9 @@ class DailyReportService:
             'date': target_date.isoformat(),
             'generated_at': datetime.now().isoformat(),
             'sentiment': {
-                'index': sentiment['overall_index'],
-                'label': sentiment['label'],
-                'trend': sentiment['trend'],
-                'news_count': sentiment['news_count']
+                'index': sentiment.get('index', 50.0),
+                'label': sentiment.get('label', '中性'),
+                'change': sentiment.get('change', 0),
             },
             'top_sectors': top_sectors[:5],
             'suggestion': suggestion,
@@ -78,7 +75,7 @@ class DailyReportService:
         if target_date is None:
             target_date = datetime.now().date()
         
-        sentiment = self.sentiment_service.calculate_daily_sentiment(target_date)
+        sentiment = self.sentiment_service.get_latest_sentiment()
         
         # 获取资金流向
         try:
@@ -106,10 +103,10 @@ class DailyReportService:
     
     def _generate_opening_suggestion(self, sentiment: Dict, sectors: List) -> str:
         """生成开盘建议"""
-        index = sentiment['overall_index']
-        trend = sentiment['trend']
+        index = sentiment.get('index', 50.0)
+        change = sentiment.get('change', 0)
         
-        if index >= 70 and trend == 'up':
+        if index >= 70 and change > 0:
             return "市场情绪高涨，建议关注强势股，注意控制仓位避免追高。"
         elif index >= 60:
             return "市场情绪偏乐观，可适当参与热点板块，关注资金流入方向。"
@@ -143,16 +140,17 @@ class DailyReportService:
         if mood != '正常':
             points.append(f"市场交投{mood}")
 
-        if sentiment.get('trend') == 'up':
+        change = sentiment.get('change', 0)
+        if change > 3:
             points.append("情绪指数呈上升趋势")
-        elif sentiment.get('trend') == 'down':
+        elif change < -3:
             points.append("情绪指数呈下降趋势")
 
         return points
     
     def _generate_outlook(self, sentiment: Dict, fund_flow: List) -> str:
         """生成明日展望"""
-        index = sentiment['overall_index']
+        index = sentiment.get('index', 50.0)
         
         if index >= 65:
             return "市场情绪积极，明日有望延续反弹，关注资金持续流入板块。"
@@ -162,7 +160,7 @@ class DailyReportService:
             return "市场情绪偏弱，明日可能承压，关注支撑位和情绪修复信号。"
 
 
-# 单例服务
+# 工厂函数
 def get_daily_report_service(db: Session) -> DailyReportService:
     """获取每日简报服务"""
     return DailyReportService(db)

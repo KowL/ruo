@@ -1,7 +1,7 @@
 """
 股票筛选器节点 - 根据条件筛选股票或处理指定股票
 """
-import akshare as ak
+from app.utils.stock_tool import stock_tool
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any, Optional
@@ -12,7 +12,7 @@ import os
 
 # 添加utils目录到路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from app.core.data_converter import safe_convert_to_python_types, safe_float, safe_int, safe_str
+from app.utils.data_converter import safe_convert_to_python_types, safe_float, safe_int, safe_str
 
 from app.llm_agent.state.stock_analysis_state import StockAnalysisState, StockInfo
 
@@ -123,7 +123,7 @@ class StockFilter:
         """获取股票基础数据"""
         try:
             # 获取实时行情数据
-            df = ak.stock_zh_a_spot_em()
+            df = stock_tool.get_realtime_quotes()
 
             # 数据清洗和标准化
             df = df.rename(columns={
@@ -193,7 +193,7 @@ class StockFilter:
         """获取单个股票信息"""
         try:
             # 获取实时行情
-            df = ak.stock_zh_a_spot_em()
+            df = stock_tool.get_realtime_quotes()
             stock_row = df[df["代码"] == code]
 
             if stock_row.empty:
@@ -241,12 +241,12 @@ class StockFilter:
         """获取股票板块和概念信息"""
         try:
             # 获取股票概念信息
-            concept_df = ak.stock_board_concept_cons_em(symbol=code)
+            concept_df = stock_tool.get_concept_cons(code)
             concepts = concept_df["板块名称"].tolist() if not concept_df.empty else []
 
             # 获取行业信息
             try:
-                industry_df = ak.stock_board_industry_cons_em(symbol=code)
+                industry_df = stock_tool.get_industry_cons(code)
                 sector = industry_df["板块名称"].iloc[0] if not industry_df.empty else "未知"
             except:
                 sector = "未知"

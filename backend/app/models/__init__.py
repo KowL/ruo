@@ -9,7 +9,6 @@ from app.models.stock import Stock, StockPrice, AnalysisReport
 from app.models.concept import Concept, ConceptStock, StockPositioning
 from app.models.alert import AlertRule, AlertLog
 from app.models.strategy import Strategy, Backtest, StrategySignal
-from app.models.kline import KLineData
 from app.models.market_price import DailyPrice, WeeklyPrice, MonthlyPrice
 
 __all__ = [
@@ -28,7 +27,6 @@ __all__ = [
     'Strategy',
     'Backtest',
     'StrategySignal',
-    'KLineData',
     'DailyPrice',
     'WeeklyPrice',
     'MonthlyPrice',

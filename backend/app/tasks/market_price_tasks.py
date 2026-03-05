@@ -1,6 +1,6 @@
 """
 行情数据定时任务 - Market Price Celery Tasks
-每日通过 akshare 拉取行情数据，缓存至三张独立行情表，近10年保留
+每日通过 stock_tool 拉取行情数据，缓存至三张独立行情表，近10年保留
 """
 import logging
 import time
@@ -8,9 +8,9 @@ import random
 from datetime import datetime, timedelta, date
 from typing import List
 
-import akshare as ak
-import tushare as ts
 from app.core.config import settings
+
+from app.utils.stock_tool import stock_tool
 
 from app.celery_config import celery_app
 from app.core.database import get_db
@@ -42,7 +42,7 @@ def _get_all_symbols() -> List[str]:
 
 def _fetch_and_save(symbol: str, period: str, service: MarketPriceService, start_date: str = None, end_date: str = None) -> int:
     """
-    从 akshare 拉取指定股票/周期的数据并 upsert 到数据库
+    从数据源拉取指定股票/周期的数据并 upsert 到数据库
 
     Returns:
         保存的记录数
@@ -52,105 +52,29 @@ def _fetch_and_save(symbol: str, period: str, service: MarketPriceService, start
     if not end_date:
         end_date = date.today().strftime('%Y%m%d')
 
-    # 优先使用 Tushare (如果已配置且由于 akshare 稳定性问题)
-    if settings.TUSHARE_TOKEN:
-        try:
-            pro = ts.pro_api(settings.TUSHARE_TOKEN)
-            pro._DataApi__token = settings.TUSHARE_TOKEN
-            pro._DataApi__http_url = 'http://lianghua.nanyangqiankun.top'
-            # symbol -> ts_code 映射 (简单判断，主板/科创/创业/北交)
-            if symbol.startswith('6'):
-                ts_code = f"{symbol}.SH"
-            elif symbol.startswith('0') or symbol.startswith('3'):
-                ts_code = f"{symbol}.SZ"
-            elif symbol.startswith('4') or symbol.startswith('8') or symbol.startswith('9'):
-                ts_code = f"{symbol}.BJ"
-            else:
-                ts_code = symbol # 兜底
-
-            if period == 'daily':
-                df = pro.daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
-            elif period == 'weekly':
-                df = pro.weekly(ts_code=ts_code, start_date=start_date, end_date=end_date)
-            elif period == 'monthly':
-                df = pro.monthly(ts_code=ts_code, start_date=start_date, end_date=end_date)
-
-            if df is not None and not df.empty:
-                # 适配 Tushare 列名到统一格式
-                # Tushare columns: trade_date, open, high, low, close, vol, amount, pct_chg, change
-                # 注意: Tushare trade_date 为 '20160304' 格式
-                data = []
-                for _, row in df.iterrows():
-                    try:
-                        t_date = str(row['trade_date'])
-                        formatted_date = f"{t_date[:4]}-{t_date[4:6]}-{t_date[6:]}"
-                        data.append({
-                            'date': formatted_date,
-                            'open': float(row['open']),
-                            'high': float(row['high']),
-                            'low': float(row['low']),
-                            'close': float(row['close']),
-                            'preClose': float(row['pre_close']) if 'pre_close' in row.index else None,
-                            'volume': float(row['vol']) * 100, # Tushare 默认单位是手
-                            'amount': float(row['amount']) * 1000, # Tushare 单位是千元
-                            'change': float(row['change']),
-                            'changePct': float(row['pct_chg']),
-                            'turnover': 0.0, # Tushare 基础接口可能不含换手率
-                        })
-                    except Exception as e:
-                        logger.debug(f"解析 Tushare 单行失败: {e}")
-                        continue
-                
-                saved = service.save_price_data(symbol, period, data)
-                if saved > 0:
-                    service.calculate_mas(symbol, period)
-                return saved
-        except Exception as e:
-            logger.warning(f"Tushare 拉取失败: {symbol} {period}, 错误: {e}, 尝试回退至 akshare...")
-
-    # 回退至 akshare
-    period_map = {'daily': 'daily', 'weekly': 'weekly', 'monthly': 'monthly'}
-    ak_period = period_map.get(period, 'daily')
-
     try:
-        df = ak.stock_zh_a_hist(
+        df = stock_tool.get_market_data_list(
             symbol=symbol,
-            period=ak_period,
+            period=period,
             start_date=start_date,
             end_date=end_date,
-            adjust='qfq',
+            adjust='qfq'
         )
+
+        if df is None or df.empty:
+            logger.debug(f"无数据: {symbol} {period}")
+            return 0
+
+        data = df.to_dict('records')
+
+        saved = service.save_price_data(symbol, period, data)
+        if saved > 0:
+            service.calculate_mas(symbol, period)
+        return saved
+
     except Exception as e:
-        logger.warning(f"akshare 拉取失败: {symbol} {period}, 错误: {e}")
+        logger.error(f"任务拉取行情数据异常: {symbol} {period}, 错误: {e}")
         return 0
-
-    if df is None or df.empty:
-        logger.debug(f"akshare 无数据: {symbol} {period}")
-        return 0
-
-    data = []
-    for _, row in df.iterrows():
-        try:
-            data.append({
-                'date': row['日期'].strftime('%Y-%m-%d') if hasattr(row['日期'], 'strftime') else str(row['日期']),
-                'open': float(row['开盘']),
-                'high': float(row['最高']),
-                'low': float(row['最低']),
-                'close': float(row['收盘']),
-                'volume': float(row['成交量']),
-                'amount': float(row['成交额']) if '成交额' in row.index else 0.0,
-                'change': float(row['涨跌额']) if '涨跌额' in row.index else 0.0,
-                'changePct': float(row['涨跌幅']) if '涨跌幅' in row.index else 0.0,
-                'turnover': float(row['换手率']) if '换手率' in row.index else 0.0,
-            })
-        except Exception as e:
-            logger.debug(f"解析单行失败: {e}")
-            continue
-
-    saved = service.save_price_data(symbol, period, data)
-    if saved > 0:
-        service.calculate_mas(symbol, period)
-    return saved
 
 
 # ------------------------------------------------------------------ #

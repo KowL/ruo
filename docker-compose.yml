@@ -1,21 +1,17 @@
 services:
   # ==================== PostgreSQL 数据库 ====================
   postgres:
+    profiles: [ "full" ]
     image: postgres:15-alpine
     container_name: ruo_postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      PGDATA: /var/lib/postgresql/data
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ruo_user} -d ${POSTGRES_DB:-ruo_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,6 +20,7 @@ services:
 
   # ==================== Redis 缓存 ====================
   redis:
+    profiles: [ "full" ]
     image: redis:7-alpine
     container_name: ruo_redis
     restart: unless-stopped
@@ -54,18 +51,15 @@ services:
       - ./cache:/app/cache
       - ./logs:/app/logs
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - PYTHONUNBUFFERED=1
       - ENV=development
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
       redis:
         condition: service_healthy
+        required: false
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
       interval: 30s
@@ -74,12 +68,12 @@ services:
       start_period: 40s
     networks:
       - ruo_network
-    env_file:
-      - .env
 
   # ==================== Celery Worker (定时任务) ====================
   celery_worker:
-    image: ruo-celery-worker:final
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: ruo_celery_worker
     restart: unless-stopped
     command: celery -A app.tasks worker --loglevel=info --concurrency=2
@@ -88,18 +82,18 @@ services:
       - ./cache:/app/cache
       - ./logs:/app/logs
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - PYTHONUNBUFFERED=1
       - ENV=development
       - C_FORCE_ROOT=1
     depends_on:
-      - postgres
-      - redis
-      - backend
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: [ "CMD-SHELL", "celery", "-A", "app.tasks", "inspect", "ping" ]
       interval: 30s
@@ -108,8 +102,6 @@ services:
       start_period: 60s
     networks:
       - ruo_network
-    env_file:
-      - .env
 
   # ==================== Celery Beat (定时调度) ====================
   celery_beat:
@@ -124,18 +116,18 @@ services:
       - ./cache:/app/cache
       - ./logs:/app/logs
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - PYTHONUNBUFFERED=1
       - ENV=development
       - C_FORCE_ROOT=1
     depends_on:
-      - postgres
-      - redis
-      - backend
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: [ "CMD-SHELL", "celery", "-A", "app.tasks", "inspect", "ping" ]
       interval: 30s
@@ -144,8 +136,6 @@ services:
       start_period: 60s
     networks:
       - ruo_network
-    env_file:
-      - .env
 
   # ==================== 前端服务 ====================
   web:
@@ -174,7 +164,7 @@ services:
       retries: 3
       start_period: 40s
 
-# ==================== 数据卷定义 ====================
+# ==================== 数据卷 definition ====================
 volumes:
   postgres_data:
     driver: local

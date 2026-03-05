@@ -4,6 +4,7 @@ WebSocket管理器 - WebSocket Connection Manager
 """
 import logging
 import json
+from datetime import datetime
 from typing import List, Dict, Set
 from fastapi import WebSocket
 
@@ -113,7 +114,7 @@ class ConnectionManager:
         message = {
             "channel": "alert",
             "data": alert_data,
-            "timestamp": json.dumps(json.loads(json.dumps({})), default=str)
+            "timestamp": datetime.now().isoformat()
         }
         
         # 发送给订阅了该股票的客户端
@@ -136,7 +137,7 @@ class ConnectionManager:
             "channel": "price",
             "symbol": symbol,
             "data": price_data,
-            "timestamp": json.dumps(json.loads(json.dumps({})), default=str)
+            "timestamp": datetime.now().isoformat()
         }
         await self.broadcast_to_symbol(symbol, message)
     

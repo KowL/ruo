@@ -2,18 +2,19 @@
 行情数据服务 - Market Data Service
 MVP v0.1
 
-功能：
+功能：1
 - F-01: 基础行情接入（AkShare/Tushare）
 - 获取股票信息、实时价格、K线数据
 - 股票搜索和自动补全
 """
-import akshare as ak
 import pandas as pd
 from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 import logging
 import time
 from functools import wraps
+
+from app.utils.stock_tool import stock_tool
 
 logger = logging.getLogger(__name__)
 
@@ -125,25 +126,20 @@ class MarketDataService:
                     logger.debug(f"从缓存返回股票信息: {symbol}")
                     return cached_data
 
-            # 从 AkShare 获取股票信息
-            stock_info = ak.stock_individual_info_em(symbol=symbol)
+            # 从 StockTool 获取股票信息
+            info_dict = stock_tool.get_stock_info(symbol)
 
-            if stock_info.empty:
-                logger.warning(f"股票不存在: {symbol}")
+            if not info_dict:
+                logger.warning(f"股票不存在或获取失败: {symbol}")
                 return None
-
-            # 转换为字典
-            info_dict = {}
-            for _, row in stock_info.iterrows():
-                info_dict[row['item']] = row['value']
 
             result = {
                 'symbol': symbol,
-                'name': info_dict.get('股票简称', ''),
-                'industry': info_dict.get('行业', ''),
+                'name': info_dict.get('name', ''),
+                'industry': info_dict.get('industry', ''),
                 'market': self._get_market_name(symbol),
-                'listingDate': info_dict.get('上市时间', ''),
-                'totalShares': info_dict.get('总股本', ''),
+                'listingDate': info_dict.get('listingDate', ''),
+                'totalShares': info_dict.get('totalShares', ''),
             }
 
             # 缓存结果
@@ -175,8 +171,12 @@ class MarketDataService:
                     logger.debug(f"从缓存返回实时行情: {symbol}")
                     return cached_data
 
-            # 使用 AkShare 获取实时行情
-            realtime_data = ak.stock_zh_a_spot_em()
+            # 使用 StockTool 获取实时行情快照
+            realtime_data = stock_tool.get_realtime_quotes()
+
+            if realtime_data is None or realtime_data.empty:
+                logger.warning(f"实时行情获取失败: {symbol}")
+                return None
 
             # 查找指定股票
             stock_data = realtime_data[realtime_data['代码'] == symbol]
@@ -223,7 +223,7 @@ class MarketDataService:
             当前价格，如果获取失败返回 0.0
         """
         try:
-            # AkShare 雪球个股详情接口
+            # 雪球个股详情接口
             # ak.stock_individual_basic_info_xq(symbol="SH600519")
             # 需要转换代码格式：600519 -> SH600519, 000001 -> SZ000001
             market_code = ""
@@ -277,7 +277,7 @@ class MarketDataService:
         limit: int = 60
     ) -> List[Dict]:
         """
-        获取行情数据（优先从数据库读取，不足时从 akshare 补充并缓存）
+        获取行情数据（优先从数据库读取，不足时从 stock_tool 补充并缓存）
 
         Args:
             symbol: 股票代码
@@ -299,14 +299,14 @@ class MarketDataService:
                 logger.debug(f"从数据库返回行情数据: {symbol} {period}, {len(db_data)} 条")
                 return db_data
 
-            # 2. 数据不足，从 akshare 补充
-            logger.info(f"数据库行情数据不足，从 akshare 拉取: {symbol} {period}")
+            # 2. 数据不足，调用 StockTool 拉取
+            logger.info(f"数据库行情数据不足，从数据源拉取: {symbol} {period}")
             days_map = {'daily': 2, 'weekly': 10, 'monthly': 40}
             delta_days = limit * days_map.get(period, 2) + 30
             start_date = (datetime.now() - timedelta(days=delta_days)).strftime('%Y%m%d')
             end_date = datetime.now().strftime('%Y%m%d')
 
-            df = ak.stock_zh_a_hist(
+            df = stock_tool.get_market_data_list(
                 symbol=symbol, period=period,
                 start_date=start_date, end_date=end_date, adjust='qfq'
             )
@@ -315,23 +315,10 @@ class MarketDataService:
                 logger.warning(f"未找到行情数据: {symbol} {period}")
                 return db_data
 
-            akshare_data = []
-            for _, row in df.iterrows():
-                akshare_data.append({
-                    'date': row['日期'].strftime('%Y-%m-%d') if hasattr(row['日期'], 'strftime') else str(row['日期']),
-                    'open': float(row['开盘']),
-                    'high': float(row['最高']),
-                    'low': float(row['最低']),
-                    'close': float(row['收盘']),
-                    'volume': float(row['成交量']),
-                    'amount': float(row['成交额']) if '成交额' in row.index else 0.0,
-                    'change': float(row['涨跌额']) if '涨跌额' in row.index else 0.0,
-                    'changePct': float(row['涨跌幅']) if '涨跌幅' in row.index else 0.0,
-                    'turnover': float(row['换手率']) if '换手率' in row.index else 0.0,
-                })
+            market_data = df.to_dict('records')
 
             # 3. 保存到数据库
-            saved = price_service.save_price_data(symbol, period, akshare_data)
+            saved = price_service.save_price_data(symbol, period, market_data)
             if saved > 0:
                 price_service.calculate_mas(symbol, period)
 
@@ -380,8 +367,12 @@ class MarketDataService:
                     if len(result) == len(symbols):
                         return result
 
-            # 获取所有A股实时行情
-            realtime_data = ak.stock_zh_a_spot_em()
+            # 获取所有A股实时行情快照
+            realtime_data = stock_tool.get_realtime_quotes()
+            
+            if realtime_data is None or realtime_data.empty:
+                 logger.error("批量获取实时行情工具失败")
+                 return {}
 
             # 构建所有股票的字典（用于缓存）
             all_data = {}
@@ -432,16 +423,10 @@ class MarketDataService:
                     logger.debug(f"从缓存返回分时数据: {symbol}")
                     return cached_data
 
-            # 使用 AkShare 获取分时数据
-            # 根据市场选择不同的接口
-            if symbol.startswith('6') or symbol.startswith('688'):
-                # 上海市场
-                df = ak.stock_zh_a_hist_min_em(symbol=symbol, period='1', adjust='')
-            else:
-                # 深圳市场
-                df = ak.stock_zh_a_hist_min_em(symbol=symbol, period='1', adjust='')
+            # 使用 StockTool 获取分时数据
+            df = stock_tool.get_intraday_data(symbol)
 
-            if df.empty:
+            if df is None or df.empty:
                 logger.warning(f"未找到分时数据: {symbol}")
                 return []
 
@@ -495,8 +480,11 @@ class MarketDataService:
                     logger.debug(f"从缓存返回买卖盘数据: {symbol}")
                     return cached_data
 
-            # 使用 AkShare 获取实时行情（包含买卖盘）
-            spot_data = ak.stock_zh_a_spot_em()
+            # 使用 StockTool 获取实时行情快照（包含买卖盘）
+            spot_data = stock_tool.get_realtime_quotes()
+            
+            if spot_data is None or spot_data.empty:
+                return {'buyOrders': [], 'sellOrders': []}
 
             # 查找指定股票
             stock_data = spot_data[spot_data['代码'] == symbol]

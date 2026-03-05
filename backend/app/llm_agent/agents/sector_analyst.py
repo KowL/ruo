@@ -1,7 +1,7 @@
 """
 板块分析师节点 - 分析股票所属板块的整体情况
 """
-import akshare as ak
+from app.utils.stock_tool import stock_tool
 import pandas as pd
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
@@ -127,7 +127,7 @@ class SectorAnalyst:
         """获取板块整体表现"""
         try:
             # 获取板块指数数据
-            df = ak.stock_board_industry_spot_em()
+            df = stock_tool.get_board_industry_spot()
 
             # 查找对应板块
             if "板块名称" in df.columns:
@@ -181,7 +181,7 @@ class SectorAnalyst:
         """获取板块相关新闻"""
         try:
             # 获取财经新闻
-            news_df = ak.stock_news_em()
+            news_df = stock_tool.get_stock_news()
 
             # 筛选相关新闻
             related_news = []

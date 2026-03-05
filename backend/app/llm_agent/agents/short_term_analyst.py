@@ -1,7 +1,7 @@
 """
 短线分析师节点 - 分析短期技术指标和资金流向
 """
-import akshare as ak
+from app.utils.stock_tool import stock_tool
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List
@@ -12,7 +12,7 @@ import os
 
 # 添加utils目录到路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from app.core.data_converter import safe_convert_to_python_types, safe_float, safe_int, safe_str
+from app.utils.data_converter import safe_convert_to_python_types, safe_float, safe_int, safe_str
 
 from llm_factory import LLMFactory
 from app.llm_agent.state.stock_analysis_state import StockAnalysisState, ShortTermAnalysisResult
@@ -111,21 +111,12 @@ class ShortTermAnalyst:
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
 
             # 获取日K线数据
-            df = ak.stock_zh_a_hist(symbol=code, period="daily", start_date=start_date, end_date=end_date)
+            df = stock_tool.get_market_data_list(symbol=code, period="daily", start_date=start_date, end_date=end_date)
 
-            if df.empty:
+            if df is None or df.empty:
                 return pd.DataFrame()
 
-            # 数据清洗
-            df = df.rename(columns={
-                "日期": "date",
-                "开盘": "open",
-                "收盘": "close",
-                "最高": "high",
-                "最低": "low",
-                "成交量": "volume",
-                "成交额": "amount"
-            })
+            # 数据清洗（已由stock_tool处理列名）
 
             # 确保数据类型正确
             numeric_columns = ["open", "close", "high", "low", "volume", "amount"]

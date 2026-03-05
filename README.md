@@ -33,17 +33,23 @@
 /ruo
 ├── /backend
 │   ├── /app
-│   │   ├── /api           # API 路由接口
-│   │   ├── /core          # 核心配置
-│   │   ├── /crawlers      # 爬虫模块 (雪球/财联社)
-│   │   ├── /services      # 业务逻辑 (AI Analysis, News Cleaner)
-│   │   ├── /models        # 数据库模型
-│   │   └── /llm_agent     # AI Agent (LangGraph 工作流)
+│   │   ├── /api           # API 路由接口（17 个端点）
+│   │   ├── /core          # 核心基础设施（config, database, llm_factory, websocket）
+│   │   ├── /crawlers      # 数据爬虫（雪球）
+│   │   ├── /services      # 业务逻辑层（15 个服务）
+│   │   ├── /models        # ORM 数据模型（10 个模型）
+│   │   ├── /tasks         # Celery 定时任务
+│   │   ├── /utils         # 工具类（stock_tool, data_converter, agent_browser）
+│   │   └── /llm_agent     # AI Agent（LangGraph 多智能体工作流）
 │   ├── /tests             # 单元测试
-│   └── main.py            # 启动入口
-├── /frontend/web          # Web 前端代码
-├── /docs                  # 产品文档与设计图
+│   └── main.py            # FastAPI 启动入口
+├── /frontend/web          # Web 前端代码 (React)
+├── /docs                  # 架构文档与设计文档
+│   ├── ARCHITECTURE.md    # 架构设计文档
+│   ├── DATABASE_SETUP.md  # 数据库配置指南
+│   └── /design            # 模块设计文档
 └── docker-compose.yml     # 容器编排
+```
 
 ## 🚀 快速开始 (Getting Started)
 

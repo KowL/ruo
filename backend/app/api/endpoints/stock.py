@@ -147,7 +147,7 @@ async def get_stock_detail(
 @router.get("/kline/{symbol}", summary="获取K线数据", tags=["股票查询"])
 async def get_kline_data(
     symbol: str,
-    period: str = Query("daily", regex="^(daily|weekly|monthly)$", description="周期: daily, weekly, monthly"),
+    period: str = Query("daily", pattern="^(daily|weekly|monthly)$", description="周期: daily, weekly, monthly"),
     limit: int = Query(60, ge=1, le=500, description="数据条数")
 ):
     """
@@ -164,7 +164,7 @@ async def get_kline_data(
     try:
         kline = market_service.get_kline_data(symbol, period, limit)
         
-        # AkShare 有时返回空列表也不会报错，需要处理
+        # 有时返回空列表也不会报错，需要处理
         if not kline:
             # 尝试返回空列表而不是 404，方便前端处理 "暂无数据"
             return {

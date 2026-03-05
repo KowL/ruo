@@ -1,7 +1,7 @@
 import os
 import json
 import pandas as pd
-import akshare as ak
+
 import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple, TypedDict
@@ -13,7 +13,7 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # 导入工具函数
-from tools import get_stock_price_realtime, get_previous_trading_day
+from app.utils.stock_tool import stock_tool
 
 # 加载密钥
 load_dotenv()
@@ -52,7 +52,7 @@ def read_yesterday_report(state: AnalysisState) -> AnalysisState:
         from app.models.stock import AnalysisReport
         
         # 使用获取上一个交易日的方法（跳过周末和节假日）
-        yesterday_str = get_previous_trading_day()
+        yesterday_str = stock_tool.get_previous_trading_day()
         yesterday_date = datetime.strptime(yesterday_str, "%Y-%m-%d")
         
         print(f"🔄 正在尝试从数据库读取昨日({yesterday_str})的涨停分析报告...")
@@ -170,7 +170,7 @@ def get_today_opening_data(state: AnalysisState) -> AnalysisState:
     for idx, stock_code in enumerate(stock_codes):
         try:
             # 调用东方财富API获取实时数据（带重试）
-            realtime_data = get_stock_price_realtime(stock_code, retry_count=2)
+            realtime_data = stock_tool.get_stock_price_realtime(stock_code, retry_count=2)
             
             if realtime_data is None:
                 failed_codes.append(stock_code)

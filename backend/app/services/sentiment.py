@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.kline import KLineData
+from app.models.market_price import DailyPrice
 from app.models.portfolio import Portfolio
 
 
@@ -122,7 +122,7 @@ class SentimentService:
 
     def _calculate_daily_sentiment(self, target_date: date) -> Dict:
         """
-        基于 KLineData 计算单日情绪数据
+        基于 DailyPrice 计算单日情绪数据
         """
         # 获取持仓股票列表（用于锁定计算范围）
         symbols = self._get_tracked_symbols()
@@ -132,11 +132,10 @@ class SentimentService:
 
         # 查询目标日期的日线K线
         klines = (
-            self.db.query(KLineData)
+            self.db.query(DailyPrice)
             .filter(
-                KLineData.symbol.in_(symbols),
-                KLineData.period == "daily",
-                KLineData.trade_date == target_date,
+                DailyPrice.symbol.in_(symbols),
+                DailyPrice.trade_date == target_date,
             )
             .all()
         )
@@ -207,23 +206,21 @@ class SentimentService:
         hist_dates = [target_date - timedelta(days=i) for i in range(1, 8)]
 
         past_amounts = (
-            self.db.query(func.avg(KLineData.amount))
+            self.db.query(func.avg(DailyPrice.amount))
             .filter(
-                KLineData.symbol.in_(symbols),
-                KLineData.period == "daily",
-                KLineData.trade_date.in_(hist_dates),
-                KLineData.amount.isnot(None),
+                DailyPrice.symbol.in_(symbols),
+                DailyPrice.trade_date.in_(hist_dates),
+                DailyPrice.amount.isnot(None),
             )
             .scalar()
         )
 
         today_avg = (
-            self.db.query(func.avg(KLineData.amount))
+            self.db.query(func.avg(DailyPrice.amount))
             .filter(
-                KLineData.symbol.in_(symbols),
-                KLineData.period == "daily",
-                KLineData.trade_date == target_date,
-                KLineData.amount.isnot(None),
+                DailyPrice.symbol.in_(symbols),
+                DailyPrice.trade_date == target_date,
+                DailyPrice.amount.isnot(None),
             )
             .scalar()
         )
@@ -241,11 +238,10 @@ class SentimentService:
         past_3 = [target_date - timedelta(days=i) for i in range(1, 4)]
 
         rows = (
-            self.db.query(func.avg(KLineData.change_pct))
+            self.db.query(func.avg(DailyPrice.change_pct))
             .filter(
-                KLineData.symbol.in_(symbols),
-                KLineData.period == "daily",
-                KLineData.trade_date.in_(past_3),
+                DailyPrice.symbol.in_(symbols),
+                DailyPrice.trade_date.in_(past_3),
             )
             .scalar()
         )

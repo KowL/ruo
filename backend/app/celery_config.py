@@ -137,8 +137,8 @@ celery_app.conf.update(
             }
         },
 
-        # 每天凌晨清理旧数据
-        'cleanup-old-data-daily': {
+        # 每天凌晨批量抓取持仓股票的历史新闻
+        'batch-fetch-news-daily': {
             'task': 'app.tasks.news_fetch_tasks.batch_fetch_news_task',
             'schedule': crontab(hour=2, minute=0),  # 凌晨 2:00
             'options': {

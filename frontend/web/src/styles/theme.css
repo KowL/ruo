@@ -162,13 +162,7 @@ input::placeholder, textarea::placeholder {
   color: var(--color-text-muted);
 }
 
-/* 卡片基础样式 */
-.card {
-  background-color: var(--color-surface-2);
-  border-radius: 8px;
-  border: 1px solid var(--color-surface-4);
-  padding: 16px;
-}
+/* 卡片基础样式（使用 index.css 中 Tailwind @layer components 的 .card）*/
 
 /* 标签样式 */
 .tag {
