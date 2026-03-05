@@ -20,7 +20,7 @@ celery_app = Celery(
     backend=CELERY_RESULT_BACKEND,
     include=[
         'app.tasks.news_fetch_tasks',  # 新闻抓取任务
-        'app.tasks.price_tasks',       # 价格更新任务
+        # 'app.tasks.price_tasks',       # 价格更新任务
         'app.tasks.stock_tasks',       # 股票同步任务
         'app.tasks.alert_tasks',       # 预警检查任务
         'app.tasks.market_price_tasks', # 行情数据任务（新）
@@ -82,13 +82,13 @@ celery_app.conf.update(
         },
 
         # === 价格更新任务 ===
-        'update-portfolio-prices-every-20s': {
-            'task': 'app.tasks.price_tasks.update_portfolio_prices_task',
-            'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
-            'options': {
-                'expires': 60,
-            }
-        },
+        # 'update-portfolio-prices-every-20s': {
+        #     'task': 'app.tasks.price_tasks.update_portfolio_prices_task',
+        #     'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
+        #     'options': {
+        #         'expires': 60,
+        #     }
+        # },
 
         # === 预警检查任务 ===
         'check-alerts-every-5-minutes': {

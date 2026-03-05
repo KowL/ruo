@@ -3,10 +3,14 @@
 每日通过 akshare 拉取行情数据，缓存至三张独立行情表，近10年保留
 """
 import logging
+import time
+import random
 from datetime import datetime, timedelta, date
 from typing import List
 
 import akshare as ak
+import tushare as ts
+from app.core.config import settings
 
 from app.celery_config import celery_app
 from app.core.database import get_db
@@ -48,6 +52,63 @@ def _fetch_and_save(symbol: str, period: str, service: MarketPriceService, start
     if not end_date:
         end_date = date.today().strftime('%Y%m%d')
 
+    # 优先使用 Tushare (如果已配置且由于 akshare 稳定性问题)
+    if settings.TUSHARE_TOKEN:
+        try:
+            pro = ts.pro_api(settings.TUSHARE_TOKEN)
+            pro._DataApi__token = settings.TUSHARE_TOKEN
+            pro._DataApi__http_url = 'http://lianghua.nanyangqiankun.top'
+            # symbol -> ts_code 映射 (简单判断，主板/科创/创业/北交)
+            if symbol.startswith('6'):
+                ts_code = f"{symbol}.SH"
+            elif symbol.startswith('0') or symbol.startswith('3'):
+                ts_code = f"{symbol}.SZ"
+            elif symbol.startswith('4') or symbol.startswith('8') or symbol.startswith('9'):
+                ts_code = f"{symbol}.BJ"
+            else:
+                ts_code = symbol # 兜底
+
+            if period == 'daily':
+                df = pro.daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
+            elif period == 'weekly':
+                df = pro.weekly(ts_code=ts_code, start_date=start_date, end_date=end_date)
+            elif period == 'monthly':
+                df = pro.monthly(ts_code=ts_code, start_date=start_date, end_date=end_date)
+
+            if df is not None and not df.empty:
+                # 适配 Tushare 列名到统一格式
+                # Tushare columns: trade_date, open, high, low, close, vol, amount, pct_chg, change
+                # 注意: Tushare trade_date 为 '20160304' 格式
+                data = []
+                for _, row in df.iterrows():
+                    try:
+                        t_date = str(row['trade_date'])
+                        formatted_date = f"{t_date[:4]}-{t_date[4:6]}-{t_date[6:]}"
+                        data.append({
+                            'date': formatted_date,
+                            'open': float(row['open']),
+                            'high': float(row['high']),
+                            'low': float(row['low']),
+                            'close': float(row['close']),
+                            'preClose': float(row['pre_close']) if 'pre_close' in row.index else None,
+                            'volume': float(row['vol']) * 100, # Tushare 默认单位是手
+                            'amount': float(row['amount']) * 1000, # Tushare 单位是千元
+                            'change': float(row['change']),
+                            'changePct': float(row['pct_chg']),
+                            'turnover': 0.0, # Tushare 基础接口可能不含换手率
+                        })
+                    except Exception as e:
+                        logger.debug(f"解析 Tushare 单行失败: {e}")
+                        continue
+                
+                saved = service.save_price_data(symbol, period, data)
+                if saved > 0:
+                    service.calculate_mas(symbol, period)
+                return saved
+        except Exception as e:
+            logger.warning(f"Tushare 拉取失败: {symbol} {period}, 错误: {e}, 尝试回退至 akshare...")
+
+    # 回退至 akshare
     period_map = {'daily': 'daily', 'weekly': 'weekly', 'monthly': 'monthly'}
     ak_period = period_map.get(period, 'daily')
 
@@ -220,7 +281,16 @@ def sync_historical_price_task():
         return {"status": "success", "updated": 0}
 
     results = {'daily': 0, 'weekly': 0, 'monthly': 0}
-    for symbol in symbols:
+    for i, symbol in enumerate(symbols):
+        # 增加随机延迟 1-3 秒，避开频率限制
+        delay = random.uniform(1, 3)
+        time.sleep(delay)
+        
+        # 每处理 50 只股票，额外休息 30 秒
+        if i > 0 and i % 50 == 0:
+            logger.info(f"已同步 {i}/{len(symbols)} 只股票，深度休息 30s...")
+            time.sleep(30)
+
         for period in ('daily', 'weekly', 'monthly'):
             try:
                 saved = _fetch_and_save(symbol, period, service)

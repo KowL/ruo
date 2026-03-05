@@ -149,6 +149,7 @@ class MarketPriceService:
                         existing.high = item['high']
                         existing.low = item['low']
                         existing.close = item['close']
+                        existing.pre_close = item.get('preClose')
                         existing.volume = item['volume']
                         existing.amount = item.get('amount')
                         existing.change = item.get('change')
@@ -162,6 +163,7 @@ class MarketPriceService:
                             high=item['high'],
                             low=item['low'],
                             close=item['close'],
+                            pre_close=item.get('preClose'),
                             volume=item['volume'],
                             amount=item.get('amount'),
                             change=item.get('change'),

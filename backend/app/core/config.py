@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     # 数据源配置
     USE_TUSHARE: bool = False
-    TUSHARE_TOKEN: str = ""
+    TUSHARE_TOKEN: str = os.getenv("TUSHARE_TOKEN", "")
 
     # Celery 配置
     CELERY_BROKER_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"

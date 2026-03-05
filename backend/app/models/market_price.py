@@ -24,6 +24,7 @@ class _BasePrice:
     high = Column(Float, nullable=False)
     low = Column(Float, nullable=False)
     close = Column(Float, nullable=False)
+    pre_close = Column(Float)               # 昨收价
     volume = Column(Float, nullable=False)   # 成交量（手）
     amount = Column(Float)                   # 成交额（元）
     change = Column(Float)                   # 涨跌额
@@ -47,6 +48,7 @@ class _BasePrice:
             'high': self.high,
             'low': self.low,
             'close': self.close,
+            'preClose': self.pre_close,
             'volume': self.volume,
             'amount': self.amount or 0,
             'change': self.change or 0,
