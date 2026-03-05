@@ -30,6 +30,12 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import insert
+from pathlib import Path
+from dotenv import load_dotenv
+env_file = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_file)
+print(env_file)
+print(os.getenv("TUSHARE_TOKEN"))
 
 # 添加项目路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -60,7 +66,7 @@ DATA_RETENTION_YEARS = 10
 # 数据库配置
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://ruo_user:ruo_password@localhost:5432/ruo_db"
+    "postgresql://ruo_user:ruo_password@localhost:5432/ruo"
 )
 
 # Tushare 限制（10000 积分权限）

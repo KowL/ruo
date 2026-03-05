@@ -10,7 +10,6 @@ import pandas as pd
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 
-import akshare as ak
 try:
     import tushare as ts
 except ImportError:
@@ -26,17 +25,8 @@ class StockTool:
 
     def __init__(self):
         self.use_tushare = settings.USE_TUSHARE and bool(settings.TUSHARE_TOKEN)
-        self.ts_pro = None
-
-        if self.use_tushare and ts:
-            try:
-                self.ts_pro = ts.pro_api(settings.TUSHARE_TOKEN)
-                # Tushare pro_api custom http config if required
-                if hasattr(self.ts_pro, '_DataApi__http_url'):
-                    self.ts_pro._DataApi__http_url = 'http://lianghua.nanyangqiankun.top'
-            except Exception as e:
-                logger.error(f"Tushare pro api init failed: {e}")
-                self.use_tushare = False
+        self.ts_pro = ts.pro_api(settings.TUSHARE_TOKEN)
+        self.ts_pro._DataApi__http_url = 'http://lianghua.nanyangqiankun.top'
 
     def _to_ts_code(self, symbol: str) -> str:
         """转换代码到 Tushare 格式"""
@@ -106,214 +96,234 @@ class StockTool:
                         res.append(item)
                     return pd.DataFrame(res)
             except Exception as e:
-                logger.warning(f"Tushare 获取历史行情失败: {symbol} {period}, 原因此: {e}, 即将回退到 Akshare")
+                logger.error(f"Tushare 获取历史行情失败: {symbol} {period}, 原因此: {e}")
+                import traceback
+                traceback.print_exc()
+                
+        return None
+
+
+    def get_realtime_quotes(self) -> pd.DataFrame:
+        """
+        获取全市场部分最新行情数据（优先使用 Tushare 返回日线级别快照）。
+        如果在非交易时间，Tushare 会由于最新一天不存在导致空返回，内部可能需要拿到上个交易日快照。
+        """
+        if self.use_tushare and self.ts_pro:
+            try:
+                # 尝试获取当天或上一个交易日的行情快照
+                # 使用 daily 接口拉取最新日期的横截面
+                logger.debug("[Tushare] Get all realtime/daily cross-section data.")
+                
+                # 获取上一个交易日
+                trade_date = self.get_previous_trading_day(days_back=1).replace('-', '')
+                
+                # Tushare daily 支持按 trade_date 获取所有股票当天切片
+                df = self.ts_pro.daily(trade_date=trade_date)
+                
+                if df is not None and not df.empty:
+                    # Tushare daily 里不包含股票名称，需要拉取 basic 信息补充 'name'
+                    try:
+                        basic_df = self.ts_pro.stock_basic(fields='ts_code,name')
+                        if basic_df is not None and not basic_df.empty:
+                            df = pd.merge(df, basic_df, on='ts_code', how='left')
+                    except Exception as e:
+                        logger.warning(f"Tushare 补充股票名称失败: {e}")
+                        df['name'] = '' # 如果失败则用空字符串代替
+
+                    # 转换列名以兼容原有的解析代码 expect 格式 (例如 Sina: 代码, 名称, 最新价, 涨跌幅, 成交量, 成交额)
+                    # Tushare 字段: ts_code, trade_date, open, high, low, close, pre_close, change, pct_chg, vol, amount, name
+                    df = df.rename(columns={
+                        'ts_code': '代码',
+                        'name': '名称',
+                        'close': '最新价',
+                        'pct_chg': '涨跌幅',
+                        'vol': '成交量',
+                        'amount': '成交额',
+                    })
+                    # Tushare vol->手, amount->千元，而在 stock_tasks 中为了兼容将要转换为股和元，或者直接使用
+                    # tushare 的 ts_code 也需要拆分，由原有 stock_tasks 处理
+                    return df
+            except Exception as e:
+                logger.error(f"Tushare 获取全量实时/日线切片失败: {e}")
+                # 打印详细异常
+                import traceback
+                traceback.print_exc()
+        else:
+             logger.error("USE_TUSHARE 未开启或 ts_pro 未初始化")
         
-        # 回退至 akshare
-        try:
-            logger.debug(f"[AkShare] Get {period} kline: {symbol}")
-            period_map = {'daily': 'daily', 'weekly': 'weekly', 'monthly': 'monthly'}
-            ak_period = period_map.get(period, 'daily')
-            
-            df = ak.stock_zh_a_hist(
-                symbol=symbol,
-                period=ak_period,
-                start_date=start_date,
-                end_date=end_date,
-                adjust=adjust,
-            )
-            
-            if df is not None and not df.empty:
-                res = []
-                for _, row in df.iterrows():
-                    d_str = row['日期'].strftime('%Y-%m-%d') if hasattr(row['日期'], 'strftime') else str(row['日期'])
-                    # AkShare volume 本身是股，amount是元
-                    item = {
-                        'date': d_str,
-                        'open': float(row['开盘']),
-                        'high': float(row['最高']),
-                        'low': float(row['最低']),
-                        'close': float(row['收盘']),
-                        'volume': float(row['成交量']),
-                        'amount': float(row['成交额']) if '成交额' in row.index else 0.0,
-                        'change': float(row['涨跌额']) if '涨跌额' in row.index else 0.0,
-                        'changePct': float(row['涨跌幅']) if '涨跌幅' in row.index else 0.0,
-                        'turnover': float(row['换手率']) if '换手率' in row.index else 0.0,
-                    }
-                    res.append(item)
-                return pd.DataFrame(res)
-            return None
-        except Exception as e:
-            logger.error(f"AkShare 获取历史行情也失败: {symbol} {period}, 错误: {e}")
-            return None
-
-
-    def get_realtime_quotes(self) -> Optional[pd.DataFrame]:
-        """
-        获取全市场最新实时行情。
-        因为实时数据 Tushare 接口有一定的延迟或积分限制，通常 AkShare `stock_zh_a_spot_em` 足够稳定。
-        （默认使用 Akshare 提供实时快照）
-        """
-        try:
-            # 内部优先使用东财快照获取全量最新行情
-            logger.debug("[AkShare] Get all realtime spot.")
-            df = ak.stock_zh_a_spot_em()
-            return df
-        except Exception as e:
-            logger.error(f"获取全量实时行情失败: {e}")
-            return None
+        # 返回空 DataFrame 而不是 None
+        return pd.DataFrame()
 
     def get_stock_info(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
-        获取单一股票的基本信息（利用 akshare，因为其返回的信息比较丰富易用）
+        获取单一股票的基本信息（利用 Tushare stock_basic 接口）
         """
+        if not self.use_tushare or not self.ts_pro:
+             return None
+             
         try:
-            stock_info = ak.stock_individual_info_em(symbol=symbol)
+            ts_code = self._to_ts_code(symbol)
+            # Tushare 字段：ts_code, symbol, name, area, industry, fullname, enname, cnspell, market, exchange, curr_type, list_status, list_date, delist_date, is_hs
+            stock_info = self.ts_pro.stock_basic(ts_code=ts_code, fields='ts_code,symbol,name,industry,list_date')
             if stock_info.empty:
                 return None
             
-            info_dict = {}
-            for _, row in stock_info.iterrows():
-                info_dict[row['item']] = row['value']
+            row = stock_info.iloc[0]
+            
+            # 使用 daily_basic 获取总股本等额外信息
+            try:
+                trade_date = self.get_previous_trading_day(days_back=1).replace('-', '')
+                daily_info = self.ts_pro.daily_basic(ts_code=ts_code, trade_date=trade_date, fields='total_share')
+                total_shares_val = daily_info.iloc[0]['total_share'] * 10000 if not daily_info.empty else ''
+            except Exception:
+                total_shares_val = ''
                 
             return {
                 'symbol': symbol,
-                'name': info_dict.get('股票简称', ''),
-                'industry': info_dict.get('行业', ''),
-                'listingDate': info_dict.get('上市时间', ''),
-                'totalShares': info_dict.get('总股本', ''),
+                'name': str(row.get('name', '')),
+                'industry': str(row.get('industry', '')),
+                'listingDate': str(row.get('list_date', '')),
+                'totalShares': total_shares_val,
             }
         except Exception as e:
-            logger.error(f"AkShare 获取个股信息失败: {symbol}, 错误: {e}")
+            logger.error(f"Tushare 获取个股信息失败: {symbol}, 错误: {e}")
             return None
 
     def get_intraday_data(self, symbol: str) -> Optional[pd.DataFrame]:
         """获取分时数据"""
-        try:
-            df = ak.stock_zh_a_hist_min_em(symbol=symbol, period='1', adjust='')
-            return df
-        except Exception as e:
-            logger.error(f"AkShare 获取分时失败: {symbol}, 错误: {e}")
-            return None
+        # Tushare 的分时(min)数据门槛较高（需要数千积分），这里暂不实现，或者如果后续允许可以直接写为空
+        logger.warning(f"获取分时失败: {symbol}, Tushare 分时数据接口受积分限制/未实现")
+        return None
 
     def get_dragon_tiger_data(self, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
         """获取龙虎榜详情"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_lhb_detail_em(start_date=start_date, end_date=end_date)
+            df = self.ts_pro.top_list(trade_date=end_date.replace('-', ''))
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取龙虎榜详情失败: {e}")
+            logger.error(f"Tushare 获取龙虎榜详情失败: {e}")
             return None
 
     def get_stock_dragon_tiger_detail(self, symbol: str, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
         """获取个股龙虎榜详情"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_lhb_stock_detail_em(
-                start_date=start_date,
-                end_date=end_date,
-                symbol=symbol
-            )
+            ts_code = self._to_ts_code(symbol)
+            df = self.ts_pro.top_list(ts_code=ts_code, start_date=start_date.replace('-',''), end_date=end_date.replace('-',''))
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取个股龙虎榜详情失败: {symbol}, 错误: {e}")
+            logger.error(f"Tushare 获取个股龙虎榜详情失败: {symbol}, 错误: {e}")
             return None
 
     def get_institutional_dragon_tiger(self, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
         """获取机构专用席位龙虎榜"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_lhb_jgmmtj_em(start_date=start_date, end_date=end_date)
+            df = self.ts_pro.top_inst(trade_date=end_date.replace('-', ''))
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取机构龙虎榜失败: {e}")
+            logger.error(f"Tushare 获取机构龙虎榜失败: {e}")
             return None
 
     def get_dragon_tiger_yyb_rank(self, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
         """获取龙虎榜营业部排行"""
-        try:
-            df = ak.stock_lhb_yybph_em(start_date=start_date, end_date=end_date)
-            return df
-        except Exception as e:
-            logger.error(f"AkShare 获取龙虎营业部排行失败: {e}")
-            return None
+        # Tushare top_list 无统一的 yyb 榜单汇总排行，暂时返回空
+        logger.warning("获取龙虎营业部排行失败: Tushare 未直接提供同等汇总接口返回")
+        return None
 
     def get_board_industry_name(self) -> Optional[pd.DataFrame]:
         """获取板块行业行情"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_board_industry_name_em()
+            # tushare index_classify 或 ths_index 等接口存在
+            df = self.ts_pro.ths_index() 
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取板块行情失败: {e}")
+            logger.error(f"Tushare 获取板块行情失败: {e}")
             return None
 
     def get_sector_fund_flow_rank(self) -> Optional[pd.DataFrame]:
         """获取行业资金流向排行"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_sector_fund_flow_rank()
+            # moneyflow_ths 需要积分
+            trade_date = self.get_previous_trading_day(days_back=1).replace('-', '')
+            df = self.ts_pro.moneyflow_ths(trade_date=trade_date)
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取行业资金流向失败: {e}")
+            logger.error(f"Tushare 获取行业资金流向失败: {e}")
             return None
             
     def get_limit_up_pool(self, date: str) -> Optional[pd.DataFrame]:
         """获取涨停股池数据"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_zt_pool_em(date=date)
+            df = self.ts_pro.limit_list(trade_date=date.replace('-', ''), limit_type='U')
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取涨停池失败: {e}, {date}")
+            logger.error(f"Tushare 获取涨停池失败: {e}, {date}")
             return None
 
     def get_board_industry_cons(self, symbol: str) -> Optional[pd.DataFrame]:
         """获取板块成分股"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_board_industry_cons_em(symbol=symbol)
+            df = self.ts_pro.ths_member(ts_code=symbol)
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取板块成分股失败: {symbol}, 错误: {e}")
+            logger.error(f"Tushare 获取板块成分股失败: {symbol}, 错误: {e}")
             return None
 
     def get_trade_date_hist(self) -> Optional[pd.DataFrame]:
         """获取历史交易日历"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.tool_trade_date_hist_sina()
+            # Tushare 交易日历
+            df = self.ts_pro.trade_cal(exchange='SSE', is_open='1')
+            df['trade_date'] = pd.to_datetime(df['cal_date'])
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取历史交易日历失败: {e}")
+            logger.error(f"Tushare 获取历史交易日历失败: {e}")
             return None
             
     def get_stock_value(self, symbol: str) -> Optional[pd.DataFrame]:
         """获取股票估值数据"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_value_em(symbol=symbol)
+            ts_code = self._to_ts_code(symbol)
+            # Tushare daily_basic 含有 pe, pb, ps, dv 等估值指标
+            trade_date = self.get_previous_trading_day(days_back=1).replace('-', '')
+            df = self.ts_pro.daily_basic(ts_code=ts_code, trade_date=trade_date)
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取股票估值失败: {symbol}, 错误: {e}")
+            logger.error(f"Tushare 获取股票估值失败: {symbol}, 错误: {e}")
             return None
 
     def get_board_industry_spot(self) -> Optional[pd.DataFrame]:
         """获取板块行情数据(实时)"""
-        try:
-            df = ak.stock_board_industry_spot_em()
-            return df
-        except Exception as e:
-            logger.error(f"AkShare 获取板块实时行情失败: {e}")
-            return None
+        # Tushare 实时板块指数接口受限，暂时为空
+        logger.warning(f"获取板块实时行情失败: 基于 Tushare 目前无免积分实时指数数据返回")
+        return None
 
     def get_stock_news(self) -> Optional[pd.DataFrame]:
         """获取个股新闻"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_news_em()
+            df = self.ts_pro.news(src='sina')
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取个股新闻失败: {e}")
+            logger.error(f"Tushare 获取个股新闻失败: {e}")
             return None
 
     def get_board_concept_cons(self, symbol: str) -> Optional[pd.DataFrame]:
         """获取概念板块成分股"""
+        if not self.use_tushare or not self.ts_pro: return None
         try:
-            df = ak.stock_board_concept_cons_em(symbol=symbol)
+            df = self.ts_pro.concept_detail(id=symbol)
             return df
         except Exception as e:
-            logger.error(f"AkShare 获取概念板块成分股失败: {symbol}, 错误: {e}")
+            logger.error(f"Tushare 获取概念板块成分股失败: {symbol}, 错误: {e}")
             return None
 
 
@@ -323,14 +333,14 @@ class StockTool:
         """
         try:
             if target_date is None:
-                current_date = datetime.now()
+                current_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             else:
                 from datetime import datetime as dt
                 # 兼容传字符串的情况
                 if isinstance(target_date, str):
                     current_date = dt.strptime(target_date, '%Y-%m-%d')
                 else:
-                    current_date = target_date
+                    current_date = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
             trade_date_df = self.get_trade_date_hist()
             
@@ -338,7 +348,7 @@ class StockTool:
                 logger.warning("交易日历数据不足，使用简单日期推算")
                 return self._get_previous_date_skip_weekend(current_date, days_back)
 
-            trade_date_df['trade_date'] = pd.to_datetime(trade_date_df['trade_date'])
+            trade_date_df['trade_date'] = pd.to_datetime(trade_date_df['trade_date']).dt.normalize()
             valid_dates = trade_date_df[trade_date_df['trade_date'] < current_date].sort_values('trade_date', ascending=False)
 
             if len(valid_dates) < days_back:

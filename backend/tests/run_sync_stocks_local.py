@@ -3,27 +3,35 @@ import os
 import logging
 
 # Set environment variables for local execution (connecting to Docker ports)
-os.environ['DATABASE_URL'] = 'postgresql://ruo_user:ruo_password@localhost:5432/ruo'
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+os.environ['DATABASE_URL'] = 'postgresql://ruo:1234567@localhost:5432/ruo'
 os.environ['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 os.environ['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/1'
 os.environ['REDIS_HOST'] = 'localhost'
 os.environ['REDIS_PORT'] = '6379'
+
+# Clear all proxies that might interfere with requests
+os.environ.pop('http_proxy', None)
+os.environ.pop('https_proxy', None)
+os.environ.pop('HTTP_PROXY', None)
+os.environ.pop('HTTPS_PROXY', None)
+os.environ.pop('all_proxy', None)
+os.environ.pop('ALL_PROXY', None)
 
 # Add backend to path to allow imports from app
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# Keep debug logging for news_cleaner
-logging.getLogger('app.services.news_cleaner').setLevel(logging.DEBUG)
 
-from app.tasks.news_fetch_tasks import fetch_xueqiu_news_task
+from app.tasks.stock_tasks import sync_stocks_task
 
 if __name__ == "__main__":
-    print(">>> Starting manual execution of fetch_xueqiu_news_task (Local Config)...")
+    print(">>> Starting manual execution of sync_stocks_task (Local Config)...")
     try:
         # Run the task synchronously
-        result = fetch_xueqiu_news_task(limit=5)
+        result = sync_stocks_task()
         print("\n>>> Task Execution Completed")
         print(f"Result: {result}")
     except Exception as e:

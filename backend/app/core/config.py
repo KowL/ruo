@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "postgres")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "ruo_user")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "ruo_password")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "ruo_db")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "ruo")
 
     @property
     def DATABASE_URL(self) -> str:

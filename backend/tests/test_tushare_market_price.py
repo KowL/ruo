@@ -15,7 +15,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 env_file = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_file)
-
+print(env_file)
+print(os.getenv("TUSHARE_TOKEN"))
 # 添加 backend 到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
