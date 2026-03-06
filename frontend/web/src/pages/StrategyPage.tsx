@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getStrategies, deleteStrategy, getStrategyTemplates, createStrategy } from '@/api/strategy';
 import type { Strategy, StrategyTemplate } from '@/types/strategy';
-import Button from '@/components/common/Button';
-import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
 
 const StrategyPage: React.FC = () => {
@@ -11,7 +9,7 @@ const StrategyPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
+
   // 创建表单
   const [newStrategy, setNewStrategy] = useState({
     name: '',
@@ -47,7 +45,7 @@ const StrategyPage: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('确定要删除这个策略吗？')) return;
-    
+
     try {
       await deleteStrategy(id);
       setToast({ message: '删除成功', type: 'success' });
@@ -59,7 +57,7 @@ const StrategyPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newStrategy.name.trim()) {
       setToast({ message: '请输入策略名称', type: 'error' });
       return;
@@ -86,130 +84,179 @@ const StrategyPage: React.FC = () => {
     return labels[type] || type;
   };
 
-  if (loading) {
-    return <Loading text="加载策略..." />;
-  }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6 text-white min-h-screen">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold">策略管理</h1>
-          <p className="text-gray-500 mt-1">创建和管理交易策略，支持回测验证</p>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
+            策略管理
+          </h1>
+          <p className="text-gray-400 mt-1 flex items-center">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+            创建和管理交易策略，支持回测验证
+          </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>+ 创建策略</Button>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all flex items-center"
+        >
+          <span className="mr-2 text-lg">+</span> 创建策略
+        </button>
       </div>
 
       {/* 策略列表 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {strategies.map((strategy) => (
-          <div key={strategy.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-lg">{strategy.name}</h3>
-                <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                  {getTypeLabel(strategy.strategyType)}
-                </span>
-              </div>
-              <button
-                onClick={() => handleDelete(strategy.id)}
-                className="text-gray-400 hover:text-red-500"
-              >
-                删除
-              </button>
-            </div>
-            
-            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{strategy.description || '暂无描述'}</p>
-            
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-gray-50 rounded p-2">
-                <div className="text-xs text-gray-500">总收益</div>
-                <div className={`font-semibold ${strategy.totalReturn >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {strategy.totalReturn >= 0 ? '+' : ''}{strategy.totalReturn.toFixed(2)}%
+      {loading && strategies.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="glass-card h-48 border border-white/5 bg-white/5"></div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {strategies.map((strategy) => (
+              <div key={strategy.id} className="glass-card p-5 group hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden">
+                {/* Hover Glow */}
+                <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
+
+                <div className="flex items-start justify-between mb-4 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors uppercase tracking-wider">{strategy.name}</h3>
+                    <span className="inline-block mt-2 px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/20 uppercase tracking-tighter">
+                      {getTypeLabel(strategy.strategyType)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(strategy.id)}
+                    className="text-gray-500 hover:text-red-400 p-1.5 hover:bg-red-400/10 rounded-lg transition-all"
+                    title="删除策略"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+
+                <p className="text-gray-400 text-sm mb-6 line-clamp-2 min-h-[40px] leading-relaxed">
+                  {strategy.description || '暂无详细描述...'}
+                </p>
+
+                <div className="grid grid-cols-3 gap-3 text-center mb-6">
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">总收益</div>
+                    <div className={`text-sm font-mono font-bold ${strategy.totalReturn >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]'}`}>
+                      {strategy.totalReturn >= 0 ? '+' : ''}{strategy.totalReturn.toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">最大回撤</div>
+                    <div className="text-sm font-mono font-bold text-[#34C759]">{strategy.maxDrawdown.toFixed(2)}%</div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">夏普</div>
+                    <div className="text-sm font-mono font-bold text-blue-400">{strategy.sharpeRatio.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 relative z-10 font-bold uppercase tracking-widest text-[#34C759]">
+                  <a
+                    href={`/#/signals?strategyId=${strategy.id}`}
+                    className="flex-1 flex items-center justify-center py-2.5 bg-white/5 text-white rounded-xl border border-white/10 hover:bg-blue-500 hover:border-blue-500 transition-all text-xs font-bold uppercase tracking-widest group/btn"
+                  >
+                    查看实时信号
+                  </a>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded p-2">
-                <div className="text-xs text-gray-500">最大回撤</div>
-                <div className="font-semibold text-green-600">{strategy.maxDrawdown.toFixed(2)}%</div>
-              </div>
-              <div className="bg-gray-50 rounded p-2">
-                <div className="text-xs text-gray-500">夏普比率</div>
-                <div className="font-semibold">{strategy.sharpeRatio.toFixed(2)}</div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <a
-                href={`/#/backtest?strategyId=${strategy.id}`}
-                className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm"
-              >
-                回测
-              </a>
-              <a
-                href={`/#/signals?strategyId=${strategy.id}`}
-                className="flex-1 text-center py-2 bg-green-50 text-green-600 rounded hover:bg-green-100 text-sm"
-              >
-                信号
-              </a>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {strategies.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-500 mb-4">还没有创建策略</p>
-          <Button onClick={() => setShowCreateModal(true)}>创建第一个策略</Button>
-        </div>
+          {!loading && strategies.length === 0 && (
+            <div className="text-center py-20 glass-card mx-auto max-w-lg border-dashed border-white/10">
+              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-gray-400 mb-6">目前还没有任何交易策略，请开始创建您的第一个量化方案</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all font-bold"
+              >
+                立即创建
+              </button>
+            </div>
+          )}
+        </>
       )}
-
       {/* 创建策略弹窗 */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4">创建策略</h2>
-            
-            <form onSubmit={handleCreate} className="space-y-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="glass-card w-full max-w-md p-8 relative overflow-hidden">
+            {/* Decorative Glows */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <h2 className="text-2xl font-bold mb-8 text-white flex items-center">
+              <span className="w-1 h-7 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-4"></span>
+              创建交易策略
+            </h2>
+
+            <form onSubmit={handleCreate} className="space-y-6 relative z-10">
               <div>
-                <label className="block text-sm mb-1">策略名称 *</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">策略名称 <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={newStrategy.name}
                   onChange={(e) => setNewStrategy({ ...newStrategy, name: e.target.value })}
-                  className="w-full p-2 border rounded"
-                  placeholder="输入策略名称"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                  placeholder="如：均线交叉超短线策略"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm mb-1">策略类型</label>
-                <select
-                  value={newStrategy.strategyType}
-                  onChange={(e) => setNewStrategy({ ...newStrategy, strategyType: e.target.value })}
-                  className="w-full p-2 border rounded"
-                >
-                  {templates.map((t) => (
-                    <option key={t.type} value={t.type}>{t.name}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">业务类型</label>
+                <div className="relative">
+                  <select
+                    value={newStrategy.strategyType}
+                    onChange={(e) => setNewStrategy({ ...newStrategy, strategyType: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all"
+                  >
+                    {templates.map((t) => (
+                      <option key={t.type} value={t.type} className="bg-[#1a1a1a]">{t.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm mb-1">描述</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">逻辑描述</label>
                 <textarea
                   value={newStrategy.description}
                   onChange={(e) => setNewStrategy({ ...newStrategy, description: e.target.value })}
-                  className="w-full p-2 border rounded h-20"
-                  placeholder="策略描述（可选）"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 h-28 transition-all resize-none"
+                  placeholder="简述策略的核心交易逻辑（可选）"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)}>
-                  取消
-                </Button>
-                <Button type="submit">创建</Button>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-all font-bold uppercase tracking-widest text-xs"
+                >
+                  放弃返回
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all uppercase tracking-widest text-xs"
+                >
+                  立即创建
+                </button>
               </div>
             </form>
           </div>

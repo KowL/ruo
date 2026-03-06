@@ -204,15 +204,18 @@ const DashboardPage: React.FC = () => {
           <div className="space-y-2 relative z-10">
             <div className="flex items-baseline space-x-4">
               <span className="text-4xl font-bold numbers tracking-tight text-white">
-                {portfolioLoading ? '...' : `¥${(totalValue || 0).toLocaleString()}`}
+                {portfolioLoading ? <span className="animate-pulse text-gray-500 text-2xl">加载中...</span> : `¥${(totalValue || 0).toLocaleString()}`}
               </span>
             </div>
             <div className="flex items-center space-x-3 mt-2">
-              <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio || 0), getProfitBgColor(totalProfitLossRatio || 0))}>
-                {totalProfitLoss >= 0 ? '+' : ''}{(totalProfitLoss || 0).toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{((totalProfitLossRatio || 0) * 100).toFixed(2)}%)
-              </span>
-
-              <span className="text-xs text-[var(--color-text-muted)]">今日盈亏</span>
+              {!portfolioLoading && (
+                <>
+                  <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio || 0), getProfitBgColor(totalProfitLossRatio || 0))}>
+                    {totalProfitLoss >= 0 ? '+' : ''}{(totalProfitLoss || 0).toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{((totalProfitLossRatio || 0) * 100).toFixed(2)}%)
+                  </span>
+                  <span className="text-xs text-[var(--color-text-muted)]">今日盈亏</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -221,20 +224,28 @@ const DashboardPage: React.FC = () => {
         <div className="glass-card p-6 flex flex-col justify-between hover-lift">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-base font-medium text-[var(--color-text-secondary)]">Ruo 情绪指数</h3>
-            <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/20">{sentimentLabel}</span>
+            {!dashboardData ? (
+              <div className="w-12 h-5 bg-white/5 animate-pulse rounded"></div>
+            ) : (
+              <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/20">{sentimentLabel}</span>
+            )}
           </div>
 
           <div className="h-28 w-full flex items-center justify-center -mt-4">
-            <ReactECharts
-              option={getGaugeOption(sentimentScore)}
-              style={{ height: '100%', width: '100%' }}
-              notMerge={true}
-            />
+            {!dashboardData ? (
+              <div className="w-24 h-24 rounded-full border-4 border-white/5 border-t-purple-500/30 animate-spin"></div>
+            ) : (
+              <ReactECharts
+                option={getGaugeOption(sentimentScore)}
+                style={{ height: '100%', width: '100%' }}
+                notMerge={true}
+              />
+            )}
           </div>
 
           <div className="text-center mt-[-10px]">
-            <p className="text-2xl font-bold text-white numbers">{sentiment ? sentiment.score : '--'}</p>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">{sentimentDescription}</p>
+            <p className="text-2xl font-bold text-white numbers">{dashboardData ? (sentiment ? sentiment.score : '--') : '...'}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">{dashboardData ? sentimentDescription : '正在分析市场情绪...'}</p>
           </div>
         </div>
       </div>
@@ -251,8 +262,11 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {reportLoading ? (
-          <div className="text-center py-6 text-[var(--color-text-muted)]">加载简报...</div>
+        {reportLoading && !dailyReport ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-8 bg-white/5 rounded w-1/4"></div>
+            <div className="h-20 bg-white/5 rounded w-full"></div>
+          </div>
         ) : dailyReport ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-4 mb-3">

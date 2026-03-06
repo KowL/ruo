@@ -43,6 +43,7 @@ def init_db():
     from app.models import (  # noqa: F401
         user, portfolio, news, stock, concept,
         alert, strategy, market_price,
+        stock_group, stock_favorite, strategy_subscription,
     )
 
     Base.metadata.create_all(bind=engine)

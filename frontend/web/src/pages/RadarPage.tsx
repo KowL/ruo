@@ -30,74 +30,84 @@ const RadarPage: React.FC = () => {
     switch (signalType) {
       case 'limit_up':
       case 'limit_up_pool':
-        return 'text-red-600 bg-red-50';
+        return 'text-red-400 bg-red-400/10 border-red-400/20';
       case 'strong_up':
       case 'auction_burst':
-        return 'text-orange-600 bg-orange-50';
+        return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
       case 'limit_down':
-        return 'text-green-600 bg-green-50';
+        return 'text-green-400 bg-green-400/10 border-green-400/20';
       case 'strong_down':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-gray-400 bg-gray-400/10 border-gray-400/20';
     }
   };
 
   const renderSignalList = (signals: RadarSignal[]) => {
+    if (loading && (!signals || signals.length === 0)) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div className="w-12 h-12 border-4 border-white/5 border-t-primary-light animate-spin rounded-full"></div>
+          <div className="text-gray-500 font-medium">正在同步雷达信号...</div>
+        </div>
+      );
+    }
+
     if (!signals || signals.length === 0) {
       return (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-20 text-gray-500">
+          <div className="text-4xl mb-4 text-gray-700">📡</div>
           暂无信号
         </div>
       );
     }
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {signals.map((signal, index) => (
           <div
             key={`${signal.symbol}-${index}`}
-            className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-md transition-shadow"
+            className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all group"
           >
             <div className="flex items-center gap-4">
-              <div className="text-center w-12">
-                <div className="text-lg font-bold text-gray-400">#{index + 1}</div>
+              <div className="text-center w-10">
+                <div className="text-xl font-black text-white/10 group-hover:text-white/20 transition-colors">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
               </div>
               <div>
-                <div className="font-semibold text-lg">{signal.name}</div>
-                <div className="text-gray-500 text-sm">{signal.symbol}</div>
+                <div className="font-bold text-lg text-white group-hover:text-primary-light transition-colors">{signal.name}</div>
+                <div className="text-gray-400 text-sm font-mono">{signal.symbol}</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8">
               <div className="text-right">
-                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getSignalColor(signal.signalType)}`}>
+                <div className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold border ${getSignalColor(signal.signalType)}`}>
                   {signal.signalName}
                 </div>
-                <div className="text-sm text-gray-500 mt-1">{signal.reason}</div>
+                <div className="text-xs text-gray-400 mt-1">{signal.reason}</div>
               </div>
 
-              <div className="text-right w-32">
+              <div className="text-right w-28">
                 {signal.price && (
-                  <>
-                    <div className="text-lg font-semibold">¥{signal.price.toFixed(2)}</div>
-                  </>
+                  <div className="text-lg font-bold text-white">¥{signal.price.toFixed(2)}</div>
                 )}
                 {signal.changePct !== undefined && (
-                  <div className={`text-lg font-semibold ${signal.changePct >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className={`text-sm font-bold ${signal.changePct >= 0 ? 'text-profit-up' : 'text-loss-up'}`}>
                     {signal.changePct >= 0 ? '+' : ''}{signal.changePct.toFixed(2)}%
                   </div>
                 )}
                 {signal.openPct !== undefined && (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-xs text-gray-500">
                     高开 {signal.openPct.toFixed(2)}%
                   </div>
                 )}
               </div>
 
-              <div className="text-right w-32">
-                <div className="text-sm text-gray-600">{formatMoney(signal.amount)}</div>
-                <div className="text-xs text-gray-400">强度: {signal.signalStrength.toFixed(1)}</div>
+              <div className="text-right w-32 border-l border-white/5 pl-6">
+                <div className="text-sm font-medium text-gray-300">{formatMoney(signal.amount)}</div>
+                <div className="text-xs text-gray-500 mt-0.5">强度: <span className="text-primary-light font-bold">{signal.signalStrength.toFixed(1)}</span></div>
               </div>
             </div>
           </div>
@@ -106,91 +116,109 @@ const RadarPage: React.FC = () => {
     );
   };
 
-  if (loading) {
-    return <Loading text="加载短线雷达数据..." />;
-  }
 
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+        <div className="glass-card border-red-500/20 p-8 text-center bg-red-500/5 rounded-2xl">
+          <p className="text-red-400 mb-6 flex items-center justify-center gap-2">
+            <span className="text-2xl">⚠️</span> {error}
+          </p>
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="px-6 py-2.5 bg-red-500/20 text-red-100 rounded-xl hover:bg-red-500/30 border border-red-500/30 transition-all font-medium"
           >
-            重试
+            尝试重新加载
           </button>
         </div>
       </div>
     );
   }
 
-  const currentSignals = activeTab === 'auction' 
-    ? data?.auctionSignals 
-    : activeTab === 'movers' 
-    ? data?.intradayMovers 
-    : data?.limitUpCandidates;
+  const currentSignals = activeTab === 'auction'
+    ? data?.auctionSignals
+    : activeTab === 'movers'
+      ? data?.intradayMovers
+      : data?.limitUpCandidates;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex items-end justify-between border-b border-white/5 pb-4">
         <div>
-          <h1 className="text-2xl font-bold">短线雷达</h1>
-          <p className="text-gray-500 mt-1">实时监控市场异动，捕捉短线机会</p>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">短线雷达</h1>
+          <p className="text-gray-400 mt-2 font-medium tracking-wide">实时监控市场异动，捕捉短线机会</p>
         </div>
-        <div className="text-sm text-gray-500">
-          更新于: {data?.updateTime ? new Date(data.updateTime).toLocaleTimeString() : '-'}
+        <div className="text-sm font-mono text-gray-500 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+          TIMESTAMP: {data?.updateTime ? new Date(data.updateTime).toLocaleTimeString() : '-'}
         </div>
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div 
-          className={`p-4 rounded-lg cursor-pointer transition-colors ${activeTab === 'auction' ? 'bg-orange-100 border-2 border-orange-500' : 'bg-white border'}`}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div
+          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'auction'
+            ? 'ring-2 ring-orange-500/50 bg-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.15)]'
+            : 'hover:bg-white/5'
+            }`}
           onClick={() => setActiveTab('auction')}
         >
-          <div className="text-sm text-gray-500">竞价爆点</div>
-          <div className="text-2xl font-bold text-orange-600">{data?.auctionSignals?.length || 0}</div>
-          <div className="text-xs text-gray-400 mt-1">高开3-7% + 竞价额&gt;1000万</div>
+          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">竞价爆点</div>
+          <div className="text-4xl font-black text-orange-500 mt-2 tracking-tighter">{data?.auctionSignals?.length || 0}</div>
+          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">高开3-7% + 竞价额&gt;1000万</div>
+          {activeTab === 'auction' && <div className="absolute top-0 right-0 w-2 h-full bg-orange-500/50" />}
         </div>
 
-        <div 
-          className={`p-4 rounded-lg cursor-pointer transition-colors ${activeTab === 'movers' ? 'bg-red-100 border-2 border-red-500' : 'bg-white border'}`}
+        <div
+          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'movers'
+            ? 'ring-2 ring-red-500/50 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
+            : 'hover:bg-white/5'
+            }`}
           onClick={() => setActiveTab('movers')}
         >
-          <div className="text-sm text-gray-500">实时异动</div>
-          <div className="text-2xl font-bold text-red-600">{data?.intradayMovers?.length || 0}</div>
-          <div className="text-xs text-gray-400 mt-1">涨跌幅&gt;5%的异动股票</div>
+          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">实时异动</div>
+          <div className="text-4xl font-black text-red-500 mt-2 tracking-tighter">{data?.intradayMovers?.length || 0}</div>
+          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">涨跌幅&gt;5%的异动股票</div>
+          {activeTab === 'movers' && <div className="absolute top-0 right-0 w-2 h-full bg-red-500/50" />}
         </div>
 
-        <div 
-          className={`p-4 rounded-lg cursor-pointer transition-colors ${activeTab === 'candidates' ? 'bg-purple-100 border-2 border-purple-500' : 'bg-white border'}`}
+        <div
+          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'candidates'
+            ? 'ring-2 ring-purple-500/50 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+            : 'hover:bg-white/5'
+            }`}
           onClick={() => setActiveTab('candidates')}
         >
-          <div className="text-sm text-gray-500">涨停候选</div>
-          <div className="text-2xl font-bold text-purple-600">{data?.limitUpCandidates?.length || 0}</div>
-          <div className="text-xs text-gray-400 mt-1">涨停池 + 即将涨停</div>
+          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">涨停候选</div>
+          <div className="text-4xl font-black text-purple-500 mt-2 tracking-tighter">{data?.limitUpCandidates?.length || 0}</div>
+          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">涨停池 + 即将涨停</div>
+          {activeTab === 'candidates' && <div className="absolute top-0 right-0 w-2 h-full bg-purple-500/50" />}
         </div>
       </div>
 
       {/* 信号列表 */}
-      <div className="bg-white rounded-lg border p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">
-            {activeTab === 'auction' && '竞价爆点信号'}
-            {activeTab === 'movers' && '实时异动监控'}
-            {activeTab === 'candidates' && '涨停候选池'}
-          </h2>
+      <div className="glass-card p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-6 rounded-full ${activeTab === 'auction' ? 'bg-orange-500' :
+              activeTab === 'movers' ? 'bg-red-500' : 'bg-purple-500'
+              }`} />
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              {activeTab === 'auction' && '竞价爆点信号'}
+              {activeTab === 'movers' && '实时异动监控'}
+              {activeTab === 'candidates' && '涨停候选池'}
+            </h2>
+          </div>
           <button
             onClick={fetchData}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-primary-light rounded-xl border border-white/10 transition-all text-sm font-bold shadow-sm"
           >
-            刷新数据
+            <span>🔄</span> 刷新数据
           </button>
         </div>
 
-        {renderSignalList(currentSignals || [])}
+        <div className="min-h-[400px]">
+          {renderSignalList(currentSignals || [])}
+        </div>
       </div>
     </div>
   );

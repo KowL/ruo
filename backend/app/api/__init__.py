@@ -12,13 +12,27 @@ api_router = APIRouter()
 # ========================================
 # 核心业务
 # ========================================
-from .endpoints import portfolio, stock, news
+from .endpoints import portfolio, stock, news, favorites, subscriptions
 
 # 持仓管理
 api_router.include_router(
     portfolio.router,
     prefix="/portfolio",
     tags=["持仓管理"]
+)
+
+# 自选管理
+api_router.include_router(
+    favorites.router,
+    prefix="/favorites",
+    tags=["自选管理"]
+)
+
+# 策略订阅
+api_router.include_router(
+    subscriptions.router,
+    prefix="/subscriptions",
+    tags=["策略订阅"]
 )
 
 # 股票查询

@@ -112,10 +112,17 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
             <div className="relative">
               <input
                 type="text"
-                value={formData.symbol || formData.name}
+                value={formData.symbol && formData.name ? `${formData.name} (${formData.symbol})` : (formData.symbol || formData.name)}
                 onChange={(e) => {
-                  setFormData({ ...formData, symbol: e.target.value });
-                  handleSearch(e.target.value);
+                  const val = e.target.value;
+                  // 如果包含名称 (代码) 的格式，且用户在修改，则清空重新搜索
+                  if (formData.name && val.includes(formData.name)) {
+                    setFormData({ ...formData, symbol: '', name: '' });
+                    handleSearch('');
+                  } else {
+                    setFormData({ ...formData, symbol: val, name: '' });
+                    handleSearch(val);
+                  }
                 }}
                 placeholder="输入代码或名称，如 000001"
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"

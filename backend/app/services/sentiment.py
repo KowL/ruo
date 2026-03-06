@@ -33,32 +33,38 @@ class SentimentService:
     def get_latest_sentiment(self) -> Dict:
         """
         获取最新情绪指数
-
-        Returns:
-            {
-                "date": "2026-03-04",
-                "index": 62.3,          # 0-100，50为中性
-                "change": 5.2,          # 较昨日变化
-                "label": "谨慎乐观",
-                "advance_count": 8,     # 上涨股数
-                "decline_count": 3,     # 下跌股数
-                "flat_count": 1,        # 平盘股数
-                "avg_change_pct": 1.23, # 平均涨跌幅 (%)
-                "avg_turnover": 3.45,   # 平均换手率 (%)
-                "volume_ratio": 1.18,   # 成交额比（今日/近5日均）
-                "market_mood": "活跃",   # 活跃/正常/低迷
-                "top_factors": [...]    # 主要特征描述
-            }
         """
-        today = datetime.now().date()
-        today_data = self._calculate_daily_sentiment(today)
+        # 自动查找最近的有成交数据的日期
+        symbols = self._get_tracked_symbols()
+        latest_date_row = (
+            self.db.query(DailyPrice.trade_date)
+            .filter(DailyPrice.symbol.in_(symbols))
+            .order_by(DailyPrice.trade_date.desc())
+            .first()
+        )
+        
+        target_date = latest_date_row[0] if latest_date_row else datetime.now().date()
+        today_data = self._calculate_daily_sentiment(target_date)
 
-        # 计算与昨日的变化
-        yesterday = today - timedelta(days=1)
-        yesterday_data = self._calculate_daily_sentiment(yesterday)
-        change = today_data["index"] - yesterday_data["index"]
+        # 找到前一个有数据的日期计算变化
+        prev_date_row = (
+            self.db.query(DailyPrice.trade_date)
+            .filter(
+                DailyPrice.symbol.in_(symbols),
+                DailyPrice.trade_date < target_date
+            )
+            .order_by(DailyPrice.trade_date.desc())
+            .first()
+        )
+        
+        if prev_date_row:
+            yesterday_data = self._calculate_daily_sentiment(prev_date_row[0])
+            change = today_data["index"] - yesterday_data["index"]
+        else:
+            change = 0.0
 
         result = dict(today_data)
+        result["news_count"] = today_data.get("stock_count", 0) # 兼容接口期望
         result["change"] = round(change, 1)
         result["label"] = self._get_sentiment_label(today_data["index"])
         result["top_factors"] = self._build_top_factors(today_data)

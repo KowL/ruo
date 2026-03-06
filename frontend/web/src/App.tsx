@@ -5,9 +5,9 @@ import PortfolioPage from './pages/PortfolioPage';
 import NewsPage from './pages/NewsPage';
 import ChartPage from './pages/ChartPage';
 import RadarPage from './pages/RadarPage';
-import LhbPage from './pages/LhbPage';
 import StrategyPage from './pages/StrategyPage';
-import BacktestPage from './pages/BacktestPage';
+import FavoritesPage from './pages/FavoritesPage';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 import StockAnalysisPage from './pages/StockAnalysisPage';
 import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
@@ -22,12 +22,12 @@ function App() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/subscriptions" element={<SubscriptionPage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/chart" element={<ChartPage />} />
           <Route path="/radar" element={<RadarPage />} />
-          <Route path="/lhb" element={<LhbPage />} />
           <Route path="/strategies" element={<StrategyPage />} />
-          <Route path="/backtest" element={<BacktestPage />} />
 
           <Route path="/analysis" element={<StockAnalysisPage />} />
           <Route path="/opening-analysis" element={<OpeningAnalysisPage />} />

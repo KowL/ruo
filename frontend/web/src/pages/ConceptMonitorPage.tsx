@@ -43,13 +43,6 @@ export default function ConceptMonitorPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loading />
-      </div>
-    );
-  }
 
   const marketOverview = data?.market_overview;
 
@@ -68,7 +61,13 @@ export default function ConceptMonitorPage() {
       </div>
 
       {/* 市场概览 */}
-      {marketOverview && (
+      {loading && !marketOverview ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-20 bg-white/5 rounded-xl border border-white/5"></div>
+          ))}
+        </div>
+      ) : marketOverview && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="text-center">
             <div className="text-sm text-slate-400 mb-1">上涨家数</div>
@@ -90,7 +89,9 @@ export default function ConceptMonitorPage() {
       )}
 
       {/* 涨停统计 */}
-      {data?.limit_up_statistics && (
+      {loading && !data?.limit_up_statistics ? (
+        <div className="h-48 bg-white/5 rounded-xl border border-white/5 animate-pulse"></div>
+      ) : data?.limit_up_statistics && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Flame className="w-5 h-5 text-orange-500" />
@@ -145,7 +146,7 @@ export default function ConceptMonitorPage() {
           </div>
 
           <div className="space-y-2">
-            {data?.movement_ranking.map((concept, index) => (
+            {data?.movement_ranking?.map((concept, index) => (
               <MovementRankingItem
                 key={concept.name}
                 concept={concept}
@@ -164,7 +165,7 @@ export default function ConceptMonitorPage() {
           </div>
 
           <div className="space-y-2">
-            {data?.fund_flow_ranking.map((concept, index) => (
+            {data?.fund_flow_ranking?.map((concept, index) => (
               <FundFlowItem
                 key={concept.name}
                 concept={concept}
@@ -232,9 +233,8 @@ function MovementRankingItem({ concept, rank, onClick }: MovementRankingItemProp
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
-        <div className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${
-          rank <= 3 ? 'bg-red-500/20 text-red-500' : 'bg-slate-700 text-slate-400'
-        }`}>
+        <div className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${rank <= 3 ? 'bg-red-500/20 text-red-500' : 'bg-slate-700 text-slate-400'
+          }`}>
           {rank}
         </div>
         <div>
@@ -267,9 +267,8 @@ function FundFlowItem({ concept, rank }: FundFlowItemProps) {
   return (
     <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
       <div className="flex items-center gap-3">
-        <div className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${
-          rank <= 3 ? 'bg-cyan-500/20 text-cyan-500' : 'bg-slate-700 text-slate-400'
-        }`}>
+        <div className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${rank <= 3 ? 'bg-cyan-500/20 text-cyan-500' : 'bg-slate-700 text-slate-400'
+          }`}>
           {rank}
         </div>
         <div>

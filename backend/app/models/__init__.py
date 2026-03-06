@@ -10,6 +10,9 @@ from app.models.concept import Concept, ConceptStock, StockPositioning
 from app.models.alert import AlertRule, AlertLog
 from app.models.strategy import Strategy, Backtest, StrategySignal
 from app.models.market_price import DailyPrice, WeeklyPrice, MonthlyPrice
+from app.models.stock_group import StockGroup
+from app.models.stock_favorite import StockFavorite
+from app.models.strategy_subscription import StrategySubscription
 
 __all__ = [
     'User',
@@ -30,4 +33,7 @@ __all__ = [
     'DailyPrice',
     'WeeklyPrice',
     'MonthlyPrice',
+    'StockGroup',
+    'StockFavorite',
+    'StrategySubscription',
 ]

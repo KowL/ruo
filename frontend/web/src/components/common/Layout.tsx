@@ -35,11 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { path: '/', label: '首页' },
     { path: '/portfolio', label: '持仓' },
+    { path: '/favorites', label: '自选' },
+    { path: '/subscriptions', label: '订阅' },
     { path: '/news', label: '情报' },
     { path: '/radar', label: '雷达' },
-    { path: '/lhb', label: '龙虎榜' },
     { path: '/strategies', label: '策略' },
-    { path: '/backtest', label: '回测' },
     { path: '/concepts', label: '概念' },
     { path: '/concept-monitor', label: '监控' },
     { path: '/analysis', label: '复盘' },

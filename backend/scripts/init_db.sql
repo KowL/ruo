@@ -22,10 +22,20 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE TABLE IF NOT EXISTS stocks (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(10) UNIQUE NOT NULL,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    sector VARCHAR(50),
     industry VARCHAR(50),
-    market VARCHAR(50),
+    market VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
+    current_price DOUBLE PRECISION,
+    change_pct DOUBLE PRECISION,
+    volume DOUBLE PRECISION,
+    amount DOUBLE PRECISION,
+    turnover_rate DOUBLE PRECISION,
+    pe_dynamic DOUBLE PRECISION,
+    pb DOUBLE PRECISION,
+    total_market_cap DOUBLE PRECISION,
+    circulating_market_cap DOUBLE PRECISION,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -277,6 +287,49 @@ CREATE TABLE IF NOT EXISTS strategy_signals (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     expired_at TIMESTAMP WITH TIME ZONE
 );
+
+-- ==================== 10. 自选股模块 (Favorites & Subscription) ====================
+
+-- 自选分组表
+CREATE TABLE IF NOT EXISTS stock_groups (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(200),
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_stock_groups_user ON stock_groups(user_id);
+
+-- 自选股票表
+CREATE TABLE IF NOT EXISTS stock_favorites (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    group_id INTEGER NOT NULL REFERENCES stock_groups(id) ON DELETE CASCADE,
+    symbol VARCHAR(10) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_stock_favorites_user ON stock_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_favorites_group ON stock_favorites(group_id);
+CREATE INDEX IF NOT EXISTS idx_stock_favorites_symbol ON stock_favorites(symbol);
+
+-- 策略订阅表
+CREATE TABLE IF NOT EXISTS strategy_subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    strategy_id INTEGER NOT NULL REFERENCES strategies(id) ON DELETE CASCADE,
+    stock_pool_type VARCHAR(20) DEFAULT 'all',
+    stock_group_id INTEGER REFERENCES stock_groups(id) ON DELETE SET NULL,
+    custom_symbols JSONB,
+    notify_enabled BOOLEAN DEFAULT TRUE,
+    notify_channels JSONB DEFAULT '["websocket"]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_strategy_subscriptions_user ON strategy_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_strategy_subscriptions_strategy ON strategy_subscriptions(strategy_id);
 
 -- ==================== 9. 初始基础数据 ====================
 -- 此处可添加板块数据等

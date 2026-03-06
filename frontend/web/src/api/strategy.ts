@@ -1,11 +1,9 @@
 import client from './client';
 import type { ApiResponse } from '@/types';
-import type { 
-  Strategy, 
-  StrategyTemplate, 
-  StrategySignal, 
-  Backtest, 
-  BacktestDetail 
+import type {
+  Strategy,
+  StrategyTemplate,
+  StrategySignal
 } from '@/types/strategy';
 
 /**
@@ -78,61 +76,4 @@ export function getSignals(strategyId: number, status?: string) {
  */
 export function updateSignalStatus(signalId: number, status: string) {
   return client.put<any, ApiResponse<void>>(`/strategies/signals/${signalId}?status=${status}`);
-}
-
-/**
- * 运行回测
- */
-export function runBacktest(data: {
-  strategyId: number;
-  startDate: string;
-  endDate: string;
-  initialCapital?: number;
-  symbols?: string[];
-}) {
-  return client.post<any, ApiResponse<Backtest>>('/backtest/run', data);
-}
-
-/**
- * 获取回测列表
- */
-export function getBacktests(strategyId?: number) {
-  const params = strategyId ? { strategyId } : {};
-  return client.get<any, ApiResponse<Backtest[]>>('/backtest', { params });
-}
-
-/**
- * 获取回测详情
- */
-export function getBacktestDetail(backtestId: number) {
-  return client.get<any, ApiResponse<BacktestDetail>>(`/backtest/${backtestId}`);
-}
-
-/**
- * 删除回测
- */
-export function deleteBacktest(backtestId: number) {
-  return client.delete<any, ApiResponse<void>>(`/backtest/${backtestId}`);
-}
-
-/**
- * 对比回测
- */
-export function compareBacktests(backtestIds: number[]) {
-  return client.post<any, ApiResponse<{
-    backtests: Backtest[];
-    metrics: {
-      total_return: number[];
-      max_drawdown: number[];
-      sharpe_ratio: number[];
-      win_rate: number[];
-    };
-    winner: {
-      backtest_id: number;
-      strategy_name: string;
-      total_return: number;
-      max_drawdown: number;
-      sharpe_ratio: number;
-    };
-  }>>('/backtest/compare', { backtestIds });
 }
