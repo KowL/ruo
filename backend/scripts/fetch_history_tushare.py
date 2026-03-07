@@ -72,11 +72,11 @@ DATABASE_URL = os.getenv(
 # Tushare 限制（10000 积分权限）
 # 每分钟限制 100 次调用，每次最多返回 8000 条数据
 RATE_LIMIT_PER_MINUTE = 100  # 每分钟最大调用次数
-BATCH_SIZE_TUSHARE = 100     # 每次请求的股票数量（平衡效率和稳定性）
-MAX_ROWS_PER_REQUEST = 8000  # Tushare 每次最多返回 8000 条
+BATCH_SIZE_TUSHARE = 2       # 每次请求的股票数量（2只 * 10年约4000条，不超8000条限制）
+MAX_ROWS_PER_REQUEST = 6000  # Tushare 每次最多返回 8000 条
 
 # 批量插入大小
-DB_BATCH_SIZE = 5000
+DB_BATCH_SIZE = 6000
 
 # =============================================================================
 # 数据库操作
@@ -401,6 +401,8 @@ def fetch_all_data_for_period(
         if df is None:
             logger.error(f"    获取失败，跳过这批")
             continue
+        
+        logger.info(f"    获取到 {len(df)} 条数据")
         
         if df.empty:
             logger.info(f"    这批无新数据")

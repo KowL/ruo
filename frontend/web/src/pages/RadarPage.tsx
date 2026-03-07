@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getRadarDashboard } from '@/api/radar';
 import type { RadarSignal, RadarDashboard } from '@/types/radar';
-import Loading from '@/components/common/Loading';
 import { formatMoney } from '@/utils/format';
 
 const RadarPage: React.FC = () => {

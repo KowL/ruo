@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CopilotPanel from './CopilotPanel';
 import SettingsPanel from './SettingsPanel';
 import clsx from 'clsx';
@@ -13,6 +13,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // 判断是否是首页
+  const isHome = location.pathname === '/';
 
   // 键盘快捷键支持
   React.useEffect(() => {
@@ -125,6 +129,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main
         className="flex-1 flex flex-col"
       >
+        {/* 返回按钮 */}
+        {!isHome && (
+          <div className="p-4 pb-0">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>返回</span>
+            </button>
+          </div>
+        )}
 
         {/* 页面内容 */}
         <div className="flex-1">

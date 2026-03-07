@@ -9,9 +9,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi.testclient import TestClient
-from app.main import app
+import main
 
-client = TestClient(app)
+client = TestClient(main.app)
 
 
 def test_root():
@@ -30,11 +30,11 @@ def test_health_check():
 
 def test_limit_up_stocks():
     """测试涨停股票接口"""
-    response = client.get("/api/v1/analysis/limit-up")
+    response = client.post("/api/v1/analysis/limit-up")
     assert response.status_code == 200
 
 
 def test_portfolio_list():
     """测试持仓列表接口"""
-    response = client.get("/api/v1/portfolio/")
+    response = client.get("/api/v1/portfolio/list")
     assert response.status_code == 200

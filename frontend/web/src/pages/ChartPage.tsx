@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { getKLineData } from '@/api/stock';
+import { getKLineData, getStockRealtime } from '@/api/stock';
 import KLineChart from '@/components/chart/KLineChart';
 import Loading from '@/components/common/Loading';
 import Modal from '@/components/common/Modal'; // Import Modal
@@ -29,6 +29,17 @@ const ChartPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const urlSymbol = searchParams.get('symbol');
 
+  // 获取股票名称
+  const fetchStockName = async (symbol: string) => {
+    try {
+      const res = await getStockRealtime(symbol);
+      setSelectedName(res.name);
+    } catch (error) {
+      console.error('获取股票名称失败:', error);
+      setSelectedName(symbol);
+    }
+  };
+
   useEffect(() => {
     // Priority: URL Param > Current Selection > Default to First Portfolio
     if (urlSymbol && urlSymbol !== selectedSymbol) {
@@ -40,7 +51,7 @@ const ChartPage: React.FC = () => {
         // Even if not in portfolio (e.g. from external link), allow it if needed, or just set symbol
         setSelectedSymbol(urlSymbol);
         // Name might be missing, maybe fetch or default
-        setSelectedName(urlSymbol);
+        fetchStockName(urlSymbol);
       }
     } else if (portfolios.length > 0 && !selectedSymbol && !urlSymbol) {
       setSelectedSymbol(portfolios[0].symbol);

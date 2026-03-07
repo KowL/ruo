@@ -1,11 +1,12 @@
 """
 行情数据服务 - Market Data Service
-MVP v0.1
+v1.1 - 集成东财/雪球双数据源 + 熔断降级机制
 
-功能：1
-- F-01: 基础行情接入（AkShare/Tushare）
+功能：
+- 基础行情接入（东财主力 + 雪球备用）
 - 获取股票信息、实时价格、K线数据
 - 股票搜索和自动补全
+- 熔断降级自动切换
 """
 import pandas as pd
 from typing import Optional, List, Dict
@@ -15,8 +16,25 @@ import time
 from functools import wraps
 
 from app.utils.stock_tool import stock_tool
+from app.core.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
+
+
+# 数据源熔断器配置
+eastmoney_breaker = CircuitBreaker(
+    name="eastmoney",
+    failure_threshold=5,
+    recovery_timeout=60.0,
+    success_threshold=3
+)
+
+xueqiu_breaker = CircuitBreaker(
+    name="xueqiu",
+    failure_threshold=5,
+    recovery_timeout=60.0,
+    success_threshold=3
+)
 
 
 def retry_on_error(max_retries: int = 3, delay: float = 1.0):
@@ -55,11 +73,26 @@ def retry_on_error(max_retries: int = 3, delay: float = 1.0):
 
 
 class MarketDataService:
-    """行情数据服务类"""
+    """行情数据服务类 - 集成双数据源 + 熔断降级"""
 
     def __init__(self):
-        self.cache = {}  # 简单缓存，后续可以替换为 Redis
-        self.cache_ttl = 300  # 缓存过期时间（秒）
+        self.cache = {}  # 内存缓存
+        
+        # 分级缓存TTL配置（秒）
+        self.cache_ttl = {
+            'realtime': 5,      # 实时价格: 5秒
+            'batch_realtime': 5,  # 批量行情: 5秒
+            'orderbook': 3,     # 盘口: 3秒
+            'intraday': 30,     # 分时: 30秒
+            'info': 3600,       # 股票信息: 1小时
+            'default': 300      # 默认: 5分钟
+        }
+        
+        # 熔断器引用
+        self.breakers = {
+            'eastmoney': eastmoney_breaker,
+            'xueqiu': xueqiu_breaker
+        }
 
     @retry_on_error(max_retries=3, delay=1.0)
     def search_stock(self, keyword: str) -> List[Dict]:
@@ -151,65 +184,98 @@ class MarketDataService:
             logger.error(f"获取股票信息失败: {symbol}, 错误: {e}")
             raise
 
+    def _get_cache(self, key: str, ttl_type: str = 'default'):
+        """获取缓存数据"""
+        if key in self.cache:
+            cached_data, cached_time = self.cache[key]
+            ttl = self.cache_ttl.get(ttl_type, self.cache_ttl['default'])
+            if time.time() - cached_time < ttl:
+                return cached_data
+        return None
+    
+    def _set_cache(self, key: str, data):
+        """设置缓存数据"""
+        self.cache[key] = (data, time.time())
+
     @retry_on_error(max_retries=3, delay=1.0)
     def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         """
-        获取实时行情
+        获取实时行情（东财主力 + 雪球备用）
 
         Args:
             symbol: 股票代码
 
         Returns:
-            实时行情数据
+            实时行情数据，包含 source 和 degraded 字段
         """
-        try:
-            # 实时行情不使用长期缓存，只使用短期缓存（10秒）
-            cache_key = f"realtime:{symbol}"
-            if cache_key in self.cache:
-                cached_data, cached_time = self.cache[cache_key]
-                if time.time() - cached_time < 10:  # 10秒缓存
-                    logger.debug(f"从缓存返回实时行情: {symbol}")
-                    return cached_data
+        cache_key = f"realtime:{symbol}"
+        cached = self._get_cache(cache_key, 'realtime')
+        if cached:
+            logger.debug(f"从缓存返回实时行情: {symbol}")
+            return cached
 
-            # 使用 StockTool 获取实时行情快照
-            realtime_data = stock_tool.get_realtime_quotes()
-
-            if realtime_data is None or realtime_data.empty:
-                logger.warning(f"实时行情获取失败: {symbol}")
-                return None
-
-            # 查找指定股票
-            stock_data = realtime_data[realtime_data['代码'] == symbol]
-
-            if stock_data.empty:
-                logger.warning(f"未找到股票行情: {symbol}")
-                return None
-
-            row = stock_data.iloc[0]
-
-            result = {
-                'symbol': symbol,
-                'name': row['名称'],
-                'price': float(row['最新价']),
-                'change': float(row['涨跌额']),
-                'changePct': float(row['涨跌幅']),
-                'open': float(row['今开']),
-                'high': float(row['最高']),
-                'low': float(row['最低']),
-                'close': float(row['昨收']),
-                'volume': float(row['成交量']),
-                'amount': float(row['成交额']),
-                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
-
-            # 缓存结果（10秒）
-            self.cache[cache_key] = (result, time.time())
-
-            return result
-
-        except Exception as e:
-            logger.error(f"获取实时行情失败: {symbol}, 错误: {e}")
-            raise
+        # 优先使用东财（通过熔断器保护）
+        if eastmoney_breaker.can_execute():
+            try:
+                data = stock_tool.get_realtime_eastmoney_single(symbol)
+                if data:
+                    eastmoney_breaker.record_success()
+                    result = {
+                        'symbol': symbol,
+                        'name': data.get('name', ''),
+                        'price': data.get('price', 0),
+                        'change': data.get('change', 0),
+                        'changePct': data.get('changePct', 0),
+                        'open': data.get('open', 0),
+                        'high': data.get('high', 0),
+                        'low': data.get('low', 0),
+                        'close': data.get('preClose', 0),
+                        'volume': data.get('volume', 0),
+                        'amount': data.get('amount', 0),
+                        'marketCap': data.get('marketCap', 0),
+                        'floatMarketCap': data.get('floatMarketCap', 0),
+                        'source': 'eastmoney',
+                        'degraded': False,
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    self._set_cache(cache_key, result)
+                    return result
+            except Exception as e:
+                eastmoney_breaker.record_failure()
+                logger.warning(f"东财单股接口失败，尝试雪球: {e}")
+        
+        # 降级到雪球
+        if xueqiu_breaker.can_execute():
+            try:
+                data = stock_tool.get_realtime_xueqiu_single(symbol)
+                if data:
+                    xueqiu_breaker.record_success()
+                    result = {
+                        'symbol': symbol,
+                        'name': data.get('name', ''),
+                        'price': data.get('price', 0),
+                        'change': data.get('change', 0),
+                        'changePct': data.get('changePct', 0),
+                        'open': data.get('open', 0),
+                        'high': data.get('high', 0),
+                        'low': data.get('low', 0),
+                        'close': data.get('preClose', 0),
+                        'volume': data.get('volume', 0),
+                        'amount': data.get('amount', 0),
+                        'marketCap': data.get('marketCap', 0),
+                        'floatMarketCap': data.get('floatMarketCap', 0),
+                        'source': 'xueqiu',
+                        'degraded': True,
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    self._set_cache(cache_key, result)
+                    return result
+            except Exception as e:
+                xueqiu_breaker.record_failure()
+                logger.error(f"雪球单股接口也失败: {e}")
+        
+        logger.error(f"所有数据源均不可用: {symbol}")
+        return None
 
     @retry_on_error(max_retries=3, delay=1.0)
     def get_stock_price_xq(self, symbol: str) -> float:
@@ -341,66 +407,73 @@ class MarketDataService:
     @retry_on_error(max_retries=3, delay=1.0)
     def batch_get_realtime_prices(self, symbols: List[str]) -> Dict[str, Dict]:
         """
-        批量获取实时行情
+        批量获取实时行情（东财批量 + 熔断降级）
 
         Args:
             symbols: 股票代码列表
 
         Returns:
-            {symbol: price_data} 字典
+            {symbol: price_data} 字典，包含 source 和 degraded 字段
         """
-        try:
-            # 检查缓存
-            cache_key = "batch_realtime"
-            cached_all_data = None
+        if not symbols:
+            return {}
+        
+        # 检查缓存
+        cache_key = f"batch_realtime:{','.join(sorted(symbols))}"
+        cached = self._get_cache(cache_key, 'batch_realtime')
+        if cached:
+            logger.debug("从缓存返回批量实时行情")
+            return cached
 
-            if cache_key in self.cache:
-                cached_all_data, cached_time = self.cache[cache_key]
-                # 批量数据缓存10秒
-                if time.time() - cached_time < 10:
-                    logger.debug("从缓存返回批量实时行情")
-                    # 从缓存中筛选需要的股票
-                    result = {}
-                    for symbol in symbols:
-                        if symbol in cached_all_data:
-                            result[symbol] = cached_all_data[symbol]
-                    if len(result) == len(symbols):
-                        return result
-
-            # 获取所有A股实时行情快照
-            realtime_data = stock_tool.get_realtime_quotes()
-            
-            if realtime_data is None or realtime_data.empty:
-                 logger.error("批量获取实时行情工具失败")
-                 return {}
-
-            # 构建所有股票的字典（用于缓存）
-            all_data = {}
-            for _, row in realtime_data.iterrows():
-                symbol = row['代码']
-                all_data[symbol] = {
-                    'price': float(row['最新价']),
-                    'change': float(row['涨跌额']),
-                    'changePct': float(row['涨跌幅']),
-                    'name': row['名称']
-                }
-
-            # 缓存所有数据
-            self.cache[cache_key] = (all_data, time.time())
-
-            # 筛选需要的股票
-            result = {}
-            for symbol in symbols:
-                if symbol in all_data:
-                    result[symbol] = all_data[symbol]
-                else:
-                    logger.warning(f"未找到股票行情: {symbol}")
-
-            return result
-
-        except Exception as e:
-            logger.error(f"批量获取实时行情失败, 错误: {e}")
-            raise
+        # 使用统一接口（自动处理主备切换）
+        results = stock_tool.get_realtime_quotes_unified(symbols, prefer_source='eastmoney')
+        
+        # 格式化返回数据
+        formatted_results = {}
+        for symbol, data in results.items():
+            formatted_results[symbol] = {
+                'symbol': symbol,
+                'name': data.get('name', ''),
+                'price': data.get('price', 0),
+                'change': data.get('change', 0),
+                'changePct': data.get('changePct', 0),
+                'volume': data.get('volume', 0),
+                'amount': data.get('amount', 0),
+                'high': data.get('high', 0),
+                'low': data.get('low', 0),
+                'open': data.get('open', 0),
+                'preClose': data.get('preClose', 0),
+                'source': data.get('source', 'unknown'),
+                'degraded': data.get('degraded', False),
+                'timestamp': data.get('timestamp', datetime.now().isoformat())
+            }
+        
+        # 更新熔断器状态
+        if any(d.get('source') == 'eastmoney' and not d.get('degraded') for d in results.values()):
+            eastmoney_breaker.record_success()
+        elif results:
+            # 如果全部降级，说明东财可能有问题
+            pass
+        
+        # 缓存结果
+        self._set_cache(cache_key, formatted_results)
+        
+        logger.info(f"批量行情获取完成: {len(formatted_results)} 只, " +
+                   f"降级: {sum(1 for d in formatted_results.values() if d.get('degraded'))} 只")
+        
+        return formatted_results
+    
+    def get_datasource_health(self) -> Dict:
+        """
+        获取数据源健康状态
+        
+        Returns:
+            各数据源熔断器状态
+        """
+        return {
+            name: breaker.get_stats()
+            for name, breaker in self.breakers.items()
+        }
 
     @retry_on_error(max_retries=3, delay=1.0)
     def get_intraday_data(self, symbol: str) -> List[Dict]:
@@ -423,33 +496,16 @@ class MarketDataService:
                     logger.debug(f"从缓存返回分时数据: {symbol}")
                     return cached_data
 
-            # 使用 StockTool 获取分时数据
-            df = stock_tool.get_intraday_data(symbol)
+            # 优先从新浪财经获取分时数据
+            intraday_data = stock_tool.get_intraday_from_sina(symbol)
+            
+            # 如果新浪失败，尝试东方财富
+            if not intraday_data:
+                intraday_data = stock_tool.get_intraday_from_eastmoney(symbol)
 
-            if df is None or df.empty:
-                logger.warning(f"未找到分时数据: {symbol}")
+            if not intraday_data:
+                logger.warning(f"获取分时数据失败: {symbol}")
                 return []
-
-            # 转换为字典列表
-            intraday_data = []
-            total_volume = 0
-            total_amount = 0
-
-            for _, row in df.iterrows():
-                volume = float(row['成交量']) if '成交量' in row else 0
-                amount = float(row['成交额']) if '成交额' in row else 0
-                total_volume += volume
-                total_amount += amount
-
-                # 计算均价
-                avg_price = amount / volume if volume > 0 else 0
-
-                intraday_data.append({
-                    'time': row['时间'].strftime('%H:%M:%S') if '时间' in row else row.name.strftime('%H:%M:%S'),
-                    'price': float(row['收盘']),
-                    'volume': volume,
-                    'avgPrice': avg_price
-                })
 
             # 缓存结果
             self.cache[cache_key] = (intraday_data, time.time())

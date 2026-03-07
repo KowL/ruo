@@ -20,7 +20,7 @@ celery_app = Celery(
     backend=CELERY_RESULT_BACKEND,
     include=[
         'app.tasks.news_fetch_tasks',  # 新闻抓取任务
-        # 'app.tasks.price_tasks',       # 价格更新任务
+        'app.tasks.price_tasks',       # 价格更新任务
         'app.tasks.stock_tasks',       # 股票同步任务
         'app.tasks.alert_tasks',       # 预警检查任务
         'app.tasks.market_price_tasks', # 行情数据任务（新）
@@ -81,14 +81,33 @@ celery_app.conf.update(
             }
         },
 
-        # === 价格更新任务 ===
-        # 'update-portfolio-prices-every-20s': {
-        #     'task': 'app.tasks.price_tasks.update_portfolio_prices_task',
-        #     'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
-        #     'options': {
-        #         'expires': 60,
-        #     }
-        # },
+        # === 价格更新任务 (东财主力 + 雪球备用) ===
+        'update-portfolio-prices-every-10s': {
+            'task': 'app.tasks.price_tasks.update_portfolio_prices_task',
+            'schedule': 10.0,  # 每 10 秒 (交易时间内执行)
+            'options': {
+                'expires': 30,
+                'queue': 'high_priority',
+            }
+        },
+        
+        # 数据源健康检查：每 5 分钟
+        'check-datasource-health': {
+            'task': 'app.tasks.price_tasks.check_datasource_health_task',
+            'schedule': 300.0,  # 每 5 分钟
+            'options': {
+                'expires': 300,
+            }
+        },
+        
+        # 雪球 Token 刷新：每 30 分钟
+        'refresh-xueqiu-token': {
+            'task': 'app.tasks.price_tasks.refresh_xueqiu_token_task',
+            'schedule': 1800.0,  # 每 30 分钟
+            'options': {
+                'expires': 300,
+            }
+        },
 
         # === 预警检查任务 ===
         'check-alerts-every-5-minutes': {
@@ -164,6 +183,14 @@ celery_app.conf.update(
         # 价格更新任务
         'app.tasks.price_tasks.update_portfolio_prices_task': {
             'rate_limit': '50/m',
+        },
+        'app.tasks.price_tasks.refresh_xueqiu_token_task': {
+            'autoretry_for': (Exception,),
+            'retry_kwargs': {
+                'max_retries': 3,
+                'countdown': 60,
+            },
+            'rate_limit': '2/m',
         },
         # 新闻抓取任务重试配置
         'app.tasks.news_fetch_tasks.fetch_cls_news_task': {

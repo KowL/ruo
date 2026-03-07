@@ -40,9 +40,9 @@ const SubscriptionPage: React.FC = () => {
         getSubscriptions(),
         getGroups(),
       ]);
-      setStrategies(strategyRes.data || []);
-      setSubscriptions(subscriptionRes.data || []);
-      setGroups(groupRes.data || []);
+      setStrategies((strategyRes as any)?.data || []);
+      setSubscriptions((subscriptionRes as any)?.data || []);
+      setGroups((groupRes as any)?.data || []);
     } catch (error) {
       console.error('加载数据失败:', error);
       showToast('加载数据失败', 'error');
@@ -102,11 +102,6 @@ const SubscriptionPage: React.FC = () => {
     setSelectedGroupId(null);
     setCustomSymbols('');
     setNotifyEnabled(true);
-  };
-
-  const getStrategyName = (strategyId: number) => {
-    const strategy = strategies.find(s => s.id === strategyId);
-    return strategy?.name || '未知策略';
   };
 
   const getPoolTypeLabel = (type: string) => {
@@ -355,7 +350,7 @@ const SubscriptionPage: React.FC = () => {
         </div>
       )}
 
-      {toast && <Toast message={toast.message} type={toast.type} />}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

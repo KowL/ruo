@@ -71,13 +71,20 @@ api_router.include_router(
 # ========================================
 # 行情与市场数据
 # ========================================
-from .endpoints import concepts, concept_monitor, dashboard, dragon_tiger, short_term_radar
+from .endpoints import concepts, concept_monitor, dashboard, dragon_tiger, short_term_radar, market
 
 # 仪表盘
 api_router.include_router(
     dashboard.router,
     prefix="/dashboard",
     tags=["仪表盘"]
+)
+
+# 市场数据
+api_router.include_router(
+    market.router,
+    prefix="/market",
+    tags=["市场数据"]
 )
 
 # 概念管理

@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.llm_agent.agents.day_trading_coach import node_day_trading_coach
-from app.llm_agent.llm_factory import create_llm
+from app.core.llm_factory import create_llm
 
 def load_cached_state(date: str):
     """加载缓存的状态数据"""

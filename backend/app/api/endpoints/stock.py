@@ -184,6 +184,35 @@ async def get_kline_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取K线数据失败: {str(e)}")
 
+
+@router.get("/timeshare/{symbol}", summary="获取分时数据", tags=["股票查询"])
+async def get_timeshare_data(
+    symbol: str
+):
+    """
+    获取分时数据
+
+    **用途：**
+    - 股票详情页显示分时走势
+
+    **参数：**
+    - symbol: 股票代码
+
+    **返回：**
+    - 分时数据列表
+    """
+    try:
+        intraday_data = market_service.get_intraday_data(symbol)
+
+        return {
+            "status": "success",
+            "data": intraday_data
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取分时数据失败: {str(e)}")
+
+
 @router.post("/batch/realtime", summary="批量获取实时行情", tags=["股票查询"])
 async def batch_get_realtime_prices(
     symbols: list[str]

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { getGroups, createGroup, updateGroup, deleteGroup, getStocks, addStock, deleteStock, StockGroup, StockFavorite, SearchStock } from '@/api/favorites';
-import { searchStock } from '@/api/stock';
+import { useNavigate } from 'react-router-dom';
+import { getGroups, createGroup, deleteGroup, getStocks, addStock, deleteStock, StockGroup, StockFavorite, SearchStock } from '@/api/favorites';
+import { searchStock, getStockRealtime, StockRealtime } from '@/api/stock';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
 
 const FavoritesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<StockGroup[]>([]);
   const [stocks, setStocks] = useState<StockFavorite[]>([]);
+  const [stockPrices, setStockPrices] = useState<Record<string, StockRealtime>>({});
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -26,9 +29,12 @@ const FavoritesPage: React.FC = () => {
   const loadGroups = async () => {
     try {
       const res = await getGroups();
-      setGroups(res.data);
-      if (res.data.length > 0 && !selectedGroupId) {
-        setSelectedGroupId(res.data[0].id);
+      console.log('API response:', res);
+      const groupsData = res?.data || [];
+      console.log('groupsData:', groupsData);
+      setGroups(groupsData);
+      if (groupsData.length > 0 && !selectedGroupId) {
+        setSelectedGroupId(groupsData[0].id);
       }
     } catch (error) {
       console.error('加载分组失败:', error);
@@ -36,11 +42,31 @@ const FavoritesPage: React.FC = () => {
     }
   };
 
-  // 加载自选股票
+  // 加载自选股票及其价格
   const loadStocks = async (groupId: number) => {
     try {
       const res = await getStocks(groupId);
-      setStocks(res.data);
+      const stocksData = res?.data || [];
+      setStocks(stocksData);
+      
+      // 获取每只股票的价格
+      const pricePromises = stocksData.map(async (stock: StockFavorite) => {
+        try {
+          const priceRes = await getStockRealtime(stock.symbol);
+          return { symbol: stock.symbol, data: priceRes };
+        } catch {
+          return { symbol: stock.symbol, data: null };
+        }
+      });
+      
+      const priceResults = await Promise.all(pricePromises);
+      const priceMap: Record<string, StockRealtime> = {};
+      priceResults.forEach((item) => {
+        if (item.data) {
+          priceMap[item.symbol] = item.data;
+        }
+      });
+      setStockPrices(priceMap);
     } catch (error) {
       console.error('加载自选股票失败:', error);
       showToast('加载自选股票失败', 'error');
@@ -109,7 +135,7 @@ const FavoritesPage: React.FC = () => {
       const results = await searchStock(searchKeyword.trim());
 
       // 检查哪些股票已经在当前自选组中
-      const currentStockSymbols = new Set(stocks.map(s => s.symbol));
+      const currentStockSymbols = new Set((stocks || []).map(s => s.symbol));
 
       const formattedResults = results.map(stock => ({
         ...stock,
@@ -155,7 +181,7 @@ const FavoritesPage: React.FC = () => {
     }
   };
 
-  const currentGroup = groups.find(g => g.id === selectedGroupId);
+  const currentGroup = groups?.find(g => g.id === selectedGroupId);
 
   if (loading) {
     return <Loading />;
@@ -184,7 +210,7 @@ const FavoritesPage: React.FC = () => {
               我的分组
             </h3>
             <div className="space-y-2">
-              {groups.map((group) => (
+              {(groups || []).map((group) => (
                 <div
                   key={group.id}
                   onClick={() => setSelectedGroupId(group.id)}
@@ -204,7 +230,7 @@ const FavoritesPage: React.FC = () => {
                   )}
                 </div>
               ))}
-              {groups.length === 0 && (
+              {(groups || []).length === 0 && (
                 <div className="text-center py-8 text-slate-500 text-sm">
                   暂无分组
                 </div>
@@ -241,37 +267,51 @@ const FavoritesPage: React.FC = () => {
               </div>
 
               <div className="flex-1 glass-card overflow-auto border border-white/5 bg-slate-900/50">
-                {stocks.length > 0 ? (
+                {(stocks || []).length > 0 ? (
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-slate-900/90 backdrop-blur border-b border-white/5 z-10">
                       <tr className="text-left text-slate-400">
                         <th className="p-4 font-medium">代码</th>
                         <th className="p-4 font-medium">名称</th>
+                        <th className="p-4 font-medium text-right">现价</th>
+                        <th className="p-4 font-medium text-right">涨跌幅</th>
                         <th className="p-4 font-medium">添加时间</th>
                         <th className="p-4 font-medium text-right">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {stocks.map((stock) => (
+                      {(stocks || []).map((stock) => {
+                        const price = stockPrices[stock.symbol];
+                        const changePct = price?.changePct || 0;
+                        const isUp = changePct > 0;
+                        const isDown = changePct < 0;
+                        return (
                         <tr
                           key={stock.id}
-                          className="hover:bg-white/5 transition-colors group"
+                          onClick={() => navigate(`/chart?symbol=${stock.symbol}`)}
+                          className="hover:bg-white/5 transition-colors group cursor-pointer"
                         >
                           <td className="p-4 font-mono text-slate-300 group-hover:text-blue-400 transition-colors">{stock.symbol}</td>
                           <td className="p-4 font-medium text-white">{stock.name}</td>
+                          <td className="p-4 text-right font-medium">
+                            {price ? price.price.toFixed(2) : '-'}
+                          </td>
+                          <td className={`p-4 text-right ${isUp ? 'text-red-400' : isDown ? 'text-green-400' : 'text-slate-400'}`}>
+                            {price ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '-'}
+                          </td>
                           <td className="p-4 text-slate-500">
                             {new Date(stock.addedAt).toLocaleDateString()}
                           </td>
                           <td className="p-4 text-right">
                             <button
-                              onClick={() => handleDeleteStock(stock.id)}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteStock(stock.id); }}
                               className="text-slate-500 hover:text-red-400 transition-colors px-2 py-1"
                             >
                               删除
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 ) : (
@@ -457,7 +497,7 @@ const FavoritesPage: React.FC = () => {
         </div>
       )}
 
-      {toast && <Toast message={toast.message} type={toast.type} />}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

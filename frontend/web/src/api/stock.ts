@@ -11,18 +11,20 @@ export interface TimeShareData {
 
 // 搜索股票
 export const searchStock = async (keyword: string): Promise<any[]> => {
-  const response = await client.get<any, ApiResponse<any[]>>('/stock/search', {
+  const res = await client.get<any, ApiResponse<any[]>>('/stock/search', {
     params: { keyword },
   });
-  return response.data || [];
+  // client 拦截器已返回 response.data
+  return res?.data || [];
 };
 
 // 获取实时行情
 export const getStockRealtime = async (symbol: string): Promise<StockRealtime> => {
-  const response = await client.get<any, ApiResponse<StockRealtime>>(
+  const res = await client.get<any, ApiResponse<StockRealtime>>(
     `/stock/realtime/${symbol}`
   );
-  return response.data!;
+  // client 拦截器已返回 response.data = { status, data }
+  return res?.data!;
 };
 
 // 获取K线数据
@@ -31,16 +33,18 @@ export const getKLineData = async (
   period: 'daily' | 'weekly' | 'monthly' = 'daily',
   limit: number = 60
 ): Promise<KLineData[]> => {
-  const response = await client.get<any, ApiResponse<KLineData[]>>(`/stock/kline/${symbol}`, {
+  const res = await client.get<any, ApiResponse<KLineData[]>>(`/stock/kline/${symbol}`, {
     params: { period, limit },
   });
-  return response.data || [];
+  // client 拦截器已返回 response.data = { status, data }
+  return res?.data || [];
 };
 
 // 获取分时数据 (Backend)
 export const getTimeShareData = async (symbol: string): Promise<TimeShareData[]> => {
-  const response = await client.get<any, ApiResponse<TimeShareData[]>>(`/timeshare/${symbol}`);
-  return response.data || [];
+  const res = await client.get<any, ApiResponse<TimeShareData[]>>(`/stock/timeshare/${symbol}`);
+  // client 拦截器已返回 response.data = { status, data }
+  return res?.data || [];
 };
 
 // --- Eastmoney Direct API Helpers ---
@@ -87,31 +91,26 @@ const getMarketId = (code: string) => {
 // 获取分时数据 (Eastmoney Direct)
 // URL: https://push2.eastmoney.com/api/qt/stock/trends2/get?secid={market}.{code}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&cb=cb
 export const fetchIntradayData = async (symbol: string): Promise<{ name: string; preClose: number; trends: TimeShareData[] }> => {
-  const market = getMarketId(symbol);
-  // fields1: f1-f13. preClose is f4? Let's check Eastmoney docs or assumption.
-  // Common Eastmoney fields1: 
-  // f1=code, f2=market?, f3=name, f4=decimal_places?, f4=preClose? 
-  // Let's rely on `data.prePrice`. Eastmoney usually returns `prePrice` in the root `data` object.
-  const url = `https://push2.eastmoney.com/api/qt/stock/trends2/get?secid=${market}.${symbol}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&cb=cb`;
-
+  // 使用后端 API 获取分时数据
   try {
-    const res = await jsonp(url, 'cb');
-    if (res && res.data && res.data.trends) {
-      const preClose = res.data.prePrice;
-      const name = res.data.name;
-      const trends = res.data.trends.map((line: string) => {
-        const parts = line.split(',');
-        return {
-          time: parts[0],
-          price: parseFloat(parts[2]),
-          volume: parseFloat(parts[5]),
-          avgPrice: parseFloat(parts[7])
-        };
-      });
-      return { name, preClose, trends };
-    }
+    const res = await client.get<any, ApiResponse<any>>(`/stock/timeshare/${symbol}`);
+    // client 拦截器已返回 response.data = { status, data }
+    const data = res?.data || [];
+    
+    // 转换后端数据格式为前端需要的格式
+    const trends = data.map((item: any) => ({
+      time: item.time,
+      price: item.price,
+      volume: item.volume,
+      avgPrice: item.avgPrice || 0
+    }));
+    
+    // 从第一条数据获取昨收价（如果存在）
+    const preClose = trends.length > 0 ? trends[0].price - (data[0]?.change || 0) : 0;
+    
+    return { name: '', preClose, trends };
   } catch (error) {
-    console.error("Eastmoney fetch failed:", error);
+    console.error("获取分时数据失败:", error);
+    return { name: '', preClose: 0, trends: [] };
   }
-  return { name: '', preClose: 0, trends: [] };
 };
