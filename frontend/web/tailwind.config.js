@@ -1,79 +1,121 @@
-import typography from '@tailwindcss/typography'
+import typography from '@tailwindcss/typography';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ["class"],
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
-      // 极简黑色主题色彩体系
       colors: {
-        // 背景色 (Backgrounds)
-        'surface-1': '#000000', // 全局背景 - 纯黑
-        'surface-2': '#0A0A0A', // 卡片/面板
-        'surface-3': '#1A1A1A', // 悬停/激活
-        'surface-4': '#2A2A2A', // 边框/分隔
+        // Shadcn UI tokens
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
 
-        // 品牌色 (Brand) - 极简白色
-        'brand': '#FFFFFF', // 品牌白
-
-        // 功能色 (Functional)
-        'profit-up': '#FF3B30', // A股红 (涨)
-        'profit-down': '#34C759', // 美股绿 (涨)
-        'loss-up': '#34C759', // A股绿 (跌)
-        'loss-down': '#FF3B30', // 美股红 (跌)
-        'warning': '#FF9500', // 预警
-
-        // 文本色 (Typography)
-        'text-primary': '#FFFFFF', // 主文本
-        'text-secondary': '#8E8E93', // 次要文本
-        'text-muted': '#3A3A3C', // 弱化文本
+        // Legacy Tokens (from original frontend)
+        'brand': '#FFFFFF',
+        'profit-up': 'hsl(var(--profit-up))',
+        'profit-down': 'hsl(var(--profit-down))',
+        'loss-up': '#34C759',
+        'loss-down': '#FF3B30',
+        'warning': '#FF9500',
       },
-
-      // 字体配置
+      borderRadius: {
+        xl: "calc(var(--radius) + 4px)",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        xs: "calc(var(--radius) - 6px)",
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      },
       fontFamily: {
         sans: ['PingFang SC', 'Microsoft YaHei', 'Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'IBM Plex Mono', 'Roboto Mono', 'monospace'],
       },
-
-      // 间距配置
       spacing: {
         'sidebar-collapsed': '64px',
         'sidebar-expanded': '240px',
         'copilot-width': '320px',
       },
-
-      // 动画配置
-      animation: {
-        'pulse-wave': 'pulse-wave 1.5s ease-in-out infinite',
-        'data-flash': 'data-flash 0.3s ease-in-out',
-      },
-
       keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
         'pulse-wave': {
-          '0%, 100%': {
-            transform: 'scale(0.95)',
-            opacity: '0.8',
-          },
-          '50%': {
-            transform: 'scale(1.05)',
-            opacity: '1',
-          },
+          '0%, 100%': { transform: 'scale(0.95)', opacity: '0.8' },
+          '50%': { transform: 'scale(1.05)', opacity: '1' },
         },
         'data-flash': {
-          '0%': {
-            backgroundColor: 'rgba(246, 53, 56, 0.2)',
-          },
-          '100%': {
-            backgroundColor: 'transparent',
-          },
+          '0%': { backgroundColor: 'rgba(246, 53, 56, 0.2)' },
+          '100%': { backgroundColor: 'transparent' },
         },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "caret-blink": "caret-blink 1.25s ease-out infinite",
+        'pulse-wave': 'pulse-wave 1.5s ease-in-out infinite',
+        'data-flash': 'data-flash 0.3s ease-in-out',
       },
     },
   },
   plugins: [
     typography,
+    tailwindcssAnimate,
   ],
 }

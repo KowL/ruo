@@ -25,7 +25,7 @@ const LoadingWave: React.FC<LoadingWaveProps> = ({
           <div
             key={delay}
             className={clsx(
-              'bg-[var(--color-ruo-purple)] rounded-full pulse-wave',
+              'bg-primary rounded-full pulse-wave',
               sizeClasses[size]
             )}
             style={{ animationDelay: `${delay}ms` }}
@@ -33,7 +33,7 @@ const LoadingWave: React.FC<LoadingWaveProps> = ({
         ))}
       </div>
       {text && (
-        <p className="text-sm text-[var(--color-text-secondary)]">
+        <p className="text-sm text-muted-foreground">
           {text}
         </p>
       )}

@@ -158,22 +158,18 @@ const PortfolioPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* 总览卡片 */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">持仓总览</h2>
-
-        </div>
+      <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm p-6 pt-8">
         <div className="grid grid-cols-3 gap-6">
           <div>
-            <p className="text-sm text-[var(--color-text-secondary)]">总市值</p>
+            <p className="text-sm text-muted-foreground">总市值</p>
             <p className="text-2xl font-bold numbers mt-1">{formatMoney(totalValue)}</p>
           </div>
           <div>
-            <p className="text-sm text--[color-text-secondary)]">总成本</p>
+            <p className="text-sm text-muted-foreground">总成本</p>
             <p className="text-2xl font-bold numbers mt-1">{formatMoney(totalCost)}</p>
           </div>
           <div>
-            <p className="text-sm text-[var(--color-text-secondary)]">总盈亏</p>
+            <p className="text-sm text-muted-foreground">总盈亏</p>
             <p className={clsx('text-2xl font-bold mt-1', getProfitColor(total_profit_loss / totalValue * 100))}>
               {formatMoney(total_profit_loss)}
             </p>
@@ -185,19 +181,18 @@ const PortfolioPage: React.FC = () => {
       </div>
 
       {/* 操作栏 */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">智能持仓</h2>
+      <div className="flex justify-end items-center -mt-2 mb-2">
         <Button onClick={() => setIsModalOpen(true)} disabled={loading}>
           + 添加持仓
         </Button>
       </div>
 
       {/* 增强型表格 */}
-      <div className="card overflow-hidden">
+      <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[var(--color-surface-3)] text-left text-[var(--color-text-secondary)] text-sm">
+              <tr className="border-b border-border text-left text-muted-foreground text-sm">
                 <th className="py-3 px-4">代码</th>
                 <th className="py-3 px-4">名称</th>
                 <th className="py-3 px-4 text-right">现价</th>
@@ -211,7 +206,7 @@ const PortfolioPage: React.FC = () => {
               {portfoliosWithStrategy.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
-                    <p className="text-[var(--color-text-secondary)] mb-4">还没有添加持仓</p>
+                    <p className="text-muted-foreground mb-4">还没有添加持仓</p>
                     <Button onClick={() => setIsModalOpen(true)}>添加第一个持仓</Button>
                   </td>
                 </tr>
@@ -220,7 +215,7 @@ const PortfolioPage: React.FC = () => {
                   <tr
                     key={portfolio.id}
                     className={clsx(
-                      'border-b border-[var(--color-surface-3)] hover:bg-[var(--color-surface-3)] cursor-pointer transition-colors',
+                      'border-b border-border hover:bg-muted cursor-pointer transition-colors',
                       getProfitBgColor(portfolio.profitLossPercent)
                     )}
                     onClick={() => handleRowClick(portfolio)}
@@ -248,7 +243,7 @@ const PortfolioPage: React.FC = () => {
                           e.stopPropagation();
                           setAlertModalPortfolio(portfolio);
                         }}
-                        className="text-[var(--color-primary)] hover:opacity-80 transition-colors p-2 mr-2"
+                        className="text-primary hover:opacity-80 transition-colors p-2 mr-2"
                         title="预警设置"
                       >
                         🔔
@@ -258,7 +253,7 @@ const PortfolioPage: React.FC = () => {
                           e.stopPropagation();
                           handleDelete(portfolio.id);
                         }}
-                        className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] transition-colors p-2"
+                        className="text-muted-foreground hover:text-destructive transition-colors p-2"
                       >
                         删除
                       </button>

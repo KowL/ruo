@@ -60,7 +60,7 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={handleReset}
                 className="text-sm hover:opacity-80 px-3 py-1 rounded"
-                style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-surface-3)' }}
+                style={{ color: 'hsl(var(--muted-foreground))', backgroundColor: 'var(--color-surface-3)' }}
               >
                 重置
               </button>
@@ -78,13 +78,13 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
             <div className="p-4 space-y-6">
               {/* 市场设置 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>市场设置</h3>
+                <h3 className="text-sm font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>市场设置</h3>
 
                 {/* 涨跌颜色设置 */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">市场模式</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       {settings.usMarket ? '美股红涨绿跌' : 'A股红涨绿跌'}
                     </p>
                   </div>
@@ -94,7 +94,7 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
                       settings.usMarket ? '' : ''
                     )}
-                    style={{ backgroundColor: settings.usMarket ? 'var(--color-profit-up)' : 'var(--color-loss-up)' }}
+                    style={{ backgroundColor: settings.usMarket ? 'hsl(var(--profit-up))' : 'var(--color-loss-up)' }}
                   >
                     <span
                       className={clsx(
@@ -108,13 +108,13 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
 
               {/* 隐私设置 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>隐私设置</h3>
+                <h3 className="text-sm font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>隐私设置</h3>
 
                 {/* 隐私模式 */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">隐私模式</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       模糊显示所有金额数据
                     </p>
                   </div>
@@ -138,7 +138,7 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                 {/* 隐私模式预览 */}
                 {settings.privacyMode && (
                   <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-surface-3)' }}>
-                    <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>预览效果:</p>
+                    <p className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>预览效果:</p>
                     <div className="mt-2 space-y-1">
                       <div className="flex justify-between">
                         <span>总资产</span>
@@ -155,13 +155,13 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
 
               {/* 显示设置 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>显示设置</h3>
+                <h3 className="text-sm font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>显示设置</h3>
 
                 {/* 深色模式 */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">深色模式</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       使用极简黑色主题
                     </p>
                   </div>
@@ -186,7 +186,7 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">推送通知</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       价格提醒和新闻推送
                     </p>
                   </div>
@@ -210,19 +210,19 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
 
               {/* 其他设置 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>其他</h3>
+                <h3 className="text-sm font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>其他</h3>
 
                 <button className="w-full p-3 rounded-lg text-left hover:opacity-70 transition-opacity">
                   <p className="font-medium">关于 Ruo</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>版本 1.0.0</p>
+                  <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>版本 1.0.0</p>
                 </button>
 
                 <button className="w-full p-3 rounded-lg text-left hover:opacity-70 transition-opacity">
                   <p className="font-medium">用户反馈</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>帮助我们改进产品</p>
+                  <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>帮助我们改进产品</p>
                 </button>
 
-                <button className="w-full p-3 rounded-lg text-left hover:opacity-70 transition-opacity" style={{ color: 'var(--color-profit-up)' }}>
+                <button className="w-full p-3 rounded-lg text-left hover:opacity-70 transition-opacity" style={{ color: 'hsl(var(--profit-up))' }}>
                   <p className="font-medium">退出登录</p>
                 </button>
               </div>
@@ -231,7 +231,7 @@ const SettingsPanel: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
 
           {/* 底部 */}
           <div className="p-4 border-t text-center" style={{ borderColor: 'var(--color-surface-4)' }}>
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+            <p className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
               © 2024 Ruo AI 智能投顾副驾
             </p>
           </div>

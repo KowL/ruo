@@ -28,7 +28,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [existingRules, setExistingRules] = useState<AlertRule[]>([]);
-  
+
   // 表单状态
   const [alertType, setAlertType] = useState<'profit_loss' | 'price_change' | 'target_price'>('profit_loss');
   const [thresholdValue, setThresholdValue] = useState<string>('');
@@ -57,7 +57,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!thresholdValue || isNaN(Number(thresholdValue))) {
       setToast({ message: '请输入有效的阈值', type: 'error' });
       return;
@@ -73,10 +73,10 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
         cooldownMinutes,
         notes: notes || undefined,
       };
-      
+
       await createAlertRule(data);
       setToast({ message: '预警设置成功！', type: 'success' });
-      
+
       // 重置表单并刷新列表
       setThresholdValue('');
       setNotes('');
@@ -90,7 +90,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
 
   const handleDelete = async (ruleId: number) => {
     if (!window.confirm('确定要删除这条预警规则吗？')) return;
-    
+
     try {
       const { deleteAlertRule } = await import('@/api/alert');
       await deleteAlertRule(ruleId);
@@ -130,16 +130,16 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[var(--color-surface-1)] rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-card text-card-foreground border border-border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--color-surface-3)]">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold">
             预警设置 - {name} ({symbol})
           </h3>
           <button
             onClick={onClose}
-            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] text-xl"
+            className="text-muted-foreground hover:text-foreground text-xl"
           >
             ×
           </button>
@@ -147,17 +147,17 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
 
         <div className="p-4 space-y-4">
           {/* 当前价格信息 */}
-          <div className="flex justify-between text-sm bg-[var(--color-surface-2)] p-3 rounded">
+          <div className="flex justify-between text-sm bg-muted/50 p-3 rounded-xl border border-border">
             <span>当前价: ¥{currentPrice.toFixed(2)}</span>
             <span>成本价: ¥{costPrice.toFixed(2)}</span>
-            <span className={currentPrice >= costPrice ? 'text-red-500' : 'text-green-500'}>
+            <span className={currentPrice >= costPrice ? 'text-profit-up' : 'text-profit-down'}>
               盈亏: {((currentPrice - costPrice) / costPrice * 100).toFixed(2)}%
             </span>
           </div>
 
           {/* 快速设置 */}
           <div className="flex gap-2 flex-wrap">
-            <span className="text-sm text-[var(--color-text-secondary)] py-1">快速设置:</span>
+            <span className="text-sm text-muted-foreground py-1">快速设置:</span>
             {quickSettings.map((setting) => (
               <button
                 key={setting.label}
@@ -167,7 +167,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                   setCompareOperator(setting.op);
                   setThresholdValue(String(setting.value));
                 }}
-                className="px-3 py-1 text-xs bg-[var(--color-surface-3)] hover:bg-[var(--color-primary)] hover:text-white rounded transition-colors"
+                className="px-3 py-1 text-xs bg-muted hover:bg-primary hover:text-primary-foreground rounded transition-colors border border-border"
               >
                 {setting.label}
               </button>
@@ -182,7 +182,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                 <select
                   value={alertType}
                   onChange={(e) => setAlertType(e.target.value as any)}
-                  className="w-full p-2 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]"
+                  className="w-full p-2 rounded bg-card border border-border"
                 >
                   <option value="profit_loss">盈亏比例</option>
                   <option value="price_change">涨跌幅</option>
@@ -194,7 +194,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                 <select
                   value={compareOperator}
                   onChange={(e) => setCompareOperator(e.target.value as any)}
-                  className="w-full p-2 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]"
+                  className="w-full p-2 rounded bg-card border border-border"
                 >
                   <option value=">=">大于等于</option>
                   <option value="<=">小于等于</option>
@@ -213,13 +213,13 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                   value={thresholdValue}
                   onChange={(e) => setThresholdValue(e.target.value)}
                   placeholder={alertType === 'target_price' ? '目标价格' : '百分比数值'}
-                  className="flex-1 p-2 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]"
+                  className="flex-1 p-2 rounded bg-card border border-border"
                 />
-                <span className="text-sm text-[var(--color-text-secondary)] w-12">
+                <span className="text-sm text-muted-foreground w-12">
                   {alertType === 'target_price' ? '元' : '%'}
                 </span>
               </div>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {alertType === 'profit_loss' && '相对于成本价的盈亏比例，如15表示盈利15%触发'}
                 {alertType === 'price_change' && '当日涨跌幅，如9.5表示涨幅9.5%触发'}
                 {alertType === 'target_price' && '股价达到指定价格时触发'}
@@ -231,7 +231,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
               <select
                 value={cooldownMinutes}
                 onChange={(e) => setCooldownMinutes(Number(e.target.value))}
-                className="w-full p-2 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]"
+                className="w-full p-2 rounded bg-card border border-border"
               >
                 <option value={15}>15分钟</option>
                 <option value={30}>30分钟</option>
@@ -240,7 +240,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                 <option value={360}>6小时</option>
                 <option value={1440}>24小时</option>
               </select>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 触发后在此时间内不会重复提醒
               </p>
             </div>
@@ -252,7 +252,7 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="如：止盈位、止损位等"
-                className="w-full p-2 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]"
+                className="w-full p-2 rounded bg-card border border-border"
               />
             </div>
 
@@ -270,17 +270,17 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
           {loading ? (
             <Loading text="加载中..." />
           ) : existingRules.length > 0 ? (
-            <div className="mt-6 pt-4 border-t border-[var(--color-surface-3)]">
+            <div className="mt-6 pt-4 border-t border-border">
               <h4 className="text-sm font-medium mb-3">已设置的预警</h4>
               <div className="space-y-2">
                 {existingRules.map((rule) => (
                   <div
                     key={rule.id}
-                    className="flex items-center justify-between p-3 bg-[var(--color-surface-2)] rounded text-sm"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border text-sm"
                   >
                     <div>
                       <span className="font-medium">{getAlertTypeLabel(rule.alertType)}</span>
-                      <span className="mx-2 text-[var(--color-text-secondary)]">
+                      <span className="mx-2 text-muted-foreground">
                         {getOperatorLabel(rule.compareOperator)}
                       </span>
                       <span className="font-medium">
@@ -289,14 +289,14 @@ const AlertSettingModal: React.FC<AlertSettingModalProps> = ({
                         {rule.alertType !== 'target_price' ? '%' : ''}
                       </span>
                       {rule.triggerCount > 0 && (
-                        <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
+                        <span className="ml-2 text-xs text-muted-foreground">
                           已触发{rule.triggerCount}次
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => handleDelete(rule.id)}
-                      className="text-[var(--color-danger)] hover:opacity-80 text-xs"
+                      className="text-[hsl(var(--destructive))] hover:opacity-80 text-xs"
                     >
                       删除
                     </button>

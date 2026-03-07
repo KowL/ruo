@@ -86,17 +86,8 @@ const StrategyPage: React.FC = () => {
 
 
   return (
-    <div className="p-6 space-y-6 text-white min-h-screen">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
-            策略管理
-          </h1>
-          <p className="text-gray-400 mt-1 flex items-center">
-            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
-            创建和管理交易策略，支持回测验证
-          </p>
-        </div>
+    <div className="p-6 space-y-6 text-white min-h-screen pt-0">
+      <div className="flex items-center justify-end mb-4">
         <button
           onClick={() => setShowCreateModal(true)}
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all flex items-center"
@@ -109,14 +100,14 @@ const StrategyPage: React.FC = () => {
       {loading && strategies.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[1, 2, 3].map(i => (
-            <div key={i} className="glass-card h-48 border border-white/5 bg-white/5"></div>
+            <div key={i} className="bg-card h-48 border border-border bg-muted/20 animate-pulse rounded-xl"></div>
           ))}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {strategies.map((strategy) => (
-              <div key={strategy.id} className="glass-card p-5 group hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden">
+              <div key={strategy.id} className="bg-card text-card-foreground p-5 group hover:border-primary/30 transition-all duration-300 relative overflow-hidden border border-border rounded-xl">
                 {/* Hover Glow */}
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
 
@@ -143,17 +134,17 @@ const StrategyPage: React.FC = () => {
                 </p>
 
                 <div className="grid grid-cols-3 gap-3 text-center mb-6">
-                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                  <div className="bg-muted/50 rounded-xl p-2.5 border border-border">
                     <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">总收益</div>
                     <div className={`text-sm font-mono font-bold ${strategy.totalReturn >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]'}`}>
                       {strategy.totalReturn >= 0 ? '+' : ''}{strategy.totalReturn.toFixed(2)}%
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                  <div className="bg-muted/50 rounded-xl p-2.5 border border-border">
                     <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">最大回撤</div>
                     <div className="text-sm font-mono font-bold text-[#34C759]">{strategy.maxDrawdown.toFixed(2)}%</div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                  <div className="bg-muted/50 rounded-xl p-2.5 border border-border">
                     <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">夏普</div>
                     <div className="text-sm font-mono font-bold text-blue-400">{strategy.sharpeRatio.toFixed(2)}</div>
                   </div>
@@ -162,7 +153,7 @@ const StrategyPage: React.FC = () => {
                 <div className="flex gap-3 relative z-10 font-bold uppercase tracking-widest text-[#34C759]">
                   <a
                     href={`/#/signals?strategyId=${strategy.id}`}
-                    className="flex-1 flex items-center justify-center py-2.5 bg-white/5 text-white rounded-xl border border-white/10 hover:bg-blue-500 hover:border-blue-500 transition-all text-xs font-bold uppercase tracking-widest group/btn"
+                    className="flex-1 flex items-center justify-center py-2.5 bg-muted/50 text-card-foreground rounded-xl border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-xs font-bold uppercase tracking-widest group/btn"
                   >
                     查看实时信号
                   </a>
@@ -172,8 +163,8 @@ const StrategyPage: React.FC = () => {
           </div>
 
           {!loading && strategies.length === 0 && (
-            <div className="text-center py-20 glass-card mx-auto max-w-lg border-dashed border-white/10">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+            <div className="text-center py-20 bg-card text-card-foreground mx-auto max-w-lg border-dashed border-border rounded-xl">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
                 <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -192,7 +183,7 @@ const StrategyPage: React.FC = () => {
       {/* 创建策略弹窗 */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card w-full max-w-md p-8 relative overflow-hidden">
+          <div className="bg-card text-card-foreground w-full max-w-md p-8 relative overflow-hidden border border-border rounded-xl">
             {/* Decorative Glows */}
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -209,7 +200,7 @@ const StrategyPage: React.FC = () => {
                   type="text"
                   value={newStrategy.name}
                   onChange={(e) => setNewStrategy({ ...newStrategy, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
                   placeholder="如：均线交叉超短线策略"
                   required
                 />
@@ -221,10 +212,10 @@ const StrategyPage: React.FC = () => {
                   <select
                     value={newStrategy.strategyType}
                     onChange={(e) => setNewStrategy({ ...newStrategy, strategyType: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none transition-all"
+                    className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none transition-all"
                   >
                     {templates.map((t) => (
-                      <option key={t.type} value={t.type} className="bg-[#1a1a1a]">{t.name}</option>
+                      <option key={t.type} value={t.type} className="bg-card">{t.name}</option>
                     ))}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
@@ -238,7 +229,7 @@ const StrategyPage: React.FC = () => {
                 <textarea
                   value={newStrategy.description}
                   onChange={(e) => setNewStrategy({ ...newStrategy, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 h-28 transition-all resize-none"
+                  className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 h-28 transition-all resize-none"
                   placeholder="简述策略的核心交易逻辑（可选）"
                 />
               </div>

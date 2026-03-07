@@ -39,24 +39,24 @@ const Modal: React.FC<ModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
             {/* Panel */}
             <div
                 className={clsx(
-                    "relative w-full max-w-md transform overflow-hidden rounded-2xl bg-[var(--color-surface-1)] p-6 text-left shadow-xl transition-all border border-[var(--color-surface-3)]",
+                    "relative w-full max-w-md transform overflow-hidden rounded-2xl bg-card p-6 text-left shadow-2xl transition-all border border-border",
                     className
                 )}
             >
                 {title && (
-                    <h3 className="text-lg font-medium leading-6 text-[var(--color-text-primary)] mb-4">
+                    <h3 className="text-lg font-medium leading-6 text-foreground mb-4">
                         {title}
                     </h3>
                 )}
 
-                <div className="mt-2 text-[var(--color-text-secondary)]">
+                <div className="mt-2 text-muted-foreground">
                     {children}
                 </div>
 

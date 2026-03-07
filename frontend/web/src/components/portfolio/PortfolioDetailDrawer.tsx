@@ -73,13 +73,13 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex">
-      <div className="ml-auto w-[400px] h-full bg-[var(--color-surface-2)] shadow-xl">
+      <div className="ml-auto w-[400px] h-full bg-card shadow-xl">
         {/* 头部 */}
-        <div className="p-4 border-b border-[var(--color-surface-3)] flex items-center justify-between">
+        <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="text-lg font-bold">持仓详情</h3>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--color-surface-3)]"
+            className="p-2 rounded-lg hover:bg-muted"
           >
             ✕
           </button>
@@ -91,21 +91,21 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-xl font-bold">{portfolio.symbol}</h4>
-                <p className="text-sm text-[var(--color-text-secondary)]">{portfolio.name}</p>
+                <p className="text-sm text-muted-foreground">{portfolio.name}</p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold numbers">{portfolio.shares}股</div>
-                <div className="text-sm text-[var(--color-text-secondary)]">持仓数量</div>
+                <div className="text-sm text-muted-foreground">持仓数量</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <div className="text-sm text-[var(--color-text-secondary)]">平均成本</div>
+                <div className="text-sm text-muted-foreground">平均成本</div>
                 <div className="font-bold numbers">¥{portfolio.avgPrice.toFixed(2)}</div>
               </div>
               <div className="space-y-2">
-                <div className="text-sm text-[var(--color-text-secondary)]">当前价格</div>
+                <div className="text-sm text-muted-foreground">当前价格</div>
                 <div className="font-bold numbers">¥{portfolio.currentPrice.toFixed(2)}</div>
               </div>
             </div>
@@ -118,7 +118,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
             {/* 价格滑块 */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--color-text-secondary)]">调整股价</span>
+                <span className="text-muted-foreground">调整股价</span>
                 <span className="font-bold numbers">¥{simulationPrice.toFixed(2)}</span>
               </div>
               <input
@@ -128,16 +128,16 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
                 step="0.01"
                 value={simulationPrice}
                 onChange={(e) => setSimulationPrice(parseFloat(e.target.value))}
-                className="w-full h-2 bg-[var(--color-surface-3)] rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                 style={{
                   background: `linear-gradient(to right,
-                    var(--color-profit-up) 0%,
-                    var(--color-profit-up) ${((simulationPrice - portfolio.avgPrice) / (portfolio.currentPrice * 3 - portfolio.avgPrice + 1)) * 100}%,
+                    hsl(var(--profit-up)) 0%,
+                    hsl(var(--profit-up)) ${((simulationPrice - portfolio.avgPrice) / (portfolio.currentPrice * 3 - portfolio.avgPrice + 1)) * 100}%,
                     var(--color-surface-3) ${((simulationPrice - portfolio.avgPrice) / (portfolio.currentPrice * 3 - portfolio.avgPrice + 1)) * 100}%,
                     var(--color-surface-3) 100%)`
                 }}
               />
-              <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>¥0</span>
                 <span>¥{(portfolio.currentPrice * 3).toFixed(0)}</span>
               </div>
@@ -147,7 +147,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
             <div className={clsx('p-4 rounded-lg', getProfitBgColor(analysis?.simulationProfitLossPercent || 0))}>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--color-text-secondary)]">推演盈亏</span>
+                  <span className="text-sm text-muted-foreground">推演盈亏</span>
                   <span className={clsx('font-semibold', getProfitColor(analysis?.simulationProfitLossPercent || 0))}>
                     {formatMoney(analysis?.simulationProfitLoss || 0)}
                     <span className="ml-1 text-sm">
@@ -156,13 +156,13 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--color-text-secondary)]">账户总资产</span>
+                  <span className="text-sm text-muted-foreground">账户总资产</span>
                   <span className="font-semibold">
                     {formatMoney(analysis?.simulationTotalAssets || 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--color-text-secondary)]">总回撤/收益</span>
+                  <span className="text-sm text-muted-foreground">总回撤/收益</span>
                   <span className={clsx('font-semibold', getProfitColor(analysis?.simulationTotalReturnPercent || 0))}>
                     {formatPercent(analysis?.simulationTotalReturnPercent || 0)}
                   </span>
@@ -170,7 +170,7 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
               </div>
             </div>
 
-            <div className="text-xs text-[var(--color-text-secondary)] italic">
+            <div className="text-xs text-muted-foreground italic">
               提示：拖动滑块模拟股价变动，实时查看对账户总资产的影响
             </div>
           </div>
@@ -178,12 +178,12 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
           {/* AI 建议 */}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">AI 建议</h4>
-            <div className="p-4 rounded-lg bg-[var(--color-ruo-purple)]/10 border border-[var(--color-ruo-purple)]/30">
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
               <div className="flex items-start space-x-3">
-                <span className="text-xl text-[var(--color-ruo-purple)]">🤖</span>
+                <span className="text-xl text-primary">🤖</span>
                 <div>
                   <p className="text-sm mb-2">基于当前持仓和市场分析：</p>
-                  <ul className="text-xs space-y-1 text-[var(--color-text-secondary)]">
+                  <ul className="text-xs space-y-1 text-muted-foreground">
                     <li>• 当前股价偏离均线 {Math.abs(portfolio.currentPrice - portfolio.avgPrice).toFixed(2)} 元</li>
                     <li>• 建议关注支撑位 ¥{(portfolio.avgPrice * 0.95).toFixed(2)}</li>
                     <li>• 止损位设置在 ¥{(portfolio.avgPrice * 0.85).toFixed(2)}</li>
@@ -195,11 +195,11 @@ const PortfolioDetailDrawer: React.FC<PortfolioDetailDrawerProps> = ({
           </div>
 
           {/* 操作按钮 */}
-          <div className="space-y-2 pt-4 border-t border-[var(--color-surface-3)]">
-            <button className="w-full py-2 px-4 bg-[var(--color-ruo-purple)] hover:bg-[var(--color-ruo-purple)]/80 text-white rounded-lg transition-colors">
+          <div className="space-y-2 pt-4 border-t border-border">
+            <button className="w-full py-2 px-4 bg-primary hover:bg-primary/80 text-white rounded-lg transition-colors">
               调整持仓策略
             </button>
-            <button className="w-full py-2 px-4 border border-[var(--color-surface-3)] hover:bg-[var(--color-surface-3)] rounded-lg transition-colors">
+            <button className="w-full py-2 px-4 border border-border hover:bg-muted rounded-lg transition-colors">
               设置价格提醒
             </button>
           </div>

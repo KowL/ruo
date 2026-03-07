@@ -129,15 +129,15 @@ const SubscriptionPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 text-white min-h-screen">
+    <div className="p-6 space-y-6 text-foreground min-h-screen">
       {/* 页面头部 */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground/50">
             策略订阅
           </h1>
-          <p className="text-gray-400 mt-1 flex items-center">
-            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 shadow-[0_0_8px_rgba(168,85,247,0.6)]"></span>
+          <p className="text-muted-foreground mt-1 flex items-center">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 shadow-[0_0_8px_rgba(var(--primary),0.6)]"></span>
             订阅策略后自动接收买卖信号通知
           </p>
         </div>
@@ -153,28 +153,28 @@ const SubscriptionPage: React.FC = () => {
       {loading && subscriptions.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[1, 2, 3].map(i => (
-            <div key={i} className="glass-card h-40 border border-white/5 bg-white/5"></div>
+            <div key={i} className="bg-card text-card-foreground border border-border rounded-xl h-40 animate-pulse bg-muted/20"></div>
           ))}
         </div>
       ) : subscriptions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subscriptions.map((sub) => (
-            <div key={sub.id} className="glass-card p-5 group hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden">
+            <div key={sub.id} className="bg-card text-card-foreground border border-border rounded-xl p-5 group hover:border-primary/30 transition-all duration-300 relative overflow-hidden">
               {/* Hover Glow */}
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all"></div>
 
               <div className="flex items-start justify-between mb-4 relative z-10">
                 <div>
-                  <h3 className="font-bold text-lg text-white group-hover:text-purple-400 transition-colors">
+                  <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                     {sub.strategyName}
                   </h3>
-                  <span className="inline-block mt-2 px-2.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] font-bold rounded-full border border-purple-500/20 uppercase tracking-tighter">
+                  <span className="inline-block mt-2 px-2.5 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full border border-primary/20 uppercase tracking-tighter">
                     {getTypeLabel(getStrategyType(sub.strategyId))}
                   </span>
                 </div>
                 <button
                   onClick={() => handleUnsubscribe(sub.id)}
-                  className="text-gray-500 hover:text-red-400 p-1.5 hover:bg-red-400/10 rounded-lg transition-all"
+                  className="text-muted-foreground hover:text-destructive p-1.5 hover:bg-destructive/10 rounded-lg transition-all"
                   title="取消订阅"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,38 +185,38 @@ const SubscriptionPage: React.FC = () => {
 
               <div className="space-y-3 text-sm mb-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">股票池</span>
-                  <span className="px-2 py-0.5 bg-white/5 rounded text-gray-300 text-xs">
+                  <span className="text-muted-foreground">股票池</span>
+                  <span className="px-2 py-0.5 bg-muted rounded text-foreground text-xs">
                     {getPoolTypeLabel(sub.stockPoolType)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">股票数量</span>
-                  <span className="text-gray-300 font-mono">{sub.stockPoolCount} 只</span>
+                  <span className="text-muted-foreground">股票数量</span>
+                  <span className="text-foreground font-mono">{sub.stockPoolCount} 只</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">通知</span>
-                  <span className={sub.notifyEnabled ? 'text-green-400' : 'text-gray-500'}>
+                  <span className="text-muted-foreground">通知</span>
+                  <span className={sub.notifyEnabled ? 'text-profit-up' : 'text-muted-foreground'}>
                     {sub.notifyEnabled ? '已开启' : '已关闭'}
                   </span>
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500 pt-3 border-t border-white/5">
+              <div className="text-xs text-muted-foreground pt-3 border-t border-border">
                 订阅于 {new Date(sub.createdAt).toLocaleDateString()}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="glass-card p-16 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-card text-card-foreground border border-border rounded-xl p-16 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </div>
-          <h3 className="text-xl font-medium text-gray-300 mb-2">暂无订阅</h3>
-          <p className="text-gray-500 mb-6">订阅策略后可接收买卖信号通知</p>
+          <h3 className="text-xl font-medium text-foreground mb-2">暂无订阅</h3>
+          <p className="text-muted-foreground mb-6">订阅策略后可接收买卖信号通知</p>
           <button
             onClick={() => setShowSubscribeModal(true)}
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium hover:shadow-lg hover:shadow-purple-500/20 transition-all inline-flex items-center"
@@ -228,8 +228,8 @@ const SubscriptionPage: React.FC = () => {
 
       {/* 订阅弹窗 */}
       {showSubscribeModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="glass-card w-[500px] p-6 relative z-10">
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card text-card-foreground border border-border rounded-xl w-[500px] p-6 relative z-10 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">订阅策略</h3>
               <button
@@ -237,7 +237,7 @@ const SubscriptionPage: React.FC = () => {
                   setShowSubscribeModal(false);
                   resetModal();
                 }}
-                className="text-gray-500 hover:text-white p-1"
+                className="text-muted-foreground hover:text-foreground p-1"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -247,15 +247,15 @@ const SubscriptionPage: React.FC = () => {
 
             {/* 选择策略 */}
             <div className="mb-5">
-              <label className="block text-sm text-gray-400 mb-2">选择策略</label>
+              <label className="block text-sm text-muted-foreground mb-2">选择策略</label>
               <select
                 value={selectedStrategyId || ''}
                 onChange={(e) => setSelectedStrategyId(Number(e.target.value))}
-                className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none transition-colors"
+                className="w-full p-3 rounded-xl bg-muted border border-border text-foreground focus:border-primary/50 focus:outline-none transition-colors"
               >
-                <option value="" className="bg-gray-800">请选择策略</option>
+                <option value="" className="bg-card">请选择策略</option>
                 {strategies.map((strategy) => (
-                  <option key={strategy.id} value={strategy.id} className="bg-gray-800">
+                  <option key={strategy.id} value={strategy.id} className="bg-card">
                     {strategy.name}
                   </option>
                 ))}
@@ -264,7 +264,7 @@ const SubscriptionPage: React.FC = () => {
 
             {/* 股票池类型 */}
             <div className="mb-5">
-              <label className="block text-sm text-gray-400 mb-2">股票池</label>
+              <label className="block text-sm text-muted-foreground mb-2">股票池</label>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {[
                   { value: 'all', label: '全部自选' },
@@ -274,11 +274,10 @@ const SubscriptionPage: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => setStockPoolType(option.value as any)}
-                    className={`py-2.5 rounded-xl border transition-all text-sm ${
-                      stockPoolType === option.value
-                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                        : 'border-white/10 text-gray-400 hover:border-white/20'
-                    }`}
+                    className={`py-2.5 rounded-xl border transition-all text-sm ${stockPoolType === option.value
+                      ? 'bg-primary/20 border-primary/50 text-primary'
+                      : 'border-border text-muted-foreground hover:border-border/50'
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -290,11 +289,11 @@ const SubscriptionPage: React.FC = () => {
                 <select
                   value={selectedGroupId || ''}
                   onChange={(e) => setSelectedGroupId(Number(e.target.value))}
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none transition-colors"
+                  className="w-full p-3 rounded-xl bg-muted border border-border text-foreground focus:border-primary/50 focus:outline-none transition-colors"
                 >
-                  <option value="" className="bg-gray-800">请选择分组</option>
+                  <option value="" className="bg-card">请选择分组</option>
                   {groups.map((group) => (
-                    <option key={group.id} value={group.id} className="bg-gray-800">
+                    <option key={group.id} value={group.id} className="bg-card">
                       {group.name} ({group.stockCount}只)
                     </option>
                   ))}
@@ -308,7 +307,7 @@ const SubscriptionPage: React.FC = () => {
                   placeholder="输入股票代码，用逗号分隔，如: 000001, 000002"
                   value={customSymbols}
                   onChange={(e) => setCustomSymbols(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-500/50 focus:outline-none transition-colors"
+                  className="w-full p-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:border-primary/50 focus:outline-none transition-colors"
                 />
               )}
             </div>
@@ -316,7 +315,7 @@ const SubscriptionPage: React.FC = () => {
             {/* 通知设置 */}
             <div className="mb-6">
               <label className="flex items-center gap-3 cursor-pointer group">
-                <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${notifyEnabled ? 'bg-purple-500' : 'bg-white/10'}`}>
+                <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${notifyEnabled ? 'bg-primary' : 'bg-muted'}`}>
                   <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${notifyEnabled ? 'translate-x-4' : ''}`}></div>
                 </div>
                 <input
@@ -325,7 +324,7 @@ const SubscriptionPage: React.FC = () => {
                   onChange={(e) => setNotifyEnabled(e.target.checked)}
                   className="hidden"
                 />
-                <span className="text-gray-300 group-hover:text-white transition-colors">开启信号通知</span>
+                <span className="text-muted-foreground group-hover:text-foreground transition-colors">开启信号通知</span>
               </label>
             </div>
 
@@ -335,13 +334,13 @@ const SubscriptionPage: React.FC = () => {
                   setShowSubscribeModal(false);
                   resetModal();
                 }}
-                className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 transition-colors"
+                className="flex-1 py-3 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors"
               >
                 取消
               </button>
               <button
                 onClick={handleSubscribe}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/20 transition-all font-bold"
               >
                 确认订阅
               </button>

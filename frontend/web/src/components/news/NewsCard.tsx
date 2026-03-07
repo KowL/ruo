@@ -16,10 +16,10 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
   };
 
   return (
-    <div className="card hover:shadow-md transition-all hover:shadow-[var(--color-ruo-purple)]/10">
+    <div className="card hover:shadow-md transition-all hover:shadow-primary/10">
       <div className="space-y-3">
         {/* Header - 来源和时间 */}
-        <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{getSourceName(news.source)}</span>
           <span>{formatRelativeTime(news.publishTime)}</span>
         </div>
@@ -27,11 +27,11 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
         {/* Body - 内容 */}
         <div className="space-y-2">
           {news.title && <p className="font-medium leading-tight">{news.title}</p>}
-          <p className="text-sm text-[var(--color-text-secondary)]">{news.content}</p>
+          <p className="text-sm text-muted-foreground">{news.content}</p>
 
           {/* AI 分析 */}
           {news.aiAnalysis && (
-            <p className="text-sm text-[var(--color-ruo-purple)] bg-[var(--color-ruo-purple)]/5 p-2 rounded">
+            <p className="text-sm text-primary bg-primary/5 p-2 rounded">
               {news.aiAnalysis}
             </p>
           )}
@@ -40,9 +40,9 @@ const NewsCard: React.FC<NewsCardProps> = ({ news }) => {
         {/* Footer - 关联股票 */}
         {news.relationStocks && news.relationStocks.length > 0 && (
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-[var(--color-text-secondary)]">关联股票:</span>
+            <span className="text-xs text-muted-foreground">关联股票:</span>
             {news.relationStocks.map((symbol, idx) => (
-              <span key={idx} className="text-xs text-[var(--color-ruo-purple)] cursor-pointer hover:underline">
+              <span key={idx} className="text-xs text-primary cursor-pointer hover:underline">
                 {symbol}
                 {news.relationStocks && idx < news.relationStocks.length - 1 && ', '}
               </span>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGroups, createGroup, deleteGroup, getStocks, addStock, deleteStock, StockGroup, StockFavorite, SearchStock } from '@/api/favorites';
-import { searchStock, getStockRealtime, StockRealtime } from '@/api/stock';
+import { searchStock, getStockRealtime } from '@/api/stock';
+import type { StockRealtime } from '@/types';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
 
@@ -32,9 +33,9 @@ const FavoritesPage: React.FC = () => {
       console.log('API response:', res);
       const groupsData = res?.data || [];
       console.log('groupsData:', groupsData);
-      setGroups(groupsData);
-      if (groupsData.length > 0 && !selectedGroupId) {
-        setSelectedGroupId(groupsData[0].id);
+      setGroups(groupsData as unknown as StockGroup[]);
+      if ((groupsData as unknown as StockGroup[]).length > 0 && !selectedGroupId) {
+        setSelectedGroupId((groupsData as unknown as StockGroup[])[0].id);
       }
     } catch (error) {
       console.error('加载分组失败:', error);
@@ -47,10 +48,10 @@ const FavoritesPage: React.FC = () => {
     try {
       const res = await getStocks(groupId);
       const stocksData = res?.data || [];
-      setStocks(stocksData);
-      
+      setStocks(stocksData as unknown as StockFavorite[]);
+
       // 获取每只股票的价格
-      const pricePromises = stocksData.map(async (stock: StockFavorite) => {
+      const pricePromises = (stocksData as unknown as StockFavorite[]).map(async (stock: StockFavorite) => {
         try {
           const priceRes = await getStockRealtime(stock.symbol);
           return { symbol: stock.symbol, data: priceRes };
@@ -58,10 +59,10 @@ const FavoritesPage: React.FC = () => {
           return { symbol: stock.symbol, data: null };
         }
       });
-      
+
       const priceResults = await Promise.all(pricePromises);
       const priceMap: Record<string, StockRealtime> = {};
-      priceResults.forEach((item) => {
+      priceResults.forEach((item: any) => {
         if (item.data) {
           priceMap[item.symbol] = item.data;
         }
@@ -188,12 +189,8 @@ const FavoritesPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">自选管理</h1>
-          <p className="text-slate-400 mt-1">管理您的自选分组与关注标的</p>
-        </div>
+    <div className="p-6 h-full flex flex-col pt-0">
+      <div className="flex items-center justify-end mb-4">
         <button
           onClick={() => setShowGroupModal(true)}
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all"
@@ -205,7 +202,7 @@ const FavoritesPage: React.FC = () => {
       <div className="flex-1 flex gap-6 min-h-0">
         {/* 左侧分组列表 */}
         <div className="w-64 flex-shrink-0">
-          <div className="glass-card p-4 h-full overflow-auto border border-white/5 bg-slate-900/50">
+          <div className="bg-card text-card-foreground p-4 h-full overflow-auto border border-border rounded-xl">
             <h3 className="text-sm font-medium mb-4 text-slate-400 px-2">
               我的分组
             </h3>
@@ -216,12 +213,12 @@ const FavoritesPage: React.FC = () => {
                   onClick={() => setSelectedGroupId(group.id)}
                   className={`p-3 rounded-xl cursor-pointer transition-all ${selectedGroupId === group.id
                     ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400'
-                    : 'border border-transparent hover:bg-white/5 text-slate-300'
+                    : 'border-transparent hover:bg-accent hover:text-accent-foreground text-muted-foreground'
                     }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{group.name}</span>
-                    <span className="text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-400">
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
                       {group.stockCount}
                     </span>
                   </div>
@@ -266,10 +263,10 @@ const FavoritesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 glass-card overflow-auto border border-white/5 bg-slate-900/50">
+              <div className="flex-1 bg-card text-card-foreground overflow-auto border border-border rounded-xl">
                 {(stocks || []).length > 0 ? (
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-slate-900/90 backdrop-blur border-b border-white/5 z-10">
+                    <thead className="sticky top-0 bg-card/90 backdrop-blur border-b border-border z-10">
                       <tr className="text-left text-slate-400">
                         <th className="p-4 font-medium">代码</th>
                         <th className="p-4 font-medium">名称</th>
@@ -286,32 +283,33 @@ const FavoritesPage: React.FC = () => {
                         const isUp = changePct > 0;
                         const isDown = changePct < 0;
                         return (
-                        <tr
-                          key={stock.id}
-                          onClick={() => navigate(`/chart?symbol=${stock.symbol}`)}
-                          className="hover:bg-white/5 transition-colors group cursor-pointer"
-                        >
-                          <td className="p-4 font-mono text-slate-300 group-hover:text-blue-400 transition-colors">{stock.symbol}</td>
-                          <td className="p-4 font-medium text-white">{stock.name}</td>
-                          <td className="p-4 text-right font-medium">
-                            {price ? price.price.toFixed(2) : '-'}
-                          </td>
-                          <td className={`p-4 text-right ${isUp ? 'text-red-400' : isDown ? 'text-green-400' : 'text-slate-400'}`}>
-                            {price ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '-'}
-                          </td>
-                          <td className="p-4 text-slate-500">
-                            {new Date(stock.addedAt).toLocaleDateString()}
-                          </td>
-                          <td className="p-4 text-right">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteStock(stock.id); }}
-                              className="text-slate-500 hover:text-red-400 transition-colors px-2 py-1"
-                            >
-                              删除
-                            </button>
-                          </td>
-                        </tr>
-                      )})}
+                          <tr
+                            key={stock.id}
+                            onClick={() => navigate(`/chart?symbol=${stock.symbol}`)}
+                            className="hover:bg-white/5 transition-colors group cursor-pointer"
+                          >
+                            <td className="p-4 font-mono text-slate-300 group-hover:text-blue-400 transition-colors">{stock.symbol}</td>
+                            <td className="p-4 font-medium text-white">{stock.name}</td>
+                            <td className="p-4 text-right font-medium">
+                              {price ? price.price.toFixed(2) : '-'}
+                            </td>
+                            <td className={`p-4 text-right ${isUp ? 'text-red-400' : isDown ? 'text-green-400' : 'text-slate-400'}`}>
+                              {price ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '-'}
+                            </td>
+                            <td className="p-4 text-slate-500">
+                              {new Date(stock.addedAt).toLocaleDateString()}
+                            </td>
+                            <td className="p-4 text-right">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteStock(stock.id); }}
+                                className="text-slate-500 hover:text-red-400 transition-colors px-2 py-1"
+                              >
+                                删除
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 ) : (
@@ -327,7 +325,7 @@ const FavoritesPage: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 glass-card flex items-center justify-center border border-white/5 bg-slate-900/50 text-slate-500">
+            <div className="flex-1 bg-card flex items-center justify-center border border-border text-muted-foreground rounded-xl">
               请选择或创建一个分组
             </div>
           )}
@@ -337,7 +335,7 @@ const FavoritesPage: React.FC = () => {
       {/* 新建分组弹窗 */}
       {showGroupModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card w-full max-w-md p-6 relative overflow-hidden border border-white/10 bg-[#1a1a1a]">
+          <div className="bg-card w-full max-w-md p-6 relative overflow-hidden border border-border rounded-2xl shadow-2xl">
             {/* Glow Effects */}
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -391,7 +389,7 @@ const FavoritesPage: React.FC = () => {
       {/* 添加股票弹窗 */}
       {showAddStockModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card w-full max-w-lg p-6 relative overflow-hidden border border-white/10 bg-[#1a1a1a]">
+          <div className="bg-card w-full max-w-lg p-6 relative overflow-hidden border border-border rounded-2xl shadow-2xl">
             {/* Glow Effects */}
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -436,7 +434,7 @@ const FavoritesPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="h-[280px] overflow-auto bg-black/20 rounded-xl border border-white/5 mb-6">
+              <div className="h-[280px] overflow-auto bg-muted/20 rounded-xl border border-border mb-6">
                 {searchResults.length > 0 ? (
                   <div className="divide-y divide-white/5">
                     {searchResults.map((stock) => (

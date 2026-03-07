@@ -25,8 +25,8 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary: { backgroundColor: 'var(--color-brand)', color: 'black' },
-    secondary: { backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' },
-    danger: { backgroundColor: 'var(--color-profit-up)', color: 'white' },
+    secondary: { backgroundColor: 'var(--color-surface-3)', color: 'hsl(var(--foreground))' },
+    danger: { backgroundColor: 'hsl(var(--profit-up))', color: 'white' },
   };
 
 

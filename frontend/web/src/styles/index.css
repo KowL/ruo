@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
   body {
-    @apply bg-surface-1 text-text-primary;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -14,6 +18,7 @@
       transform: translateX(100%);
       opacity: 0;
     }
+
     to {
       transform: translateX(0);
       opacity: 1;
@@ -26,6 +31,7 @@
 }
 
 @layer components {
+
   /* 涨跌颜色 */
   .text-rise {
     @apply text-profit-up;
@@ -45,7 +51,7 @@
 
   /* 卡片样式 */
   .card {
-    @apply bg-surface-2 rounded-lg border border-surface-4 p-4;
+    @apply bg-card rounded-xl border border-border p-4 shadow-sm;
   }
 
   /* 按钮样式 */
@@ -54,14 +60,14 @@
   }
 
   .btn-primary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-brand text-black hover:bg-white/90 active:scale-95;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-surface-3 text-text-primary hover:bg-surface-4;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-muted text-foreground hover:bg-muted/80;
   }
 
   .btn-danger {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-profit-up text-white hover:bg-profit-up/90;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:bg-destructive/90;
   }
 }

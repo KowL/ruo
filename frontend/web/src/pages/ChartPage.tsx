@@ -245,7 +245,7 @@ const ChartPage: React.FC = () => {
   if (portfolios.length === 0 && !selectedSymbol) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-[var(--color-text-secondary)]">请先添加持仓股票，或通过链接访问</p>
+        <p className="text-muted-foreground">请先添加持仓股票，或通过链接访问</p>
       </div>
     );
   }
@@ -257,8 +257,8 @@ const ChartPage: React.FC = () => {
         {/* 顶部标题栏：股票信息 + AI分析按钮 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              {selectedName} <span className="text-lg text-[var(--color-text-secondary)] font-normal">({selectedSymbol})</span>
+            <h1 className="text-2xl font-bold text-foreground">
+              {selectedName} <span className="text-lg text-muted-foreground font-normal">({selectedSymbol})</span>
             </h1>
           </div>
 
@@ -298,7 +298,7 @@ const ChartPage: React.FC = () => {
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* 周期选择 */}
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-[var(--color-text-secondary)]">周期:</span>
+            <span className="text-sm text-muted-foreground">周期:</span>
             <div className="flex space-x-1">
               {(['min', 'daily', 'weekly', 'monthly'] as const).map((p) => (
                 <button
@@ -307,8 +307,8 @@ const ChartPage: React.FC = () => {
                   className={clsx(
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     period === p
-                      ? 'bg-[var(--color-ruo-purple)] text-white'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]'
+                      ? 'bg-primary text-white'
+                      : 'text-muted-foreground hover:bg-muted'
                   )}
                 >
                   {p === 'min' ? '分时' : p === 'daily' ? '日K' : p === 'weekly' ? '周K' : '月K'}
@@ -326,11 +326,11 @@ const ChartPage: React.FC = () => {
       <div className="flex-1 flex flex-col card overflow-hidden">
         {/* AI 图层开关 - 仅在非分时模式显示 */}
         {period !== 'min' && (
-          <div className="p-4 border-b border-[var(--color-surface-3)]">
+          <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-[var(--color-text-secondary)]">AI 辅助:</span>
+                  <span className="text-sm text-muted-foreground">AI 辅助:</span>
                   <label className="relative inline-flex items-center cursor-pointer group">
                     <input
                       type="checkbox"
@@ -338,8 +338,8 @@ const ChartPage: React.FC = () => {
                       checked={aiLayers.support}
                       onChange={toggleSupport}
                     />
-                    <div className="w-11 h-6 bg-[var(--color-surface-4)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-ruo-purple)]"></div>
-                    <span className="ml-2 text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-ruo-purple)] transition-colors">
+                    <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <span className="ml-2 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                       支撑/压力位
                     </span>
                   </label>
@@ -361,7 +361,7 @@ const ChartPage: React.FC = () => {
             </div>
           ) : klineData.length === 0 ? (
             <div className="h-full flex items-center justify-center">
-              <p className="text-[var(--color-text-secondary)]">暂无K线数据</p>
+              <p className="text-muted-foreground">暂无K线数据</p>
             </div>
           ) : (
             <div className="h-full p-4">
@@ -382,9 +382,9 @@ const ChartPage: React.FC = () => {
 
         {/* AI 图层说明（当有图层开启时显示） */}
         {period !== 'min' && Object.values(aiLayers).some(Boolean) && (
-          <div className="p-4 border-t border-[var(--color-surface-3)] bg-[var(--color-ruo-purple)]/5">
-            <div className="text-sm text-[var(--color-text-secondary)] space-y-2">
-              <p className="font-medium text-[var(--color-ruo-purple)] mb-2 flex items-center gap-2">
+          <div className="p-4 border-t border-border bg-primary/5">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p className="font-medium text-primary mb-2 flex items-center gap-2">
                 <span>🤖 AI 核心观点:</span>
                 {aiAnalysis && <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">置信度: {aiAnalysis.confidence}</span>}
               </p>
@@ -410,7 +410,7 @@ const ChartPage: React.FC = () => {
       <div className="card overflow-hidden transition-all duration-300">
         <button
           onClick={() => setIsReportOpen(!isReportOpen)}
-          className="w-full flex items-center justify-between p-4 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] transition-colors border-b border-[var(--color-surface-3)]"
+          className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted transition-colors border-b border-border"
         >
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold flex items-center gap-2">
@@ -426,7 +426,7 @@ const ChartPage: React.FC = () => {
                     {aiAnalysis.recommendation} (置信度: {aiAnalysis.confidence})
                   </span>
                   {aiAnalysis.reportDate && (
-                    <span className="text-xs text-[var(--color-text-secondary)] font-normal ml-2">
+                    <span className="text-xs text-muted-foreground font-normal ml-2">
                       {aiAnalysis.reportDate}
                     </span>
                   )}
@@ -434,7 +434,7 @@ const ChartPage: React.FC = () => {
               )}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <span className="text-sm">{isReportOpen ? '收起' : '展开'}</span>
             <svg
               className={clsx("w-5 h-5 transition-transform duration-200", isReportOpen ? "rotate-180" : "")}
@@ -449,26 +449,26 @@ const ChartPage: React.FC = () => {
 
         {/* 报告内容 */}
         {isReportOpen && (
-          <div className="p-4 bg-[var(--color-surface-1)]">
+          <div className="p-4 bg-background">
             {aiAnalysis ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 左侧：核心结论 */}
                 <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
-                    <h3 className="text-sm text-[var(--color-text-secondary)] mb-1">行情摘要</h3>
-                    <p className="text-[var(--color-text-primary)] font-medium">{aiAnalysis.summary}</p>
+                  <div className="p-3 rounded-lg bg-card border border-border">
+                    <h3 className="text-sm text-muted-foreground mb-1">行情摘要</h3>
+                    <p className="text-foreground font-medium">{aiAnalysis.summary}</p>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">趋势分析</h3>
-                    <p className="text-[var(--color-text-primary)] mb-2">
+                    <h3 className="text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">趋势分析</h3>
+                    <p className="text-foreground mb-2">
                       <span className="text-purple-400 font-bold">{aiAnalysis.trend}</span>
                     </p>
                     <p className="text-sm text-gray-400">{aiAnalysis.technical_pattern}</p>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">关键点位</h3>
+                    <h3 className="text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">关键点位</h3>
                     <div className="flex gap-4 mb-2">
                       <div className="flex-1 p-2 bg-red-500/10 border border-red-500/20 rounded text-center">
                         <div className="text-xs text-red-400">压力位</div>
@@ -479,14 +479,14 @@ const ChartPage: React.FC = () => {
                         <div className="text-lg font-bold text-green-500">{aiAnalysis.support_resistance?.support || '--'}</div>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 bg-[var(--color-surface-2)] p-2 rounded">{aiAnalysis.support_resistance?.analysis}</p>
+                    <p className="text-sm text-gray-500 bg-card p-2 rounded">{aiAnalysis.support_resistance?.analysis}</p>
                   </div>
                 </div>
 
                 {/* 右侧：信号与建议 */}
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">关键信号</h3>
+                    <h3 className="text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">关键信号</h3>
                     {aiAnalysis.signals && aiAnalysis.signals.length > 0 ? (
                       <ul className="space-y-2">
                         {aiAnalysis.signals.map((signal: string, idx: number) => (
@@ -501,9 +501,9 @@ const ChartPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-3)] border border-[var(--color-surface-4)]">
-                    <h3 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2">💡 操作建议</h3>
-                    <p className="text-[var(--color-text-primary)] leading-relaxed">
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-3)] border border-border">
+                    <h3 className="text-sm font-bold text-muted-foreground mb-2">💡 操作建议</h3>
+                    <p className="text-foreground leading-relaxed">
                       {aiAnalysis.suggestion}
                     </p>
                   </div>
@@ -514,7 +514,7 @@ const ChartPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-secondary)]">
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <svg className="w-12 h-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                 </svg>
@@ -533,13 +533,13 @@ const ChartPage: React.FC = () => {
           <>
             <button
               onClick={() => setShowReanalyzeModal(false)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
               取消
             </button>
             <button
               onClick={() => runAnalysis(selectedSymbol, true)}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-ruo-purple)] text-white hover:bg-purple-700 transition-colors shadow-lg shadow-purple-900/20"
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-purple-700 transition-colors shadow-lg shadow-purple-900/20"
             >
               确认重新分析
             </button>

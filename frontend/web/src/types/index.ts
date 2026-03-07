@@ -92,3 +92,75 @@ export interface StockSearchResult {
   price?: number;
   changePct?: number;
 }
+
+// ============== V2 Types ==============
+export interface Agent {
+  id: string;
+  name: string;
+  avatar: string;
+  description: string;
+  status: 'online' | 'busy' | 'idle' | 'offline';
+}
+
+export interface Stock {
+  id: string;
+  name: string;
+  code: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  category: string;
+}
+
+export interface Weather {
+  current: {
+    temp: number;
+    condition: string;
+    icon: string;
+  };
+  forecast: {
+    day: string;
+    temp: number;
+    condition: string;
+  }[];
+}
+
+export interface HealthData {
+  steps: number;
+  stepsGoal: number;
+  sleep: number;
+  heartRate: number;
+}
+
+export interface FinanceData {
+  monthlyExpense: number;
+  monthlyBudget: number;
+  categories: {
+    name: string;
+    amount: number;
+    color: string;
+  }[];
+}
+
+export interface Habit {
+  id: string;
+  name: string;
+  streak: number;
+  completed: boolean;
+  icon: string;
+}
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'agent';
+  timestamp: Date;
+  agentId?: string;
+}

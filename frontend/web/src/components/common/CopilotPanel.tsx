@@ -162,14 +162,14 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
           {/* 快捷指令 */}
           <div className="p-4 border-b" style={{ borderColor: 'var(--color-surface-4)' }}>
-            <div className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)' }}>快捷指令</div>
+            <div className="text-xs mb-2" style={{ color: 'hsl(var(--muted-foreground))' }}>快捷指令</div>
             <div className="grid grid-cols-2 gap-2">
               {quickCommands.map((command, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickCommand(command)}
                   className="p-2 rounded-lg text-xs font-medium transition-opacity flex items-center space-x-1"
-                  style={{ backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' }}
+                  style={{ backgroundColor: 'var(--color-surface-3)', color: 'hsl(var(--foreground))' }}
                 >
                   <span>{command.icon}</span>
                   <span>{command.label}</span>
@@ -197,12 +197,12 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
                   )}
                   style={
                     message.role === 'user'
-                      ? { backgroundColor: 'var(--color-surface-3)', color: 'var(--color-text-primary)' }
-                      : { backgroundColor: 'var(--color-surface-2)', borderColor: 'var(--color-surface-4)', color: 'var(--color-text-primary)' }
+                      ? { backgroundColor: 'var(--color-surface-3)', color: 'hsl(var(--foreground))' }
+                      : { backgroundColor: 'var(--color-surface-2)', borderColor: 'var(--color-surface-4)', color: 'hsl(var(--foreground))' }
                   }
                 >
                   <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                  <div className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                     {message.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
@@ -248,7 +248,7 @@ const CopilotPanel: React.FC<CopilotPanelProps> = ({
                 发送
               </button>
             </div>
-            <div className="text-xs mt-2 text-center" style={{ color: 'var(--color-text-secondary)' }}>
+            <div className="text-xs mt-2 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
               按 <kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Enter</kbd> 发送，<kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Shift</kbd>+<kbd className="px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--color-surface-3)' }}>Enter</kbd> 换行
             </div>
           </div>

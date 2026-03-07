@@ -45,7 +45,7 @@ const RadarPage: React.FC = () => {
   const renderSignalList = (signals: RadarSignal[]) => {
     if (loading && (!signals || signals.length === 0)) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <div className="flex-1 bg-card flex items-center justify-center border border-border text-muted-foreground rounded-xl">
           <div className="w-12 h-12 border-4 border-white/5 border-t-primary-light animate-spin rounded-full"></div>
           <div className="text-gray-500 font-medium">正在同步雷达信号...</div>
         </div>
@@ -66,7 +66,7 @@ const RadarPage: React.FC = () => {
         {signals.map((signal, index) => (
           <div
             key={`${signal.symbol}-${index}`}
-            className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all group"
+            className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted transition-all group"
           >
             <div className="flex items-center gap-4">
               <div className="text-center w-10">
@@ -104,7 +104,7 @@ const RadarPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="text-right w-32 border-l border-white/5 pl-6">
+              <div className="text-right w-32 border-l border-border pl-6">
                 <div className="text-sm font-medium text-gray-300">{formatMoney(signal.amount)}</div>
                 <div className="text-xs text-gray-500 mt-0.5">强度: <span className="text-primary-light font-bold">{signal.signalStrength.toFixed(1)}</span></div>
               </div>
@@ -119,7 +119,7 @@ const RadarPage: React.FC = () => {
   if (error) {
     return (
       <div className="p-6">
-        <div className="glass-card border-red-500/20 p-8 text-center bg-red-500/5 rounded-2xl">
+        <div className="bg-card border-destructive/20 p-8 text-center bg-destructive/5 rounded-2xl border">
           <p className="text-red-400 mb-6 flex items-center justify-center gap-2">
             <span className="text-2xl">⚠️</span> {error}
           </p>
@@ -141,13 +141,9 @@ const RadarPage: React.FC = () => {
       : data?.limitUpCandidates;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between border-b border-white/5 pb-4">
-        <div>
-          <h1 className="text-3xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">短线雷达</h1>
-          <p className="text-gray-400 mt-2 font-medium tracking-wide">实时监控市场异动，捕捉短线机会</p>
-        </div>
-        <div className="text-sm font-mono text-gray-500 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto pt-0">
+      <div className="flex items-center justify-end mb-4">
+        <div className="text-sm font-mono text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
           TIMESTAMP: {data?.updateTime ? new Date(data.updateTime).toLocaleTimeString() : '-'}
         </div>
       </div>
@@ -155,47 +151,47 @@ const RadarPage: React.FC = () => {
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div
-          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'auction'
+          className={`bg-card text-card-foreground border border-border p-6 cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl group ${activeTab === 'auction'
             ? 'ring-2 ring-orange-500/50 bg-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.15)]'
-            : 'hover:bg-white/5'
+            : 'hover:bg-muted'
             }`}
           onClick={() => setActiveTab('auction')}
         >
-          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">竞价爆点</div>
+          <div className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors">竞价爆点</div>
           <div className="text-4xl font-black text-orange-500 mt-2 tracking-tighter">{data?.auctionSignals?.length || 0}</div>
-          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">高开3-7% + 竞价额&gt;1000万</div>
+          <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-2 font-medium">高开3-7% + 竞价额&gt;1000万</div>
           {activeTab === 'auction' && <div className="absolute top-0 right-0 w-2 h-full bg-orange-500/50" />}
         </div>
 
         <div
-          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'movers'
+          className={`bg-card text-card-foreground border border-border p-6 cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl group ${activeTab === 'movers'
             ? 'ring-2 ring-red-500/50 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
-            : 'hover:bg-white/5'
+            : 'hover:bg-muted'
             }`}
           onClick={() => setActiveTab('movers')}
         >
-          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">实时异动</div>
+          <div className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors">实时异动</div>
           <div className="text-4xl font-black text-red-500 mt-2 tracking-tighter">{data?.intradayMovers?.length || 0}</div>
-          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">涨跌幅&gt;5%的异动股票</div>
+          <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-2 font-medium">涨跌幅&gt;5%的异动股票</div>
           {activeTab === 'movers' && <div className="absolute top-0 right-0 w-2 h-full bg-red-500/50" />}
         </div>
 
         <div
-          className={`glass-card p-6 cursor-pointer transition-all duration-300 relative overflow-hidden group ${activeTab === 'candidates'
+          className={`bg-card text-card-foreground border border-border p-6 cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl group ${activeTab === 'candidates'
             ? 'ring-2 ring-purple-500/50 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-            : 'hover:bg-white/5'
+            : 'hover:bg-muted'
             }`}
           onClick={() => setActiveTab('candidates')}
         >
-          <div className="text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">涨停候选</div>
+          <div className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors">涨停候选</div>
           <div className="text-4xl font-black text-purple-500 mt-2 tracking-tighter">{data?.limitUpCandidates?.length || 0}</div>
-          <div className="text-xs text-gray-500 mt-2 border-t border-white/5 pt-2 font-medium">涨停池 + 即将涨停</div>
+          <div className="text-xs text-muted-foreground mt-2 border-t border-border pt-2 font-medium">涨停池 + 即将涨停</div>
           {activeTab === 'candidates' && <div className="absolute top-0 right-0 w-2 h-full bg-purple-500/50" />}
         </div>
       </div>
 
       {/* 信号列表 */}
-      <div className="glass-card p-6 space-y-6">
+      <div className="bg-card text-card-foreground border border-border p-6 space-y-6 rounded-xl shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-2 h-6 rounded-full ${activeTab === 'auction' ? 'bg-orange-500' :
@@ -209,7 +205,7 @@ const RadarPage: React.FC = () => {
           </div>
           <button
             onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-primary-light rounded-xl border border-white/10 transition-all text-sm font-bold shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-xl border border-border transition-all text-sm font-bold shadow-sm"
           >
             <span>🔄</span> 刷新数据
           </button>

@@ -108,12 +108,6 @@ const DashboardPage: React.FC = () => {
     return `${Math.floor(diffHours / 24)}天前`;
   };
 
-  const riskAlerts = [
-    { type: 'warning', message: '新能源行业仓位过重，建议适度减持' },
-    { type: 'info', message: '现金比例偏低，建议保留10%应急资金' },
-  ];
-
-
 
   // ECharts Option for Sentiment Gauge
   const getGaugeOption = (score: number) => ({
@@ -184,27 +178,22 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in pb-24 lg:pb-6">
-      <div className="flex flex-col space-y-1 mb-2">
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">概览</h1>
-        <p className="text-sm text-[var(--color-text-secondary)]">欢迎回来，今日市场情绪 {sentimentLabel}</p>
-      </div>
-
       {/* 第一行：资产全景 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 总资产卡片 */}
-        <div className="glass-card lg:col-span-2 p-6 hover-lift relative overflow-hidden">
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm lg:col-span-2 p-6 hover-lift relative overflow-hidden">
           {/* Background Glow */}
-          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 bg-purple-500/10 blur-3xl rounded-full pointer-events-none"></div>
+          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 bg-primary/10 blur-3xl rounded-full pointer-events-none"></div>
 
           <div className="flex items-center justify-between mb-6 relative z-10">
-            <h2 className="text-base font-medium text-[var(--color-text-secondary)]">总资产</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">总资产</h2>
             {/* Market toggle removed */}
           </div>
 
           <div className="space-y-2 relative z-10">
             <div className="flex items-baseline space-x-4">
-              <span className="text-4xl font-bold numbers tracking-tight text-white">
-                {portfolioLoading ? <span className="animate-pulse text-gray-500 text-2xl">加载中...</span> : `¥${(totalValue || 0).toLocaleString()}`}
+              <span className="text-4xl font-bold numbers tracking-tight text-foreground">
+                {portfolioLoading ? <span className="animate-pulse text-muted-foreground text-2xl">加载中...</span> : `¥${(totalValue || 0).toLocaleString()}`}
               </span>
             </div>
             <div className="flex items-center space-x-3 mt-2">
@@ -213,7 +202,7 @@ const DashboardPage: React.FC = () => {
                   <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio || 0), getProfitBgColor(totalProfitLossRatio || 0))}>
                     {totalProfitLoss >= 0 ? '+' : ''}{(totalProfitLoss || 0).toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{((totalProfitLossRatio || 0) * 100).toFixed(2)}%)
                   </span>
-                  <span className="text-xs text-[var(--color-text-muted)]">今日盈亏</span>
+                  <span className="text-xs text-muted-foreground">今日盈亏</span>
                 </>
               )}
             </div>
@@ -221,13 +210,13 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Ruo情绪指数 */}
-        <div className="glass-card p-6 flex flex-col justify-between hover-lift">
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-col justify-between hover-lift">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-base font-medium text-[var(--color-text-secondary)]">Ruo 情绪指数</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Ruo 情绪指数</h3>
             {!dashboardData ? (
-              <div className="w-12 h-5 bg-white/5 animate-pulse rounded"></div>
+              <div className="w-12 h-5 bg-muted animate-pulse rounded"></div>
             ) : (
-              <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/20">{sentimentLabel}</span>
+              <span className="text-xs px-2 py-1 rounded bg-primary/20 text-primary border border-primary/20">{sentimentLabel}</span>
             )}
           </div>
 
@@ -244,35 +233,35 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div className="text-center mt-[-10px]">
-            <p className="text-2xl font-bold text-white numbers">{dashboardData ? (sentiment ? sentiment.score : '--') : '...'}</p>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">{dashboardData ? sentimentDescription : '正在分析市场情绪...'}</p>
+            <p className="text-2xl font-bold text-foreground numbers">{dashboardData ? (sentiment ? sentiment.score : '--') : '...'}</p>
+            <p className="text-xs text-muted-foreground mt-1">{dashboardData ? sentimentDescription : '正在分析市场情绪...'}</p>
           </div>
         </div>
       </div>
 
       {/* 第二行：每日简报 */}
-      <div className="glass-card p-6 hover-lift mb-6">
+      <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-medium text-white flex items-center">
+          <h3 className="text-base font-medium text-foreground flex items-center">
             <span className="mr-2 text-lg">📰</span> 每日简报
           </h3>
           <div className="flex items-center space-x-2">
-            {reportLoading && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>}
-            <span className="text-xs text-[var(--color-text-muted)]">{dailyReport?.date || ''}</span>
+            {reportLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
+            <span className="text-xs text-muted-foreground">{dailyReport?.date || ''}</span>
           </div>
         </div>
 
         {reportLoading && !dailyReport ? (
           <div className="space-y-4 animate-pulse">
-            <div className="h-8 bg-white/5 rounded w-1/4"></div>
-            <div className="h-20 bg-white/5 rounded w-full"></div>
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="h-20 bg-muted rounded w-full"></div>
           </div>
         ) : dailyReport ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-4 mb-3">
               <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-white">{dailyReport.sentiment_index}</span>
-                <span className="text-sm text-[var(--color-text-muted)]">/ 100</span>
+                <span className="text-2xl font-bold text-foreground">{dailyReport.sentiment_index}</span>
+                <span className="text-sm text-muted-foreground">/ 100</span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className={clsx(
@@ -286,7 +275,7 @@ const DashboardPage: React.FC = () => {
                 {dailyReport.key_factors?.length > 0 && (
                   <div className="flex space-x-1">
                     {dailyReport.key_factors.slice(0, 3).map((factor, idx) => (
-                      <span key={idx} className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] border border-white/5">
+                      <span key={idx} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                         {factor}
                       </span>
                     ))}
@@ -294,43 +283,43 @@ const DashboardPage: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+            <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {dailyReport.report}
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 text-[var(--color-text-muted)]">暂无简报数据</div>
+          <div className="text-center py-6 text-muted-foreground">暂无简报数据</div>
         )}
       </div>
 
       {/* 第三行：核心动态 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 持仓异动卡片 */}
-        <div className="glass-card p-6 hover-lift">
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-medium text-white flex items-center">
+            <h3 className="text-base font-medium text-foreground flex items-center">
               <span className="mr-2 text-lg">📊</span> 持仓异动
             </h3>
-            <span className="text-xs text-[var(--color-text-muted)]">Top 3 Movers</span>
+            <span className="text-xs text-muted-foreground">Top 3 Movers</span>
           </div>
 
           <div className="space-y-3">
             {portfolioLoading ? (
-              <div className="text-center py-8 text-[var(--color-text-muted)]">加载中...</div>
+              <div className="text-center py-8 text-muted-foreground">加载中...</div>
             ) : portfolioMovements.length === 0 ? (
-              <div className="text-center py-8 text-[var(--color-text-muted)]">暂无持仓数据</div>
+              <div className="text-center py-8 text-muted-foreground">暂无持仓数据</div>
             ) : (
               portfolioMovements.map((stock, index) => (
                 <div
                   key={index}
-                  className="group bg-[var(--color-surface-1)]/40 hover:bg-[var(--color-surface-3)] p-3 rounded-xl transition-all border border-white/5 cursor-pointer"
+                  className="group bg-muted/40 hover:bg-muted p-3 rounded-xl transition-all border border-border cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={clsx("w-1 h-8 rounded-full", stock.changePercent >= 0 ? "bg-[#FF3B30]" : "bg-[#34C759]")}></div>
+                      <div className={clsx("w-1 h-8 rounded-full", stock.changePercent >= 0 ? "bg-profit-up" : "bg-profit-down")}></div>
                       <div>
-                        <div className="font-bold text-sm text-white group-hover:text-purple-400 transition-colors">{stock.name}</div>
-                        <div className="text-xs text-[var(--color-text-secondary)] font-mono">{stock.code}</div>
+                        <div className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{stock.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{stock.code}</div>
                       </div>
                     </div>
 
@@ -338,7 +327,7 @@ const DashboardPage: React.FC = () => {
                       <div className={clsx('text-sm font-bold numbers', getProfitColor(stock.changePercent))}>
                         {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent}%
                       </div>
-                      <div className="text-xs text-[var(--color-text-secondary)] numbers">¥{stock.price}</div>
+                      <div className="text-xs text-muted-foreground numbers">¥{stock.price}</div>
                     </div>
                   </div>
                 </div>
@@ -348,42 +337,42 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* 快讯 */}
-        <div className="glass-card p-6 hover-lift flex flex-col h-[400px]">
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift flex flex-col h-[400px]">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-medium text-white flex items-center">
+            <h3 className="text-base font-medium text-foreground flex items-center">
               <span className="mr-2 text-lg">⚡</span> 7x24 快讯
             </h3>
             <div className="flex items-center space-x-2">
-              {newsLoading && <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>}
+              {newsLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
             </div>
           </div>
 
           <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
             {newsLoading && newsList.length === 0 ? (
-              <div className="text-center text-[var(--color-text-secondary)] py-10">
+              <div className="text-center text-muted-foreground py-10">
                 加载中...
               </div>
             ) : newsList.length === 0 ? (
-              <div className="text-center text-[var(--color-text-secondary)] py-10">
+              <div className="text-center text-muted-foreground py-10">
                 暂无快讯
               </div>
             ) : (
               newsList.map((news) => (
                 <div
                   key={news.id}
-                  className="relative pl-4 border-l border-[var(--color-surface-4)] hover:border-purple-500/50 transition-colors py-1 group cursor-pointer"
+                  className="relative pl-4 border-l border-border hover:border-primary/50 transition-colors py-1 group cursor-pointer"
                   onClick={() => setSelectedNews(news)}
                 >
-                  <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-[var(--color-surface-4)] group-hover:bg-purple-500 transition-colors border-2 border-[var(--color-surface-2)]"></div>
+                  <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-muted group-hover:bg-primary transition-colors border-2 border-background"></div>
                   <div className="mb-1 flex items-center space-x-2">
-                    <span className="text-xs text-[var(--color-text-secondary)] font-mono opacity-80">
+                    <span className="text-xs text-muted-foreground font-mono opacity-80">
                       {formatTimeAgo(news.publishTime)}
                     </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] border border-white/5">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                       {news.source === 'cls' ? '财联社' : news.source === 'xueqiu' ? '雪球' : news.source}
                     </span>
                   </div>
-                  <h4 className="text-sm text-gray-300 group-hover:text-white transition-colors leading-relaxed line-clamp-2">
+                  <h4 className="text-sm text-foreground/80 group-hover:text-foreground transition-colors leading-relaxed line-clamp-2">
                     {news.title || news.content.slice(0, 100)}
                   </h4>
                 </div>
@@ -393,59 +382,24 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 第三行：风险雷达 */}
-      <div className="glass-card p-6 hover-lift mb-6">
-        <h3 className="text-base font-medium text-white flex items-center mb-4">
-          <span className="mr-2 text-lg">📡</span> 风险雷达
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {riskAlerts.map((alert, index) => (
-            <div
-              key={index}
-              className={clsx(
-                'p-4 rounded-xl border border-dashed transition-all duration-300',
-                alert.type === 'warning'
-                  ? 'bg-orange-500/5 border-orange-500/30 hover:bg-orange-500/10'
-                  : 'bg-blue-500/5 border-blue-500/30 hover:bg-blue-500/10'
-              )}
-            >
-              <div className="flex items-start space-x-3">
-                <span className={clsx(
-                  'text-lg mt-0.5',
-                  alert.type === 'warning' ? 'text-orange-500' : 'text-blue-500'
-                )}>
-                  {alert.type === 'warning' ? '⚠️' : 'ℹ️'}
-                </span>
-                <div>
-                  <h5 className={clsx('text-sm font-bold mb-1', alert.type === 'warning' ? 'text-orange-400' : 'text-blue-400')}>
-                    {alert.type === 'warning' ? '风险提示' : '建议'}
-                  </h5>
-                  <p className="text-sm text-gray-400">{alert.message}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
 
       {/* 新闻详情弹窗 */}
       {
         selectedNews && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setSelectedNews(null)}>
-            <div className="glass-card w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-              <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedNews(null)}>
+            <div className="bg-card text-card-foreground border rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
                 <div className="flex items-center space-x-3">
-                  <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/20">
+                  <span className="text-xs px-2 py-1 rounded bg-primary/20 text-primary border border-primary/20">
                     {selectedNews.source === 'cls' ? '财联社' : selectedNews.source === 'xueqiu' ? '雪球' : selectedNews.source}
                   </span>
-                  <span className="text-sm text-[var(--color-text-secondary)] font-mono">
+                  <span className="text-sm text-muted-foreground font-mono">
                     {formatTimeAgo(selectedNews.publishTime)}
                   </span>
                 </div>
                 <button
                   onClick={() => setSelectedNews(null)}
-                  className="p-1 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
+                  className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -453,17 +407,17 @@ const DashboardPage: React.FC = () => {
                 </button>
               </div>
               <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                {selectedNews.title && <h3 className="text-xl font-bold mb-6 text-white leading-tight">{selectedNews.title}</h3>}
-                <div className="whitespace-pre-wrap text-gray-300 leading-7 text-base font-light">
+                {selectedNews.title && <h3 className="text-xl font-bold mb-6 text-foreground leading-tight">{selectedNews.title}</h3>}
+                <div className="whitespace-pre-wrap text-muted-foreground leading-7 text-base font-light">
                   {selectedNews.content}
                 </div>
                 {selectedNews.aiAnalysis && (
-                  <div className="mt-8 p-5 bg-purple-500/5 rounded-xl border border-purple-500/10">
+                  <div className="mt-8 p-5 bg-primary/5 rounded-xl border border-primary/10">
                     <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-purple-400 text-lg">🤖</span>
-                      <h4 className="text-sm font-bold text-purple-400">AI 智能解读</h4>
+                      <span className="text-primary text-lg">🤖</span>
+                      <h4 className="text-sm font-bold text-primary">AI 智能解读</h4>
                     </div>
-                    <p className="text-sm text-gray-400 leading-relaxed italic">{selectedNews.aiAnalysis}</p>
+                    <p className="text-sm text-foreground/70 leading-relaxed italic">{selectedNews.aiAnalysis}</p>
                   </div>
                 )}
               </div>

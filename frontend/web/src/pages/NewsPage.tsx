@@ -58,7 +58,7 @@ const NewsPage: React.FC = () => {
   if (portfolios.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-[var(--color-text-secondary)]">请先添加持仓股票</p>
+        <p className="text-muted-foreground">请先添加持仓股票</p>
       </div>
     );
   }
@@ -70,7 +70,6 @@ const NewsPage: React.FC = () => {
         <div className="flex flex-col space-y-4">
           {/* 股票选择器 */}
           <div>
-            <h2 className="text-xl font-bold mb-4">AI 情报分析</h2>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {portfolios.map((portfolio) => (
                 <button
@@ -79,13 +78,13 @@ const NewsPage: React.FC = () => {
                   className={clsx(
                     'px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
                     selectedSymbol === portfolio.symbol
-                      ? 'bg-[var(--color-ruo-purple)]/20 text-[var(--color-ruo-purple)] border border-[var(--color-ruo-purple)]/30'
-                      : 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]/80'
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
                   {portfolio.name}
                   {portfolio.hasNewNews && (
-                    <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-[var(--color-ruo-purple)]"></span>
+                    <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-primary"></span>
                   )}
                 </button>
               ))}
@@ -94,7 +93,7 @@ const NewsPage: React.FC = () => {
 
           {/* Tab 过滤器 */}
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-[var(--color-text-secondary)]">筛选:</span>
+            <span className="text-sm text-muted-foreground">筛选:</span>
             <div className="flex space-x-1">
               {[
                 { key: 'all', label: '全部' },
@@ -108,8 +107,8 @@ const NewsPage: React.FC = () => {
                   className={clsx(
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     filter === tab.key
-                      ? 'bg-[var(--color-ruo-purple)] text-white'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)]'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
                   )}
                 >
                   {tab.label}
@@ -117,10 +116,10 @@ const NewsPage: React.FC = () => {
               ))}
             </div>
             <div className="flex items-center space-x-2 ml-auto">
-              <span className="text-sm text-[var(--color-text-secondary)]">市场模式:</span>
+              <span className="text-sm text-muted-foreground">市场模式:</span>
               <button
                 onClick={() => setUsMarket(!usMarket)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${usMarket ? 'bg-[var(--color-profit-down)]/20 text-[var(--color-profit-down)]' : 'bg-[var(--color-profit-up)]/20 text-[var(--color-profit-up)]'}`}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${usMarket ? 'bg-profit-down/20 text-profit-down' : 'bg-profit-up/20 text-profit-up'}`}
               >
                 {usMarket ? '美股' : 'A股'}
               </button>
@@ -137,7 +136,7 @@ const NewsPage: React.FC = () => {
           </div>
         ) : filteredNews.length === 0 ? (
           <div className="h-full flex items-center justify-center">
-            <p className="text-[var(--color-text-secondary)]">暂无符合条件的新闻</p>
+            <p className="text-muted-foreground">暂无符合条件的新闻</p>
           </div>
         ) : (
           <div className="columns-1 md:columns-2 lg:columns-3 gap-4">

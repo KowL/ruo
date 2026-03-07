@@ -93,12 +93,12 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
       {/* Glassmorphism Card */}
-      <div className="glass-card w-full max-w-md p-6 relative overflow-hidden">
+      <div className="bg-card text-card-foreground w-full max-w-md p-6 relative overflow-hidden border border-border shadow-2xl rounded-2xl">
         {/* Glow Effects */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
-        <h2 className="text-xl font-bold mb-6 text-white flex items-center">
+        <h2 className="text-xl font-bold mb-6 text-foreground flex items-center">
           <span className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></span>
           添加持仓
         </h2>
@@ -106,7 +106,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           {/* 股票搜索 */}
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               股票代码/名称
             </label>
             <div className="relative">
@@ -125,12 +125,12 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
                   }
                 }}
                 placeholder="输入代码或名称，如 000001"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
                 required
               />
               {/* Search Dropdown */}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-20 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-20 max-h-48 overflow-y-auto">
                   {searchResults.map((stock) => (
                     <div
                       key={stock.symbol}
@@ -138,13 +138,13 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
                       className="px-4 py-3 hover:bg-white/5 cursor-pointer flex justify-between items-center group transition-colors"
                     >
                       <div className="flex flex-col">
-                        <span className="text-white font-medium group-hover:text-blue-400 transition-colors">{stock.name}</span>
+                        <span className="text-foreground font-medium group-hover:text-primary transition-colors">{stock.name}</span>
                         <span className="text-gray-500 text-sm">{stock.symbol}</span>
                       </div>
                       {stock.price ? (
                         <div className="text-right">
-                          <div className="text-white font-mono">{stock.price}</div>
-                          <div className={`text-xs ${stock.changePct && stock.changePct >= 0 ? 'text-[#FF3B30]' : 'text-[#34C759]'}`}>
+                          <div className="text-foreground font-mono">{stock.price}</div>
+                          <div className={`text-xs ${stock.changePct && stock.changePct >= 0 ? 'text-profit-up' : 'text-profit-down'}`}>
                             {stock.changePct && stock.changePct > 0 ? '+' : ''}{stock.changePct}%
                           </div>
                         </div>
@@ -160,7 +160,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
           <div className="grid grid-cols-2 gap-4">
             {/* 成本价 */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">成本价</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">成本价</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
                 <input
@@ -169,7 +169,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
                   value={formData.costPrice}
                   onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all numbers"
+                  className="w-full pl-8 pr-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all numbers"
                   required
                 />
               </div>
@@ -177,13 +177,13 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
 
             {/* 持仓数量 */}
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">持仓数量</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">持仓数量</label>
               <input
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 placeholder="1000"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all numbers"
+                className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all numbers"
                 required
               />
             </div>
@@ -191,7 +191,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
 
           {/* 策略标签 */}
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">策略标签</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">策略标签</label>
             <div className="relative">
               <select
                 value={formData.strategyTag}
@@ -200,11 +200,11 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
                 }
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
               >
-                <option value="" className="bg-[#1a1a1a] text-gray-500">请选择策略类型</option>
-                <option value="打板" className="bg-[#1a1a1a]">🚀 打板 (超短线)</option>
-                <option value="低吸" className="bg-[#1a1a1a]">📉 低吸 (反弹)</option>
-                <option value="趋势" className="bg-[#1a1a1a]">📈 趋势 (波段)</option>
-                <option value="其他" className="bg-[#1a1a1a]">📝 其他</option>
+                <option value="" className="bg-card text-muted-foreground">请选择策略类型</option>
+                <option value="打板" className="bg-card">🚀 打板 (超短线)</option>
+                <option value="低吸" className="bg-card">📉 低吸 (反弹)</option>
+                <option value="趋势" className="bg-card">📈 趋势 (波段)</option>
+                <option value="其他" className="bg-card">📝 其他</option>
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -217,7 +217,7 @@ const AddPortfolioModal: React.FC<AddPortfolioModalProps> = ({ isOpen, onClose, 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-all font-medium"
+              className="flex-1 px-4 py-3 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-all font-medium"
             >
               取消
             </button>

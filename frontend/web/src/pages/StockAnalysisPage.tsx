@@ -149,20 +149,15 @@ const StockAnalysisPage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 animate-fade-in pb-24 lg:pb-6">
-            <div className="flex flex-col space-y-1 mb-2">
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">涨停股分析</h1>
-                <p className="text-sm text-[var(--color-text-secondary)]">AI 驱动的深度复盘与机会挖掘</p>
-            </div>
-
+        <div className="p-6 space-y-6 animate-fade-in pb-24 lg:pb-6 pt-0">
             {/* 控制面板 */}
-            <div className="glass-card p-4 sm:p-6 relative z-20">
+            <div className="bg-card text-card-foreground border border-border rounded-xl p-4 sm:p-6 relative z-20">
                 <div className="flex flex-col space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex flex-col">
-                            <h2 className="text-lg font-bold text-white">分析报告</h2>
-                            <p className="text-sm text-[var(--color-text-secondary)]">
-                                {result ? (result.cached ? '已加载存档报告' : '最新生成的分析报告') : '选择日期或开始新分析'}
+                            <h2 className="text-foreground font-bold text-lg">复盘报告</h2>
+                            <p className="text-sm text-muted-foreground">
+                                基于今日股票数据的复盘分析
                             </p>
                         </div>
                         <button
@@ -170,7 +165,7 @@ const StockAnalysisPage: React.FC = () => {
                             disabled={loading}
                             className={clsx(
                                 "px-6 py-2 rounded-lg font-bold text-white transition-all shadow-lg active:scale-95",
-                                loading ? "bg-gray-600 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 hover:shadow-purple-500/30"
+                                loading ? "bg-muted cursor-not-allowed" : "bg-primary hover:bg-primary/90 hover:shadow-primary/30"
                             )}
                         >
                             {loading ? (
@@ -189,7 +184,7 @@ const StockAnalysisPage: React.FC = () => {
                                 onClick={() => setShowCalendar(!showCalendar)}
                                 className={clsx(
                                     "w-10 h-10 flex items-center justify-center rounded-xl bg-surface-3 border transition-all active:scale-90",
-                                    showCalendar ? "border-purple-500 bg-purple-600/10 text-purple-400" : "border-surface-4 text-gray-400 hover:border-purple-500/50 hover:bg-surface-4 hover:text-purple-400"
+                                    showCalendar ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:bg-muted hover:text-primary"
                                 )}
                                 title="选择指定日期"
                             >
@@ -200,13 +195,13 @@ const StockAnalysisPage: React.FC = () => {
                             {showCalendar && (
                                 <div
                                     ref={calendarRef}
-                                    className="absolute top-12 left-0 z-[100] w-72 bg-[#121212] border border-surface-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-fade-in p-4"
+                                    className="absolute top-12 left-0 z-[100] w-72 bg-card border border-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-fade-in p-4"
                                 >
                                     <div className="flex items-center justify-between mb-4">
                                         <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-surface-3 rounded-lg text-gray-400 transition-colors">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                                         </button>
-                                        <div className="text-sm font-bold text-white">
+                                        <div className="text-sm font-bold text-foreground">
                                             {viewDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}
                                         </div>
                                         <button onClick={() => changeMonth(1)} className="p-1 hover:bg-surface-3 rounded-lg text-gray-400 transition-colors">
@@ -234,14 +229,14 @@ const StockAnalysisPage: React.FC = () => {
                                                     className={clsx(
                                                         "h-8 flex items-center justify-center rounded-lg transition-all active:scale-90 relative",
                                                         isSelected
-                                                            ? "bg-purple-600 text-white font-bold"
-                                                            : "text-gray-300 hover:bg-surface-4",
-                                                        isToday && !isSelected && "text-purple-400 font-bold"
+                                                            ? "bg-primary text-primary-foreground font-bold"
+                                                            : "text-muted-foreground hover:bg-muted",
+                                                        isToday && !isSelected && "text-primary font-bold"
                                                     )}
                                                 >
                                                     {d.day}
                                                     {isToday && !isSelected && (
-                                                        <div className="absolute bottom-1 w-1 h-1 bg-purple-500 rounded-full" />
+                                                        <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full" />
                                                     )}
                                                 </button>
                                             );
@@ -270,8 +265,8 @@ const StockAnalysisPage: React.FC = () => {
                                             className={clsx(
                                                 "flex flex-col items-center justify-center min-w-[56px] h-14 rounded-xl border transition-all active:scale-95 shrink-0",
                                                 isSelected
-                                                    ? "bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-                                                    : "bg-surface-2 border-surface-3 text-gray-400 hover:border-gray-600 hover:bg-surface-3"
+                                                    ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.15)]"
+                                                    : "bg-muted/50 border-border text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted"
                                             )}
                                         >
                                             <span className="text-[10px] uppercase font-medium opacity-70">{dayName}</span>
@@ -287,7 +282,7 @@ const StockAnalysisPage: React.FC = () => {
                                     <div className="h-4 w-px bg-surface-4 mx-1"></div>
                                     <button
                                         onClick={() => setSelectedDate(selectedDate)}
-                                        className="flex flex-col items-center justify-center min-w-[70px] h-14 rounded-xl border bg-purple-600/20 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)] shrink-0"
+                                        className="flex flex-col items-center justify-center min-w-[70px] h-14 rounded-xl border bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.2)] shrink-0"
                                     >
                                         <span className="text-[10px] uppercase font-medium opacity-70">选定日期</span>
                                         <span className="text-xs font-bold">{selectedDate.split('-').slice(1).join('/')}</span>
@@ -307,18 +302,18 @@ const StockAnalysisPage: React.FC = () => {
 
             {/* 报告内容 */}
             {loading ? (
-                <div className="glass-card p-12 flex flex-col items-center justify-center space-y-4">
-                    <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-600 rounded-full animate-spin"></div>
-                    <p className="text-gray-400">正在分析数据，请稍候...</p>
+                <div className="bg-card text-card-foreground border border-border rounded-xl p-12 flex flex-col items-center justify-center space-y-4">
+                    <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-muted-foreground">正在分析数据，请稍候...</p>
                 </div>
             ) : reportContent ? (
-                <div className="glass-card p-8 min-h-[500px]">
-                    <article className="prose prose-invert max-w-none prose-p:text-gray-300 prose-headings:text-white prose-strong:text-purple-300">
+                <div className="bg-card text-card-foreground border border-border rounded-xl p-8 min-h-[500px]">
+                    <article className="prose prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-foreground prose-strong:text-primary">
                         <ReactMarkdown>{reportContent}</ReactMarkdown>
                     </article>
                 </div>
             ) : (
-                <div className="text-center py-20 text-[var(--color-text-muted)]">
+                <div className="text-center py-20 text-muted-foreground">
                     {error ? '未发现当日报告' : '选择日期并点击分析开始'}
                 </div>
             )}

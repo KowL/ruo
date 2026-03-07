@@ -49,43 +49,6 @@ export const getTimeShareData = async (symbol: string): Promise<TimeShareData[]>
 
 // --- Eastmoney Direct API Helpers ---
 
-// JSONP Helper
-const jsonp = (url: string, _callbackName: string): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    const name = `jsonp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-    // Explicitly set the callback parameter if needed, but Eastmoney often hardcodes 'cb' or similar in query key
-    // Here we assume the URL already has the callback placeholder or we append it.
-    // Eastmoney typical format: ...&cb=jQuery...
-
-    // We'll attach the callback to window
-    (window as any)[name] = (data: any) => {
-      resolve(data);
-      document.body.removeChild(script);
-      delete (window as any)[name];
-    };
-
-    // Replace 'cb=?' or append it
-    const finalUrl = url.replace('cb=?', `cb=${name}`).replace('cb=cb', `cb=${name}`);
-
-    script.src = finalUrl;
-    script.onerror = (e) => {
-      document.body.removeChild(script);
-      delete (window as any)[name];
-      reject(e);
-    };
-    document.body.appendChild(script);
-  });
-};
-
-const getMarketId = (code: string) => {
-  // 6 starts -> SH (1), others -> SZ (0) (Includes BJ usually as 0 in Eastmoney for trends, validation needed but 0 covers 0/3/4/8 usually)
-  // Actually simpler rule: 6xx is SH (1), else SZ/BJ (0)
-  if (code.startsWith('6')) return 1;
-  return 0;
-};
-
 // 获取分时数据 (Eastmoney Direct)
 // URL: https://push2.eastmoney.com/api/qt/stock/trends2/get?secid={market}.{code}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&cb=cb
 // 获取分时数据 (Eastmoney Direct)
@@ -96,7 +59,7 @@ export const fetchIntradayData = async (symbol: string): Promise<{ name: string;
     const res = await client.get<any, ApiResponse<any>>(`/stock/timeshare/${symbol}`);
     // client 拦截器已返回 response.data = { status, data }
     const data = res?.data || [];
-    
+
     // 转换后端数据格式为前端需要的格式
     const trends = data.map((item: any) => ({
       time: item.time,
@@ -104,10 +67,10 @@ export const fetchIntradayData = async (symbol: string): Promise<{ name: string;
       volume: item.volume,
       avgPrice: item.avgPrice || 0
     }));
-    
+
     // 从第一条数据获取昨收价（如果存在）
     const preClose = trends.length > 0 ? trends[0].price - (data[0]?.change || 0) : 0;
-    
+
     return { name: '', preClose, trends };
   } catch (error) {
     console.error("获取分时数据失败:", error);

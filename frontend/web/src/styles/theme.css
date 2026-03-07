@@ -2,26 +2,50 @@
 
 /* CSS Variables for Design Tokens */
 :root {
-  /* 背景色 */
-  --color-surface-1: #000000;
-  --color-surface-2: #0A0A0A;
-  --color-surface-3: #1A1A1A;
-  --color-surface-4: #2A2A2A;
+  /* Shadcn UI 通用设置 */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 98%;
+  --popover: 217 33% 17%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 33% 22%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 22%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 187 94% 43%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 217 33% 25%;
+  --input: 217 33% 25%;
+  --ring: 217 91% 60%;
+  --radius: 0.75rem;
+
+  --sidebar-background: 217 33% 17%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 217 33% 22%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 25%;
+  --sidebar-ring: 217 91% 60%;
 
   /* 品牌色 */
   --color-brand: #FFFFFF;
 
-  /* 功能色 */
-  --color-profit-up: #FF3B30;   /* A股红 */
-  --color-profit-down: #34C759; /* 美股绿 */
-  --color-loss-up: #34C759;     /* A股绿 */
-  --color-loss-down: #FF3B30;    /* 美股红 */
+  /* 功能色 (For utilities using vars) */
+  --profit-up: 0 100% 59%;
+  /* FF3B30 -> A股红 */
+  --profit-down: 135 59% 49%;
+  /* 34C759 -> 美股绿 */
+  --loss-up: 135 59% 49%;
+  /* A股绿 */
+  --loss-down: 0 100% 59%;
+  /* 美股红 */
   --color-warning: #FF9500;
-
-  /* 文本色 */
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #8E8E93;
-  --color-text-muted: #3A3A3C;
 
   /* 字体 */
   --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Inter', sans-serif;
@@ -40,15 +64,15 @@
 
 html {
   font-family: var(--font-sans);
-  background-color: var(--color-surface-1);
-  color: var(--color-text-primary);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-surface-1);
-  color: var(--color-text-primary);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-size: 14px;
   line-height: 1.5;
 }
@@ -73,14 +97,19 @@ body {
 }
 
 /* 基础文本样式 */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--color-text-primary);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: hsl(var(--foreground));
   font-weight: 600;
   margin: 0;
 }
 
 p {
-  color: var(--color-text-primary);
+  color: hsl(var(--foreground));
   margin: 0;
 }
 
@@ -94,6 +123,7 @@ p {
   0% {
     background-color: rgba(255, 59, 48, 0.15);
   }
+
   100% {
     background-color: transparent;
   }
@@ -105,10 +135,13 @@ p {
 
 /* 脉冲波形加载动画 */
 @keyframes pulse-wave {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(0.95);
     opacity: 0.8;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 1;
@@ -132,20 +165,22 @@ button {
 
 /* 链接样式 */
 a {
-  color: var(--color-text-secondary);
+  color: hsl(var(--muted-foreground));
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-text-primary);
+  color: hsl(var(--foreground));
   text-decoration: none;
 }
 
 /* 输入框样式 */
-input, textarea, select {
-  background-color: var(--color-surface-2);
-  border: 1px solid var(--color-surface-4);
-  color: var(--color-text-primary);
+input,
+textarea,
+select {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--muted));
+  color: hsl(var(--foreground));
   font-family: inherit;
   padding: 8px 12px;
   border-radius: 6px;
@@ -153,13 +188,16 @@ input, textarea, select {
   transition: all 0.2s ease;
 }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--color-surface-4);
-  background-color: var(--color-surface-3);
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--muted));
 }
 
-input::placeholder, textarea::placeholder {
-  color: var(--color-text-muted);
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground));
 }
 
 /* 卡片基础样式（使用 index.css 中 Tailwind @layer components 的 .card）*/
@@ -172,8 +210,8 @@ input::placeholder, textarea::placeholder {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background-color: var(--color-surface-3);
-  color: var(--color-text-secondary);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
 }
 
 /* 策略标签样式 */
@@ -249,8 +287,15 @@ input::placeholder, textarea::placeholder {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -263,7 +308,7 @@ input::placeholder, textarea::placeholder {
 
 .hover-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
 }
 
 /* 提示框样式 */
@@ -277,8 +322,8 @@ input::placeholder, textarea::placeholder {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--color-surface-3);
-  color: var(--color-text-primary);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -288,7 +333,7 @@ input::placeholder, textarea::placeholder {
   transition: all 0.2s ease;
   z-index: 1000;
   margin-bottom: 8px;
-  border: 1px solid var(--color-surface-4);
+  border: 1px solid hsl(var(--border));
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -296,4 +341,3 @@ input::placeholder, textarea::placeholder {
   opacity: 1;
   visibility: visible;
 }
-
