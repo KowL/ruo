@@ -1,12 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Home, 
-  Bot, 
-  TrendingUp, 
-  Heart, 
-  Settings 
+import {
+  Home,
+  Bot,
+  TrendingUp,
+  Heart,
+  Settings,
+  PanelLeft
 } from 'lucide-react';
+import { useSidebarStore } from '../store/sidebarStore';
 
 const navItems = [
   { id: 'home', label: 'AI助手', icon: Home, path: '/' },
@@ -17,21 +19,33 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const { isVisible, toggleSidebar } = useSidebarStore();
+
+  if (!isVisible) return null;
+
   return (
     <motion.aside
-      initial={{ x: -200 }}
-      animate={{ x: 0 }}
+      initial={{ x: -200, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: -200, opacity: 0 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="fixed left-0 top-0 h-full w-[200px] bg-[#1E293B] border-r border-[#334155] z-50 hidden lg:flex flex-col"
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-[#334155]">
-        <div className="flex items-center gap-3">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-[#334155]">
+        <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#06B6D4] flex items-center justify-center">
             <span className="text-white font-bold text-sm">R</span>
           </div>
           <span className="text-[#F8FAFC] font-semibold text-sm">Ruo AI</span>
         </div>
+        <button
+          onClick={toggleSidebar}
+          className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#F8FAFC] active:bg-[#334155] active:border active:border-[#475569] transition-all duration-100"
+          title="隐藏侧边栏"
+        >
+          <PanelLeft className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -42,10 +56,9 @@ export function Sidebar() {
               <NavLink
                 to={item.path}
                 className={({ isActive }: { isActive: boolean }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#2563EB]/20 text-[#2563EB]'
-                      : 'text-[#94A3B8] hover:bg-[#334155] hover:text-[#F8FAFC]'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
+                    ? 'bg-[#2563EB]/20 text-[#2563EB]'
+                    : 'text-[#94A3B8] hover:bg-[#334155] hover:text-[#F8FAFC]'
                   }`
                 }
               >
