@@ -68,23 +68,54 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
 
     if (isMin) {
       // --- Time Sharing Mode ---
-      // (Simplified: keeping existing logic mostly, but removing default legend if we want custom one)
-      // For min chart, usually we have Price and AvgPrice. The user request "MA needs to show price" likely refers to K-line MAs.
-      // But let's keep consistent.
+      // Generate standard A-share timeline: 09:30-11:30, 13:00-15:00 (Total 242 points)
+      const generateTimeline = () => {
+        const result = [];
+        let curr = new Date(2024, 0, 1, 9, 30);
+        while (curr.getHours() < 11 || (curr.getHours() === 11 && curr.getMinutes() <= 30)) {
+          result.push(curr.toTimeString().substring(0, 5));
+          curr.setMinutes(curr.getMinutes() + 1);
+        }
+        curr = new Date(2024, 0, 1, 13, 0);
+        while (curr.getHours() < 15 || (curr.getHours() === 15 && curr.getMinutes() <= 0)) {
+          result.push(curr.toTimeString().substring(0, 5));
+          curr.setMinutes(curr.getMinutes() + 1);
+        }
+        return result;
+      };
 
-      const dates = data.map((item: any) => item.time);
-      const prices = data.map((item: any) => item.price);
-      const avgPrices = data.map((item: any) => item.avgPrice);
-      const volumes = data.map((item: any, index: number) => [index, item.volume, item.price > (data[index - 1]?.price || item.price) ? 1 : -1]);
+      const timeline = generateTimeline();
 
-      let basePrice = preClose && preClose > 0 ? preClose : prices[0];
-      if (!basePrice || isNaN(basePrice)) basePrice = prices[0] || 0;
-      if (isNaN(basePrice)) basePrice = 0;
+      // Map actual data to timeline slots
+      // data items have 'time' like "2026-03-09 09:31:00"
+      const timeDataMap: Record<string, any> = {};
+      data.forEach(item => {
+        const t = item.time.split(' ')[1]?.substring(0, 5) || item.time.substring(0, 5);
+        timeDataMap[t] = item;
+      });
 
-      const maxPrice = Math.max(...prices, basePrice);
-      const minPrice = Math.min(...prices, basePrice);
-      const maxDiff = Math.max(Math.abs(maxPrice - basePrice), Math.abs(minPrice - basePrice));
-      const range = maxDiff * 1.02;
+      const prices = timeline.map(t => timeDataMap[t]?.price ?? '-');
+      const avgPrices = timeline.map(t => timeDataMap[t]?.avgPrice ?? '-');
+      const volumes = timeline.map((t, index) => {
+        const item = timeDataMap[t];
+        if (!item) return '-';
+        const prevT = timeline[index - 1];
+        const prevItem = prevT ? timeDataMap[prevT] : null;
+        const colorVal = item.price >= (prevItem?.price || item.price) ? 1 : -1;
+        return {
+          value: item.volume,
+          itemStyle: { color: colorVal > 0 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)' }
+        };
+      });
+
+      let basePrice = preClose && preClose > 0 ? preClose : (data[0]?.price || 0);
+
+      // Calculate dynamic range for Y-axis based on prices found so far
+      const validPrices = prices.filter(p => typeof p === 'number') as number[];
+      const currentMax = validPrices.length > 0 ? Math.max(...validPrices, basePrice) : basePrice + 1;
+      const currentMin = validPrices.length > 0 ? Math.min(...validPrices, basePrice) : basePrice - 1;
+      const maxDiff = Math.max(Math.abs(currentMax - basePrice), Math.abs(currentMin - basePrice));
+      const range = maxDiff * 1.1; // Add padding
       const safeRange = range === 0 ? (basePrice * 0.01 || 1) : range;
 
       const yMin = basePrice - safeRange;
@@ -110,17 +141,19 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             return obj;
           },
           formatter: (params: any) => {
-            const item = params[0];
-            if (!item) return '';
+            const item = params.find((p: any) => p.seriesName === 'Price');
+            if (!item || item.value === '-') return '';
             const idx = item.dataIndex;
-            const d = data[idx];
+            const t = timeline[idx];
+            const d = timeDataMap[t];
+            if (!d) return '';
             const change = d.price - basePrice;
             const changePct = (change / basePrice) * 100;
             const color = change >= 0 ? '#ef4444' : '#10b981';
 
             return `
                     <div class="text-xs font-mono p-1">
-                        <div class="text-slate-500 mb-2 font-bold border-b border-slate-100 pb-1">${d.time.split(' ')[1] || d.time}</div>
+                        <div class="text-slate-500 mb-2 font-bold border-b border-slate-100 pb-1">${t}</div>
                         <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">价格</span><span style="color:${color};font-weight:bold">${d.price.toFixed(2)}</span></div>
                         <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">涨跌</span><span style="color:${color}">${changePct.toFixed(2)}%</span></div>
                         <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">均价</span><span class="text-amber-500/80">${d.avgPrice.toFixed(2)}</span></div>
@@ -136,29 +169,27 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
         xAxis: [
           {
             type: 'category',
-            data: dates,
+            data: timeline,
             axisLine: { show: true, lineStyle: { color: '#f1f5f9' } },
             axisTick: { show: false },
             axisLabel: {
               show: true,
               color: '#94a3b8',
               interval: (index: number, value: string) => {
-                const time = value.substring(value.length - 5);
-                // 显示开盘、盘中整点、收盘的关键点位
-                return ['09:30', '10:30', '11:30', '14:00', '15:00'].includes(time);
+                return ['09:30', '10:30', '11:30', '14:00', '15:00'].includes(value);
               },
-              formatter: (value: string) => value.substring(value.length - 5)
+              formatter: (value: string) => value
             },
             splitLine: { show: false }
           },
-          { type: 'category', data: dates, gridIndex: 1, show: false },
+          { type: 'category', data: timeline, gridIndex: 1, show: false },
         ],
         yAxis: [
           {
             scale: true,
             min: yMin,
             max: yMax,
-            interval: safeRange / 2,
+            interval: safeRange / 1, // Mid line and extremes
             position: 'left',
             splitLine: { show: true, lineStyle: { color: '#f1f5f9', type: 'dashed' } },
             axisLine: { show: false },
@@ -173,7 +204,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
           {
             min: percentMin,
             max: percentMax,
-            interval: Math.abs(percentMax) / 2,
+            interval: Math.abs(percentMax),
             position: 'right',
             axisLabel: { show: false },
             splitLine: { show: false }
@@ -187,6 +218,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             data: prices,
             smooth: true,
             symbol: 'none',
+            connectNulls: true,
             lineStyle: { width: 2, color: '#3b82f6' },
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -197,7 +229,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             markLine: {
               symbol: 'none',
               silent: true,
-              data: [{ yAxis: basePrice, lineStyle: { type: 'dashed', color: '#475569', opacity: 0.5 } }],
+              data: [{ yAxis: basePrice, lineStyle: { type: 'dashed', color: '#475569', opacity: 0.3 } }],
               label: { show: false }
             }
           },
@@ -207,6 +239,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             data: avgPrices,
             smooth: true,
             symbol: 'none',
+            connectNulls: true,
             lineStyle: { width: 1, color: '#eab308', opacity: 0.6 }
           },
           {
@@ -214,10 +247,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             type: 'bar',
             xAxisIndex: 1,
             yAxisIndex: 2,
-            data: volumes.map(v => ({
-              value: v[1],
-              itemStyle: { color: v[2] > 0 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)' }
-            }))
+            data: volumes
           }
         ]
       };
@@ -226,7 +256,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
       const last = data[data.length - 1];
       if (last) {
         setLegendData({
-          ma5: last.price.toFixed(2), // Reusing slots
+          ma5: last.price.toFixed(2),
           ma10: last.avgPrice.toFixed(2),
           ma20: '-', ma60: '-', diff: '-'
         });
