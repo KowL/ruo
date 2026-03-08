@@ -22,7 +22,6 @@ import NewsPage from './pages/NewsPage';
 import ChartPage from './pages/ChartPage';
 import RadarPage from './pages/RadarPage';
 import StrategyPage from './pages/StrategyPage';
-import FavoritesPage from './pages/FavoritesPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import StockAnalysisPage from './pages/StockAnalysisPage';
 import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
@@ -105,7 +104,6 @@ function AppContent() {
                 {/* Default Stock Route is the old Dashboard */}
                 <Route index element={<DashboardPage />} />
                 <Route path="portfolio" element={<PortfolioPage />} />
-                <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="subscriptions" element={<SubscriptionPage />} />
                 <Route path="news" element={<NewsPage />} />
                 <Route path="chart" element={<ChartPage />} />

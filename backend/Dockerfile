@@ -7,7 +7,17 @@ RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
     curl \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js 20.x
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 OpenClaw CLI - 使用 npx 直接运行
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm install -g openclaw@latest
 
 # 复制依赖文件
 COPY backend/pyproject.toml backend/uv.lock* ./

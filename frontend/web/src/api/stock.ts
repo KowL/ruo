@@ -27,6 +27,15 @@ export const getStockRealtime = async (symbol: string): Promise<StockRealtime> =
   return res?.data!;
 };
 
+// 批量获取实时行情
+export const getBatchStockRealtime = async (symbols: string[]): Promise<Record<string, StockRealtime>> => {
+  const res = await client.get<any, ApiResponse<Record<string, StockRealtime>>>(
+    '/market/batch-realtime',
+    { params: { symbols: symbols.join(',') } }
+  );
+  return res?.data || {};
+};
+
 // 获取K线数据
 export const getKLineData = async (
   symbol: string,
@@ -61,15 +70,26 @@ export const fetchIntradayData = async (symbol: string): Promise<{ name: string;
     const data = res?.data || [];
 
     // 转换后端数据格式为前端需要的格式
-    const trends = data.map((item: any) => ({
+    // 转换后端数据格式并仅保留最近一个交易日的数据
+    if (!data || data.length === 0) return { name: '', preClose: 0, trends: [] };
+
+    // 获取最新数据的日期
+    const latestFullTime = data[data.length - 1].time;
+    const latestDate = latestFullTime.split(' ')[0];
+
+    // 过滤出仅属于最新日期的数据
+    const dailyData = data.filter((item: any) => item.time.startsWith(latestDate));
+
+    const trends = dailyData.map((item: any) => ({
       time: item.time,
       price: item.price,
       volume: item.volume,
       avgPrice: item.avgPrice || 0
     }));
 
-    // 从第一条数据获取昨收价（如果存在）
-    const preClose = trends.length > 0 ? trends[0].price - (data[0]?.change || 0) : 0;
+    // 获取该交易日的昨收价
+    const firstItem = dailyData[0];
+    const preClose = firstItem ? firstItem.price - (firstItem.change || 0) : 0;
 
     return { name: '', preClose, trends };
   } catch (error) {

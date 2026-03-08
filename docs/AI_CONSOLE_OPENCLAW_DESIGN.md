@@ -44,7 +44,7 @@
 
 | 项目 | 值 |
 |------|-----|
-| Base URL | `http://<gateway-host>:19000` |
+| Base URL | `http://<gateway-host>:18789` |
 | 协议 | HTTP / HTTPS |
 | 认证方式 | API Key (Header) |
 | 响应格式 | JSON |

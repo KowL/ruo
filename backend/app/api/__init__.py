@@ -151,3 +151,14 @@ try:
     )
 except ImportError as e:
     logger.warning(f"市场分析模块未加载（LLM 依赖不可用）: {e}")
+
+# ========================================
+# OpenClaw 集成
+# ========================================
+from .endpoints import openclaw
+
+api_router.include_router(
+    openclaw.router,
+    prefix="/openclaw",
+    tags=["OpenClaw 集成"]
+)

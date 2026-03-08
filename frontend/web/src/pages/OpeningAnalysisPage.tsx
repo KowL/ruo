@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 
 const OpeningAnalysisPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<any>(null);
+    const [_result, setResult] = useState<any>(null);
     const [error, setError] = useState('');
     const [reportContent, setReportContent] = useState('');
     const [selectedDate, setSelectedDate] = useState(() => {

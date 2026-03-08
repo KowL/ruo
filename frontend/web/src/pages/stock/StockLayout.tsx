@@ -3,7 +3,6 @@ import { NavLink, Outlet } from 'react-router-dom';
 const stockNavItems = [
     { id: 'dashboard', label: '概览', path: '/stock' },
     { id: 'portfolio', label: '持仓', path: '/stock/portfolio' },
-    { id: 'favorites', label: '自选', path: '/stock/favorites' },
     { id: 'strategies', label: '策略', path: '/stock/strategies' },
     { id: 'radar', label: '雷达', path: '/stock/radar' },
     { id: 'news', label: '情报', path: '/stock/news' },

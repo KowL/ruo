@@ -251,79 +251,97 @@ const ChartPage: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
+    <div className="h-full flex flex-col p-6 space-y-6 bg-background animate-fade-in">
       {/* 顶部控制栏 */}
-      <div className="flex flex-col space-y-4">
-        {/* 顶部标题栏：股票信息 + AI分析按钮 */}
+      <div className="flex flex-col space-y-6">
+        {/* 顶部标题栏：股票信息 + 价格信息 */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-foreground">
-              {selectedName} <span className="text-lg text-muted-foreground font-normal">({selectedSymbol})</span>
-            </h1>
-          </div>
-
-          <div className="flex gap-3">
-            {/* AI Analysis Button placeholder - logic reuse or new one? User requested "Add AI Analysis Button" */}
-            {/* We can reuse the one from StockDetail or just a visual one that maybe toggles the AI layer or opens modal? */}
-            {/* Based on previous StockDetail implementation, it opened a drawer. Here we have AI Layers inline. */}
-            {/* Let's double check if we can trigger an analysis run here. For now, visual button as requested. */}
-            <button
-              onClick={() => fetchAIAnalysis(selectedSymbol)}
-              disabled={analysisLoading}
-              className={clsx(
-                "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-lg",
-                analysisLoading
-                  ? "bg-gray-600 cursor-not-allowed text-gray-300"
-                  : "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-900/20"
-              )}
-            >
-              {analysisLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  分析中...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  AI 深度分析
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* 控制按钮组：周期选择 */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          {/* 周期选择 */}
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">周期:</span>
-            <div className="flex space-x-1">
-              {(['min', 'daily', 'weekly', 'monthly'] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={clsx(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                    period === p
-                      ? 'bg-primary text-white'
-                      : 'text-muted-foreground hover:bg-muted'
-                  )}
-                >
-                  {p === 'min' ? '分时' : p === 'daily' ? '日K' : p === 'weekly' ? '周K' : '月K'}
-                </button>
-              ))}
+          <div className="flex items-start gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                {selectedName}
+              </h1>
+              <div className="text-sm text-muted-foreground font-mono mt-1">
+                {selectedSymbol}
+              </div>
             </div>
           </div>
 
-          {/* 市场模式切换 (已移除，默认A股) */}
+          <div className="flex items-center gap-8">
+            {/* 价格信息 */}
+            <div className="text-right">
+              <div className="text-3xl font-bold text-foreground font-mono">
+                ¥12.58
+              </div>
+              <div className="text-sm font-medium text-profit-up mt-1">
+                +0.23 (+1.86%)
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => fetchAIAnalysis(selectedSymbol)}
+                disabled={analysisLoading}
+                className={clsx(
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md",
+                  analysisLoading
+                    ? "bg-muted cursor-not-allowed text-muted-foreground"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 shadow-primary/20"
+                )}
+              >
+                {analysisLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    分析中...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    AI 深度分析
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 控制按钮组：周期选择 + 极值显示 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center bg-muted p-1 rounded-xl border border-border">
+            {(['min', 'daily', 'weekly', 'monthly'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={clsx(
+                  'px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200',
+                  period === p
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+                )}
+              >
+                {p === 'min' ? '分时' : p === 'daily' ? '日K' : p === 'weekly' ? '周K' : '月K'}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground font-medium">最高:</span>
+              <span className="text-foreground font-bold font-mono text-base">12.79</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground font-medium">最低:</span>
+              <span className="text-foreground font-bold font-mono text-base">12.33</span>
+            </div>
+          </div>
         </div>
       </div>
 
 
       {/* K线图表区 */}
-      <div className="flex-1 flex flex-col card overflow-hidden">
+      <div className="flex-1 flex flex-col bg-card rounded-xl border border-border shadow-sm overflow-hidden hover-lift transition-all duration-300">
         {/* AI 图层开关 - 仅在非分时模式显示 */}
         {period !== 'min' && (
           <div className="p-4 border-b border-border">
@@ -407,7 +425,7 @@ const ChartPage: React.FC = () => {
       </div>
 
       {/* AI 分析报告模块 */}
-      <div className="card overflow-hidden transition-all duration-300">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden transition-all duration-300 hover-lift mt-6">
         <button
           onClick={() => setIsReportOpen(!isReportOpen)}
           className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted transition-colors border-b border-border"

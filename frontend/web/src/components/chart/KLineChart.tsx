@@ -98,17 +98,18 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'cross', label: { show: false } },
-          backgroundColor: 'rgba(20, 20, 20, 0.9)',
-          borderColor: '#333',
-          textStyle: { color: '#ccc', fontSize: 12 },
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          textStyle: { color: '#0f172a', fontSize: 12 },
+          shadowBlur: 10,
+          shadowColor: 'rgba(0,0,0,0.1)',
           position: (pos: any, _params: any, _dom: any, _rect: any, size: any) => {
             const obj: any = { top: 10 };
-            // Keep tooltip on sides
             obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 5;
             return obj;
           },
           formatter: (params: any) => {
-            // Simpler tooltip for min chart
             const item = params[0];
             if (!item) return '';
             const idx = item.dataIndex;
@@ -118,31 +119,33 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             const color = change >= 0 ? '#ef4444' : '#10b981';
 
             return `
-                    <div class="text-xs font-mono">
-                        <div class="text-gray-400 mb-1">${d.time.split(' ')[1] || d.time}</div>
-                        <div class="flex justify-between gap-4"><span class="text-gray-500">价格</span><span style="color:${color}">${d.price.toFixed(2)}</span></div>
-                        <div class="flex justify-between gap-4"><span class="text-gray-500">幅%</span><span style="color:${color}">${changePct.toFixed(2)}%</span></div>
-                        <div class="flex justify-between gap-4"><span class="text-gray-500">均价</span><span class="text-yellow-500">${d.avgPrice.toFixed(2)}</span></div>
-                        <div class="flex justify-between gap-4"><span class="text-gray-500">量</span><span class="text-gray-300">${d.volume}</span></div>
+                    <div class="text-xs font-mono p-1">
+                        <div class="text-slate-500 mb-2 font-bold border-b border-slate-100 pb-1">${d.time.split(' ')[1] || d.time}</div>
+                        <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">价格</span><span style="color:${color};font-weight:bold">${d.price.toFixed(2)}</span></div>
+                        <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">涨跌</span><span style="color:${color}">${changePct.toFixed(2)}%</span></div>
+                        <div class="flex justify-between gap-6 mb-1"><span class="text-slate-400">均价</span><span class="text-amber-500/80">${d.avgPrice.toFixed(2)}</span></div>
+                        <div class="flex justify-between gap-6"><span class="text-slate-400">成交</span><span class="text-slate-600">${d.volume}</span></div>
                     </div>
                 `;
           }
         },
         grid: [
-          { left: '50', right: '10', top: '20', bottom: '20%' }, // Left reserved for Y-axis labels
-          { left: '50', right: '10', top: '80%', bottom: '0' },
+          { left: '45', right: '15', top: '25', bottom: '25%' },
+          { left: '45', right: '15', top: '80%', bottom: '0' },
         ],
         xAxis: [
           {
             type: 'category',
             data: dates,
-            axisLine: { show: false },
+            axisLine: { show: true, lineStyle: { color: '#f1f5f9' } },
             axisTick: { show: false },
             axisLabel: {
               show: true,
-              color: '#9ca3af',
-              interval: (_index: number, value: string) => {
-                return ['09:30', '10:30', '11:30', '14:00', '15:00'].some(t => value.endsWith(t));
+              color: '#94a3b8',
+              interval: (index: number, value: string) => {
+                const time = value.substring(value.length - 5);
+                // 显示开盘、盘中整点、收盘的关键点位
+                return ['09:30', '10:30', '11:30', '14:00', '15:00'].includes(time);
               },
               formatter: (value: string) => value.substring(value.length - 5)
             },
@@ -157,13 +160,14 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             max: yMax,
             interval: safeRange / 2,
             position: 'left',
-            splitLine: { lineStyle: { color: '#333', type: 'dashed' } },
+            splitLine: { show: true, lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+            axisLine: { show: false },
+            axisTick: { show: false },
             axisLabel: {
               show: true,
-              inside: false, // Move outside
-              margin: 4,
               formatter: (val: number) => val.toFixed(2),
-              color: (val: number) => val > basePrice ? '#ef4444' : val < basePrice ? '#10b981' : '#9ca3af'
+              color: (val: number) => val > basePrice ? '#ef4444' : val < basePrice ? '#10b981' : '#94a3b8',
+              fontSize: 11
             }
           },
           {
@@ -171,7 +175,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             max: percentMax,
             interval: Math.abs(percentMax) / 2,
             position: 'right',
-            axisLabel: { show: false }, // Hide percent axis logic for simplicity or overlay it
+            axisLabel: { show: false },
             splitLine: { show: false }
           },
           { gridIndex: 1, show: false }
@@ -183,17 +187,17 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             data: prices,
             smooth: true,
             symbol: 'none',
-            lineStyle: { width: 1.5, color: '#3b82f6' },
+            lineStyle: { width: 2, color: '#3b82f6' },
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(59, 130, 246, 0.2)' },
+                { offset: 0, color: 'rgba(59, 130, 246, 0.25)' },
                 { offset: 1, color: 'rgba(59, 130, 246, 0)' }
               ])
             },
             markLine: {
               symbol: 'none',
               silent: true,
-              data: [{ yAxis: basePrice, lineStyle: { type: 'dashed', color: '#6b7280', opacity: 0.8 } }],
+              data: [{ yAxis: basePrice, lineStyle: { type: 'dashed', color: '#475569', opacity: 0.5 } }],
               label: { show: false }
             }
           },
@@ -203,7 +207,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             data: avgPrices,
             smooth: true,
             symbol: 'none',
-            lineStyle: { width: 1, color: '#eab308', opacity: 0.8 }
+            lineStyle: { width: 1, color: '#eab308', opacity: 0.6 }
           },
           {
             name: 'Vol',
@@ -212,7 +216,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             yAxisIndex: 2,
             data: volumes.map(v => ({
               value: v[1],
-              itemStyle: { color: v[2] > 0 ? '#ef4444' : '#10b981' }
+              itemStyle: { color: v[2] > 0 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)' }
             }))
           }
         ]

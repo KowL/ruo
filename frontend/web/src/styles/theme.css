@@ -2,39 +2,40 @@
 
 /* CSS Variables for Design Tokens */
 :root {
-  /* Shadcn UI 通用设置 */
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  --card: 217 33% 17%;
-  --card-foreground: 210 40% 98%;
-  --popover: 217 33% 17%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217 91% 60%;
+  /* Shadcn UI 通用设置 - 现代极简温润风格 (暖白色/燕麦色) */
+  --background: 40 33% 98%;
+  --foreground: 24 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 10% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 10% 10%;
+  --primary: 32 95% 44%;
+  /* 温暖琥珀/木色 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 217 33% 22%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 22%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 187 94% 43%;
+  --secondary: 40 20% 90%;
+  --secondary-foreground: 24 10% 10%;
+  --muted: 40 20% 93%;
+  --muted-foreground: 25 5% 45%;
+  --accent: 32 95% 44%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 217 33% 25%;
-  --input: 217 33% 25%;
-  --ring: 217 91% 60%;
+  --border: 40 20% 88%;
+  --input: 40 20% 88%;
+  --ring: 32 95% 44%;
   --radius: 0.75rem;
 
-  --sidebar-background: 217 33% 17%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 217 91% 60%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 24 10% 10%;
+  --sidebar-primary: 32 95% 44%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 217 33% 22%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 25%;
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-accent: 40 20% 90%;
+  --sidebar-accent-foreground: 24 10% 10%;
+  --sidebar-border: 40 20% 88%;
+  --sidebar-ring: 32 95% 44%;
 
   /* 品牌色 */
-  --color-brand: #FFFFFF;
+  --color-brand: #E08930;
 
   /* 功能色 (For utilities using vars) */
   --profit-up: 0 100% 59%;
@@ -260,29 +261,30 @@ textarea::placeholder {
   color: #FF3B30;
 }
 
-/* Glassmorphism */
+/* Glassmorphism - Light Warm Style */
 .glass {
-  background: rgba(30, 30, 30, 0.4);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
 .glass-card {
-  background: rgba(20, 20, 20, 0.6);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
   border-radius: 12px;
 }
 
 .glass-panel {
-  background: rgba(15, 15, 15, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  /* lighter subtle border */
 }
 
 /* Animations */

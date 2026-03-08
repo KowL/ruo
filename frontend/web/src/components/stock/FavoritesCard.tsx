@@ -6,7 +6,7 @@ import type { StockRealtime } from '@/types';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
 
-const FavoritesPage: React.FC = () => {
+const FavoritesCard: React.FC = () => {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<StockGroup[]>([]);
   const [stocks, setStocks] = useState<StockFavorite[]>([]);
@@ -189,23 +189,23 @@ const FavoritesPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col pt-0">
-      <div className="flex items-center justify-end mb-4">
+    <div className="bg-card text-card-foreground border rounded-xl shadow-sm hover-lift flex flex-col h-[500px]">
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h3 className="text-base font-medium text-foreground flex items-center">
+          <span className="mr-2 text-lg">⭐</span> 我的自选
+        </h3>
         <button
           onClick={() => setShowGroupModal(true)}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all"
+          className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium flex items-center gap-1"
         >
-          + 新建分组
+          <span>+&nbsp;</span>新建分组
         </button>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="flex-1 flex min-h-0">
         {/* 左侧分组列表 */}
-        <div className="w-64 flex-shrink-0">
-          <div className="bg-card text-card-foreground p-4 h-full overflow-auto border border-border rounded-xl">
-            <h3 className="text-sm font-medium mb-4 text-slate-400 px-2">
-              我的分组
-            </h3>
+        <div className="w-48 flex-shrink-0 border-r border-border">
+          <div className="p-3 h-full overflow-y-auto custom-scrollbar">
             <div className="space-y-2">
               {(groups || []).map((group) => (
                 <div
@@ -237,46 +237,46 @@ const FavoritesPage: React.FC = () => {
         </div>
 
         {/* 右侧股票列表 */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-background/30 bg-muted/10">
           {selectedGroupId ? (
             <>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h2 className="text-lg font-medium text-white flex items-center">
-                  <span className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></span>
+              <div className="flex items-center justify-between p-3 border-b border-border/50">
+                <h4 className="text-sm font-medium text-foreground flex items-center">
+                  <span className="w-1 h-3 bg-primary rounded-full mr-2"></span>
                   {currentGroup?.name || '自选股票'}
-                </h2>
-                <div className="flex gap-3">
+                </h4>
+                <div className="flex gap-2">
                   {currentGroup && !currentGroup.isDefault && (
                     <button
                       onClick={() => handleDeleteGroup(currentGroup.id)}
-                      className="px-4 py-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"
+                      className="px-2.5 py-1 rounded text-xs border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors"
                     >
-                      删除分组
+                      删除
                     </button>
                   )}
                   <button
                     onClick={() => setShowAddStockModal(true)}
-                    className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-sm font-medium text-white"
+                    className="px-2.5 py-1 rounded text-xs border border-border hover:bg-muted transition-colors text-foreground"
                   >
-                    + 添加股票
+                    + 添加
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 bg-card text-card-foreground overflow-auto border border-border rounded-xl">
+              <div className="flex-1 overflow-auto custom-scrollbar">
                 {(stocks || []).length > 0 ? (
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-card/90 backdrop-blur border-b border-border z-10">
-                      <tr className="text-left text-slate-400">
-                        <th className="p-4 font-medium">代码</th>
-                        <th className="p-4 font-medium">名称</th>
-                        <th className="p-4 font-medium text-right">现价</th>
-                        <th className="p-4 font-medium text-right">涨跌幅</th>
-                        <th className="p-4 font-medium">添加时间</th>
-                        <th className="p-4 font-medium text-right">操作</th>
+                    <thead className="sticky top-0 bg-muted/50 backdrop-blur border-b border-border z-10">
+                      <tr className="text-left text-muted-foreground">
+                        <th className="px-4 py-2 font-medium">代码</th>
+                        <th className="px-4 py-2 font-medium">名称</th>
+                        <th className="px-4 py-2 font-medium text-right">现价</th>
+                        <th className="px-4 py-2 font-medium text-right">涨幅</th>
+                        <th className="px-4 py-2 font-medium">日期</th>
+                        <th className="px-4 py-2 font-medium text-right">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-border/50">
                       {(stocks || []).map((stock) => {
                         const price = stockPrices[stock.symbol];
                         const changePct = price?.changePct || 0;
@@ -285,24 +285,24 @@ const FavoritesPage: React.FC = () => {
                         return (
                           <tr
                             key={stock.id}
-                            onClick={() => navigate(`/chart?symbol=${stock.symbol}`)}
-                            className="hover:bg-white/5 transition-colors group cursor-pointer"
+                            onClick={() => navigate(`/stock/chart?symbol=${stock.symbol}`)}
+                            className="hover:bg-muted/50 transition-colors group cursor-pointer"
                           >
-                            <td className="p-4 font-mono text-slate-300 group-hover:text-blue-400 transition-colors">{stock.symbol}</td>
-                            <td className="p-4 font-medium text-white">{stock.name}</td>
-                            <td className="p-4 text-right font-medium">
+                            <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground group-hover:text-primary transition-colors">{stock.symbol}</td>
+                            <td className="px-4 py-2.5 font-medium text-sm text-foreground">{stock.name}</td>
+                            <td className="px-4 py-2.5 text-right font-medium text-sm numbers">
                               {price ? price.price.toFixed(2) : '-'}
                             </td>
-                            <td className={`p-4 text-right ${isUp ? 'text-red-400' : isDown ? 'text-green-400' : 'text-slate-400'}`}>
+                            <td className={`px-4 py-2.5 text-right text-sm numbers font-medium ${isUp ? 'text-profit-up' : isDown ? 'text-profit-down' : 'text-muted-foreground'}`}>
                               {price ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : '-'}
                             </td>
-                            <td className="p-4 text-slate-500">
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground">
                               {new Date(stock.addedAt).toLocaleDateString()}
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-4 py-2.5 text-right">
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteStock(stock.id); }}
-                                className="text-slate-500 hover:text-red-400 transition-colors px-2 py-1"
+                                className="text-muted-foreground hover:text-destructive transition-colors text-xs"
                               >
                                 删除
                               </button>
@@ -500,4 +500,4 @@ const FavoritesPage: React.FC = () => {
   );
 };
 
-export default FavoritesPage;
+export default FavoritesCard;

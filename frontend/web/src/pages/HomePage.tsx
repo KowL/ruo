@@ -5,13 +5,15 @@ import {
   Home,
   Bell,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Bot
 } from 'lucide-react';
 import { TaskList } from '@/components/TaskList';
 import { WeatherCard } from '@/components/WeatherCard';
 import { HealthCard } from '@/components/HealthCard';
 import { FinanceCard } from '@/components/FinanceCard';
 import { tasks, weather, healthData, financeData } from '@/data/mockData';
+import { Send } from 'lucide-react';
 
 const quickActions = [
   { id: 'stock', label: '股票分析', icon: TrendingUp, color: '#10B981', path: '/stock' },
@@ -32,7 +34,7 @@ export function HomePage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#2563EB] via-[#1D4ED8] to-[#06B6D4] p-6"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-400 to-amber-300 p-8 shadow-sm"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
@@ -49,8 +51,8 @@ export function HomePage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="flex items-center gap-2 mb-2"
               >
-                <Sparkles className="w-5 h-5 text-yellow-300" />
-                <span className="text-blue-100 text-sm">AI助手</span>
+                <Sparkles className="w-5 h-5 text-yellow-100" />
+                <span className="text-orange-50 text-sm font-medium">AI助手</span>
               </motion.div>
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
@@ -64,7 +66,7 @@ export function HomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="text-blue-100"
+                className="text-orange-50/90"
               >
                 今天是 {today.toLocaleDateString('zh-CN', {
                   year: 'numeric',
@@ -99,7 +101,7 @@ export function HomePage() {
               transition={{ duration: 0.3, delay: index * 0.05 }}
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              className="p-4 rounded-xl bg-card text-card-foreground border border-border hover:bg-muted transition-all duration-200 group"
+              className="p-4 rounded-xl glass-card hover:bg-white transition-all duration-200 group"
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
@@ -134,6 +136,26 @@ export function HomePage() {
           <FinanceCard finance={financeData} />
         </div>
       </div>
+
+      {/* Global AI Input Box (Floating) */}
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 z-40"
+      >
+        <div className="glass-card flex items-center p-2 pl-4 pr-2 rounded-full shadow-lg border border-border/60">
+          <Bot className="w-5 h-5 text-primary mr-3" />
+          <input
+            type="text"
+            placeholder="有什么我可以帮你的吗？ (例如: 今天有什么日程, 给飞龙股份写一篇短平)"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-foreground placeholder:text-muted-foreground outline-none text-sm"
+          />
+          <button className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm ml-2">
+            <Send className="w-4 h-4 ml-[-2px]" />
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -10,9 +10,10 @@ interface ChatInterfaceProps {
   messages: Message[];
   currentAgent: Agent;
   onSendMessage?: (content: string) => void;
+  disabled?: boolean;
 }
 
-export function ChatInterface({ messages, currentAgent, onSendMessage }: ChatInterfaceProps) {
+export function ChatInterface({ messages, currentAgent, onSendMessage, disabled = false }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -37,25 +38,25 @@ export function ChatInterface({ messages, currentAgent, onSendMessage }: ChatInt
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1E293B] rounded-xl border border-[#334155] overflow-hidden">
+    <div className="flex flex-col h-full glass-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#334155]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2563EB]/20 to-[#06B6D4]/20 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-xl shadow-sm">
             {currentAgent.avatar}
           </div>
           <div>
-            <p className="text-[#F8FAFC] font-medium">{currentAgent.name}</p>
-            <p className="text-[#94A3B8] text-xs">{currentAgent.description}</p>
+            <p className="text-foreground font-medium">{currentAgent.name}</p>
+            <p className="text-muted-foreground text-xs">{currentAgent.description}</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-[#94A3B8]">
+        <Button variant="ghost" size="icon" className="text-muted-foreground">
           <MoreVertical className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+      <ScrollArea ref={scrollRef} className="flex-1 p-4 bg-transparent">
         <div className="space-y-4">
           <AnimatePresence>
             {messages.map((message) => (
@@ -65,24 +66,21 @@ export function ChatInterface({ messages, currentAgent, onSendMessage }: ChatInt
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex ${
-                  message.sender === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
               >
                 <div
-                  className={`max-w-[80%] px-4 py-2.5 rounded-2xl ${
-                    message.sender === 'user'
-                      ? 'bg-[#2563EB] text-white rounded-br-md'
-                      : 'bg-[#334155] text-[#F8FAFC] rounded-bl-md'
-                  }`}
+                  className={`max-w-[80%] px-4 py-2.5 rounded-2xl shadow-sm ${message.sender === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-white text-foreground border border-border/50 rounded-bl-md'
+                    }`}
                 >
                   <p className="text-sm leading-relaxed">{message.content}</p>
-                  <p className={`text-[10px] mt-1 ${
-                    message.sender === 'user' ? 'text-blue-200' : 'text-[#94A3B8]'
-                  }`}>
-                    {message.timestamp.toLocaleTimeString('zh-CN', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                  <p className={`text-[10px] mt-1 ${message.sender === 'user' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                    }`}>
+                    {message.timestamp.toLocaleTimeString('zh-CN', {
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </p>
                 </div>
@@ -93,12 +91,12 @@ export function ChatInterface({ messages, currentAgent, onSendMessage }: ChatInt
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-[#334155]">
+      <div className="p-4 border-t border-border/60 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            className="text-[#94A3B8] hover:text-[#F8FAFC]"
+            className="text-muted-foreground hover:text-foreground"
           >
             <Mic className="w-5 h-5" />
           </Button>
@@ -107,14 +105,15 @@ export function ChatInterface({ messages, currentAgent, onSendMessage }: ChatInt
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`给 ${currentAgent.name} 发送消息...`}
-            className="flex-1 bg-[#334155] border-[#475569] text-[#F8FAFC] placeholder:text-[#94A3B8]"
+            disabled={disabled}
+            className="flex-1 bg-white border-border/60 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary shadow-sm"
           />
           <Button
             onClick={handleSend}
-            disabled={!inputValue.trim()}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
+            disabled={disabled || !inputValue.trim()}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4 ml-[-2px]" />
           </Button>
         </div>
       </div>

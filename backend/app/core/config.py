@@ -81,6 +81,11 @@ class Settings(BaseSettings):
     CACHE_DIR: Path = BASE_DIR / "cache"
     REPORTS_DIR: Path = BASE_DIR / "reports"
 
+    # OpenClaw Gateway 配置
+    OPENCLAW_GATEWAY_URL: str = os.getenv("OPENCLAW_GATEWAY_URL", "http://localhost:19000")
+    OPENCLAW_API_KEY: str = os.getenv("OPENCLAW_API_KEY", "")
+    OPENCLAW_TIMEOUT: int = int(os.getenv("OPENCLAW_TIMEOUT", "120"))
+
     class Config:
         env_file = ".env"
         case_sensitive = True

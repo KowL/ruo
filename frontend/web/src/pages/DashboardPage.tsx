@@ -5,12 +5,13 @@ import { getDashboardData, DashboardData } from '@/api/dashboard';
 import { getOpeningReport, DailyReport } from '@/api/sentiment';
 import { News } from '@/types';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { getProfitColor, getProfitBgColor } from '@/utils/format';
 import ReactECharts from 'echarts-for-react';
+import FavoritesCard from '@/components/stock/FavoritesCard';
+import IndexCards from '@/components/stock/IndexCards';
 
 const DashboardPage: React.FC = () => {
   // Real Portfolio Data
-  const { portfolios, totalValue, totalProfitLoss, totalProfitLossRatio, fetchPortfolios, loading: portfolioLoading } = usePortfolioStore();
+  const { fetchPortfolios } = usePortfolioStore();
 
   // Dashboard Data
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -44,17 +45,6 @@ const DashboardPage: React.FC = () => {
 
   // Market Breadth Data (保留给未来使用)
   // const marketBreadth = dashboardData?.market_breadth;
-
-  // Top Movers (Sort by absolute change percent)
-  const portfolioMovements = [...(portfolios || [])]
-    .sort((a, b) => Math.abs(b.changePct || 0) - Math.abs(a.changePct || 0))
-    .slice(0, 3)
-    .map(p => ({
-      code: p.symbol,
-      name: p.name,
-      changePercent: p.changePct,
-      price: p.currentPrice
-    }));
 
   // News Data
   const [newsList, setNewsList] = useState<News[]>([]);
@@ -178,39 +168,13 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in pb-24 lg:pb-6">
-      {/* 第一行：资产全景 */}
+      {/* 市场指数卡片 */}
+      <IndexCards />
+
+      {/* 第一行：Ruo情绪指数 & 每日简报 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 总资产卡片 */}
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm lg:col-span-2 p-6 hover-lift relative overflow-hidden">
-          {/* Background Glow */}
-          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 bg-primary/10 blur-3xl rounded-full pointer-events-none"></div>
-
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <h2 className="text-sm font-medium text-muted-foreground">总资产</h2>
-            {/* Market toggle removed */}
-          </div>
-
-          <div className="space-y-2 relative z-10">
-            <div className="flex items-baseline space-x-4">
-              <span className="text-4xl font-bold numbers tracking-tight text-foreground">
-                {portfolioLoading ? <span className="animate-pulse text-muted-foreground text-2xl">加载中...</span> : `¥${(totalValue || 0).toLocaleString()}`}
-              </span>
-            </div>
-            <div className="flex items-center space-x-3 mt-2">
-              {!portfolioLoading && (
-                <>
-                  <span className={clsx('text-sm font-semibold px-2 py-0.5 rounded flex items-center', getProfitColor(totalProfitLossRatio || 0), getProfitBgColor(totalProfitLossRatio || 0))}>
-                    {totalProfitLoss >= 0 ? '+' : ''}{(totalProfitLoss || 0).toLocaleString()} ({totalProfitLossRatio >= 0 ? '+' : ''}{((totalProfitLossRatio || 0) * 100).toFixed(2)}%)
-                  </span>
-                  <span className="text-xs text-muted-foreground">今日盈亏</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Ruo情绪指数 */}
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-col justify-between hover-lift">
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-col justify-between hover-lift lg:col-span-1 min-h-[300px]">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-medium text-muted-foreground">Ruo 情绪指数</h3>
             {!dashboardData ? (
@@ -220,7 +184,7 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
 
-          <div className="h-28 w-full flex items-center justify-center -mt-4">
+          <div className="h-28 w-full flex items-center justify-center -mt-2">
             {!dashboardData ? (
               <div className="w-24 h-24 rounded-full border-4 border-white/5 border-t-purple-500/30 animate-spin"></div>
             ) : (
@@ -237,151 +201,119 @@ const DashboardPage: React.FC = () => {
             <p className="text-xs text-muted-foreground mt-1">{dashboardData ? sentimentDescription : '正在分析市场情绪...'}</p>
           </div>
         </div>
-      </div>
 
-      {/* 第二行：每日简报 */}
-      <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-medium text-foreground flex items-center">
-            <span className="mr-2 text-lg">📰</span> 每日简报
-          </h3>
-          <div className="flex items-center space-x-2">
-            {reportLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
-            <span className="text-xs text-muted-foreground">{dailyReport?.date || ''}</span>
+        {/* 每日简报 */}
+        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift lg:col-span-2 flex flex-col justify-between min-h-[300px]">
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-medium text-foreground flex items-center">
+                <span className="mr-2 text-lg">📰</span> 每日简报
+              </h3>
+              <div className="flex items-center space-x-2">
+                {reportLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
+                <span className="text-xs text-muted-foreground">{dailyReport?.date || ''}</span>
+              </div>
+            </div>
+
+            {reportLoading && !dailyReport ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-8 bg-muted rounded w-1/4"></div>
+                <div className="h-20 bg-muted rounded w-full"></div>
+              </div>
+            ) : dailyReport ? (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-foreground">{dailyReport.sentiment_index}</span>
+                    <span className="text-sm text-muted-foreground">/ 100</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={clsx(
+                      "px-2 py-0.5 rounded text-xs font-medium",
+                      dailyReport.sentiment_index >= 60 ? "bg-green-500/20 text-green-400" :
+                        dailyReport.sentiment_index >= 45 ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-red-500/20 text-red-400"
+                    )}>
+                      {dailyReport.sentiment_label}
+                    </span>
+                    {dailyReport.key_factors?.length > 0 && (
+                      <div className="flex space-x-1">
+                        {dailyReport.key_factors.slice(0, 3).map((factor, idx) => (
+                          <span key={idx} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                            {factor}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground leading-relaxed line-clamp-4 overflow-y-auto custom-scrollbar pr-1 max-h-[140px] whitespace-pre-line">
+                  {dailyReport.report}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">暂无简报数据</div>
+            )}
           </div>
         </div>
+      </div>
 
-        {reportLoading && !dailyReport ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="h-20 bg-muted rounded w-full"></div>
-          </div>
-        ) : dailyReport ? (
-          <div className="space-y-3">
-            <div className="flex items-center space-x-4 mb-3">
+      {/* 第三行：核心动态与自选 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* 自选股票 (占比 2/3) */}
+        <div className="lg:col-span-2 border rounded-xl shadow-sm bg-card hover-lift overflow-hidden">
+          <FavoritesCard />
+        </div>
+
+        {/* 右侧栏 (占比 1/3) */}
+        <div className="lg:col-span-1 flex flex-col">
+          {/* 快讯 - 与自选卡片等高 */}
+          <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift h-[500px] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-base font-medium text-foreground flex items-center">
+                <span className="mr-2 text-lg">⚡</span> 7x24 快讯
+              </h3>
               <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-foreground">{dailyReport.sentiment_index}</span>
-                <span className="text-sm text-muted-foreground">/ 100</span>
+                {newsLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
               </div>
-              <div className="flex items-center space-x-2">
-                <span className={clsx(
-                  "px-2 py-0.5 rounded text-xs font-medium",
-                  dailyReport.sentiment_index >= 60 ? "bg-green-500/20 text-green-400" :
-                    dailyReport.sentiment_index >= 45 ? "bg-yellow-500/20 text-yellow-400" :
-                      "bg-red-500/20 text-red-400"
-                )}>
-                  {dailyReport.sentiment_label}
-                </span>
-                {dailyReport.key_factors?.length > 0 && (
-                  <div className="flex space-x-1">
-                    {dailyReport.key_factors.slice(0, 3).map((factor, idx) => (
-                      <span key={idx} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
-                        {factor}
+            </div>
+
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+              {newsLoading && newsList.length === 0 ? (
+                <div className="text-center text-muted-foreground py-10">
+                  加载中...
+                </div>
+              ) : newsList.length === 0 ? (
+                <div className="text-center text-muted-foreground py-10">
+                  暂无快讯
+                </div>
+              ) : (
+                newsList.map((news) => (
+                  <div
+                    key={news.id}
+                    className="relative pl-4 border-l border-border hover:border-primary/50 transition-colors py-1 group cursor-pointer"
+                    onClick={() => setSelectedNews(news)}
+                  >
+                    <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-muted group-hover:bg-primary transition-colors border-2 border-background"></div>
+                    <div className="mb-1 flex items-center space-x-2">
+                      <span className="text-xs text-muted-foreground font-mono opacity-80">
+                        {formatTimeAgo(news.publishTime)}
                       </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-              {dailyReport.report}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-6 text-muted-foreground">暂无简报数据</div>
-        )}
-      </div>
-
-      {/* 第三行：核心动态 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 持仓异动卡片 */}
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-medium text-foreground flex items-center">
-              <span className="mr-2 text-lg">📊</span> 持仓异动
-            </h3>
-            <span className="text-xs text-muted-foreground">Top 3 Movers</span>
-          </div>
-
-          <div className="space-y-3">
-            {portfolioLoading ? (
-              <div className="text-center py-8 text-muted-foreground">加载中...</div>
-            ) : portfolioMovements.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">暂无持仓数据</div>
-            ) : (
-              portfolioMovements.map((stock, index) => (
-                <div
-                  key={index}
-                  className="group bg-muted/40 hover:bg-muted p-3 rounded-xl transition-all border border-border cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={clsx("w-1 h-8 rounded-full", stock.changePercent >= 0 ? "bg-profit-up" : "bg-profit-down")}></div>
-                      <div>
-                        <div className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{stock.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{stock.code}</div>
-                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                        {news.source === 'cls' ? '财联社' : news.source === 'xueqiu' ? '雪球' : news.source}
+                      </span>
                     </div>
-
-                    <div className="text-right">
-                      <div className={clsx('text-sm font-bold numbers', getProfitColor(stock.changePercent))}>
-                        {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent}%
-                      </div>
-                      <div className="text-xs text-muted-foreground numbers">¥{stock.price}</div>
-                    </div>
+                    <h4 className="text-sm text-foreground/80 group-hover:text-foreground transition-colors leading-relaxed line-clamp-2">
+                      {news.title || news.content.slice(0, 100)}
+                    </h4>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* 快讯 */}
-        <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 hover-lift flex flex-col h-[400px]">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-medium text-foreground flex items-center">
-              <span className="mr-2 text-lg">⚡</span> 7x24 快讯
-            </h3>
-            <div className="flex items-center space-x-2">
-              {newsLoading && <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>}
+                ))
+              )}
             </div>
-          </div>
-
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
-            {newsLoading && newsList.length === 0 ? (
-              <div className="text-center text-muted-foreground py-10">
-                加载中...
-              </div>
-            ) : newsList.length === 0 ? (
-              <div className="text-center text-muted-foreground py-10">
-                暂无快讯
-              </div>
-            ) : (
-              newsList.map((news) => (
-                <div
-                  key={news.id}
-                  className="relative pl-4 border-l border-border hover:border-primary/50 transition-colors py-1 group cursor-pointer"
-                  onClick={() => setSelectedNews(news)}
-                >
-                  <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-muted group-hover:bg-primary transition-colors border-2 border-background"></div>
-                  <div className="mb-1 flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground font-mono opacity-80">
-                      {formatTimeAgo(news.publishTime)}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
-                      {news.source === 'cls' ? '财联社' : news.source === 'xueqiu' ? '雪球' : news.source}
-                    </span>
-                  </div>
-                  <h4 className="text-sm text-foreground/80 group-hover:text-foreground transition-colors leading-relaxed line-clamp-2">
-                    {news.title || news.content.slice(0, 100)}
-                  </h4>
-                </div>
-              ))
-            )}
           </div>
         </div>
       </div>
-
 
       {/* 新闻详情弹窗 */}
       {

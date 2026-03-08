@@ -50,11 +50,16 @@ services:
       - ./backend:/app
       - ./cache:/app/cache
       - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.nvm/versions/node/v22.18.0/bin:/usr/nvm/bin:ro
     environment:
       - PYTHONUNBUFFERED=1
       - ENV=development
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
+      - OPENCLAW_CMD=/usr/nvm/bin/openclaw
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,6 +92,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ENV=development
       - C_FORCE_ROOT=1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - POSTGRES_HOST=postgres
     depends_on:
       backend:
         condition: service_healthy
@@ -121,6 +129,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ENV=development
       - C_FORCE_ROOT=1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - POSTGRES_HOST=postgres
     depends_on:
       backend:
         condition: service_healthy

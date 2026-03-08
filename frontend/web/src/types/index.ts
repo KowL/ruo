@@ -29,6 +29,10 @@ export interface StockRealtime {
   high: number;
   low: number;
   volume: number;
+  amount?: number;
+  preClose?: number;
+  source?: string;
+  degraded?: boolean;
   timestamp: string;
 }
 
@@ -163,4 +167,28 @@ export interface Message {
   sender: 'user' | 'agent';
   timestamp: Date;
   agentId?: string;
+}
+
+// OpenClaw Agent 类型（来自 API）
+export interface OpenClawAgent {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  model: string;
+  workspace?: string;
+  capabilities?: string[];
+  isDefault?: boolean;
+  config?: {
+    temperature: number;
+    maxTokens: number;
+    thinking: string;
+  };
+  systemPrompt?: string;
+  identity?: {
+    name: string;
+    emoji: string;
+    role: string;
+    vibe: string;
+  };
 }
