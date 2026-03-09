@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Gateway 配置 - 使用 host.docker.internal 访问宿主机
 GATEWAY_URL = "http://host.docker.internal:18789"
-GATEWAY_TOKEN = "7c5b7d48fcca1a42f1913c3394a64dd9c59625a0343d1be8"
+GATEWAY_TOKEN = "134a8f52e1dd34881335f0b67a145283"
 TIMEOUT = 120
 
 
