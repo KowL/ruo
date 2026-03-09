@@ -5,13 +5,15 @@ OpenClaw Gateway 服务
 import httpx
 import json
 import logging
+import os
 from typing import Optional, Dict, Any, AsyncGenerator
 
 logger = logging.getLogger(__name__)
 
 # Gateway 配置 - 使用 host.docker.internal 访问宿主机
-GATEWAY_URL = "http://host.docker.internal:18789"
-GATEWAY_TOKEN = "134a8f52e1dd34881335f0b67a145283"
+# 生产环境请通过环境变量 OPENCLAW_GATEWAY_TOKEN 设置
+GATEWAY_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://host.docker.internal:18789")
+GATEWAY_TOKEN = os.environ.get("OPENCLAW_GATEWAY_TOKEN", "")
 TIMEOUT = 120
 
 
