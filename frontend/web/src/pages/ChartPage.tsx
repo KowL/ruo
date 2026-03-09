@@ -270,12 +270,18 @@ const ChartPage: React.FC = () => {
           <div className="flex items-center gap-8">
             {/* 价格信息 */}
             <div className="text-right">
-              <div className="text-3xl font-bold text-foreground font-mono">
-                ¥12.58
-              </div>
-              <div className="text-sm font-medium text-profit-up mt-1">
-                +0.23 (+1.86%)
-              </div>
+              {klineData.length > 0 ? (
+                <>
+                  <div className="text-3xl font-bold text-foreground font-mono">
+                    ¥{klineData[klineData.length - 1].close.toFixed(2)}
+                  </div>
+                  <div className={`text-sm font-medium mt-1 ${klineData[klineData.length - 1].change >= 0 ? 'text-profit-up' : 'text-profit-down'}`}>
+                    {klineData[klineData.length - 1].change >= 0 ? '+' : ''}{klineData[klineData.length - 1].change?.toFixed(2)} ({klineData[klineData.length - 1].changePct?.toFixed(2)}%)
+                  </div>
+                </>
+              ) : (
+                <div className="text-3xl font-bold text-foreground font-mono">--</div>
+              )}
             </div>
 
             <div className="flex gap-3">
