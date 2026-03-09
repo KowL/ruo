@@ -45,15 +45,15 @@ export const getKLineData = async (
   const res = await client.get<any, ApiResponse<KLineData[]>>(`/stock/kline/${symbol}`, {
     params: { period, limit },
   });
-  // client 拦截器已返回 response.data = { status, data }
-  return res?.data || [];
+  // client 拦截器返回的是 { status, data }，需要取 data 字段
+  return res?.data?.data || res?.data || [];
 };
 
 // 获取分时数据 (Backend)
 export const getTimeShareData = async (symbol: string): Promise<TimeShareData[]> => {
   const res = await client.get<any, ApiResponse<TimeShareData[]>>(`/stock/timeshare/${symbol}`);
-  // client 拦截器已返回 response.data = { status, data }
-  return res?.data || [];
+  // client 拦截器返回的是 { status, data }，需要取 data 字段
+  return res?.data?.data || res?.data || [];
 };
 
 // --- Eastmoney Direct API Helpers ---
