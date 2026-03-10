@@ -146,7 +146,7 @@ const PortfolioPage: React.FC = () => {
   const handleRowClick = (portfolio: PortfolioWithStrategy) => {
     // 点击持仓行跳转到股票详情页
     // 点击持仓行跳转到K线页面
-    navigate(`/chart?symbol=${portfolio.symbol}`);
+    navigate(`/stock/chart?symbol=${portfolio.symbol}`);
   };
 
 

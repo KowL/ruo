@@ -51,7 +51,9 @@ services:
       - ./cache:/app/cache
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
-      - ~/.nvm/versions/node/v22.18.0/bin:/usr/nvm/bin:ro
+      - /Users/lijun/.nvm/versions/node/v22.18.0/bin:/usr/nvm/bin:ro
+      - /Users/lijun/.nvm:/root/.nvm:ro
+      - /Users/lijun/.openclaw:/root/.openclaw:ro
     environment:
       - PYTHONUNBUFFERED=1
       - ENV=development
@@ -165,6 +167,8 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://backend:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       backend:
         condition: service_healthy

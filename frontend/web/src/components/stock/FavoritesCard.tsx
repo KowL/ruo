@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGroups, createGroup, deleteGroup, getStocks, addStock, deleteStock, StockGroup, StockFavorite, SearchStock } from '@/api/favorites';
-import { searchStock, getStockRealtime } from '@/api/stock';
+import { getGroups, deleteGroup, getStocks, deleteStock, StockGroup, StockFavorite } from '@/api/favorites';
+import { getStockRealtime } from '@/api/stock';
 import type { StockRealtime } from '@/types';
 import Loading from '@/components/common/Loading';
 import Toast from '@/components/common/Toast';
+import AddGroupModal from './AddGroupModal';
+import AddStockModal from './AddStockModal';
 
 const FavoritesCard: React.FC = () => {
   const navigate = useNavigate();
@@ -15,24 +17,15 @@ const FavoritesCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // 新建分组弹窗状态
+  // 弹窗状态
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [groupName, setGroupName] = useState('');
-  const [groupDescription, setGroupDescription] = useState('');
-
-  // 添加股票弹窗状态
   const [showAddStockModal, setShowAddStockModal] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchStock[]>([]);
-  const [searching, setSearching] = useState(false);
 
   // 加载分组列表
   const loadGroups = async () => {
     try {
       const res = await getGroups();
-      console.log('API response:', res);
       const groupsData = res?.data || [];
-      console.log('groupsData:', groupsData);
       setGroups(groupsData as unknown as StockGroup[]);
       if ((groupsData as unknown as StockGroup[]).length > 0 && !selectedGroupId) {
         setSelectedGroupId((groupsData as unknown as StockGroup[])[0].id);
@@ -95,24 +88,6 @@ const FavoritesCard: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // 创建分组
-  const handleCreateGroup = async () => {
-    if (!groupName.trim()) {
-      showToast('请输入分组名称', 'error');
-      return;
-    }
-    try {
-      await createGroup({ name: groupName, description: groupDescription });
-      showToast('分组创建成功', 'success');
-      setShowGroupModal(false);
-      setGroupName('');
-      setGroupDescription('');
-      loadGroups();
-    } catch (error) {
-      showToast('创建分组失败', 'error');
-    }
-  };
-
   // 删除分组
   const handleDeleteGroup = async (groupId: number) => {
     if (!confirm('确定要删除该分组吗？组内股票也会被删除。')) return;
@@ -125,47 +100,6 @@ const FavoritesCard: React.FC = () => {
       loadGroups();
     } catch (error) {
       showToast('删除分组失败', 'error');
-    }
-  };
-
-  // 搜索股票
-  const handleSearch = async () => {
-    if (!searchKeyword.trim() || searchKeyword.trim().length < 2) return;
-    setSearching(true);
-    try {
-      const results = await searchStock(searchKeyword.trim());
-
-      // 检查哪些股票已经在当前自选组中
-      const currentStockSymbols = new Set((stocks || []).map(s => s.symbol));
-
-      const formattedResults = results.map(stock => ({
-        ...stock,
-        isFavorited: currentStockSymbols.has(stock.symbol)
-      }));
-
-      setSearchResults(formattedResults as SearchStock[]);
-    } catch (error) {
-      console.error('搜索失败:', error);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  // 添加自选股票
-  const handleAddStock = async (stock: SearchStock) => {
-    if (!selectedGroupId) {
-      showToast('请先选择一个分组', 'error');
-      return;
-    }
-    try {
-      await addStock({ groupId: selectedGroupId, symbol: stock.symbol, name: stock.name });
-      showToast(`已添加 ${stock.name}`, 'success');
-      loadStocks(selectedGroupId);
-      setShowAddStockModal(false);
-      setSearchKeyword('');
-      setSearchResults([]);
-    } catch (error: any) {
-      showToast(error.response?.data?.detail || '添加失败', 'error');
     }
   };
 
@@ -189,17 +123,25 @@ const FavoritesCard: React.FC = () => {
   }
 
   return (
-    <div className="bg-card text-card-foreground border rounded-xl shadow-sm hover-lift flex flex-col h-[500px]">
+    <div className="bg-card text-card-foreground border rounded-xl shadow-sm hover-lift flex flex-col h-[500px] relative">
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="text-base font-medium text-foreground flex items-center">
           <span className="mr-2 text-lg">⭐</span> 我的自选
         </h3>
-        <button
-          onClick={() => setShowGroupModal(true)}
-          className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium flex items-center gap-1"
-        >
-          <span>+&nbsp;</span>新建分组
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAddStockModal(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors font-medium flex items-center gap-1 text-foreground"
+          >
+            <span>+&nbsp;</span>添加股票
+          </button>
+          <button
+            onClick={() => setShowGroupModal(true)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium flex items-center gap-1"
+          >
+            <span>+&nbsp;</span>新建分组
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
@@ -251,14 +193,14 @@ const FavoritesCard: React.FC = () => {
                       onClick={() => handleDeleteGroup(currentGroup.id)}
                       className="px-2.5 py-1 rounded text-xs border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors"
                     >
-                      删除
+                      删除分组
                     </button>
                   )}
                   <button
                     onClick={() => setShowAddStockModal(true)}
                     className="px-2.5 py-1 rounded text-xs border border-border hover:bg-muted transition-colors text-foreground"
                   >
-                    + 添加
+                    + 添加股票
                   </button>
                 </div>
               </div>
@@ -333,167 +275,24 @@ const FavoritesCard: React.FC = () => {
       </div>
 
       {/* 新建分组弹窗 */}
-      {showGroupModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-card w-full max-w-md p-6 relative overflow-hidden border border-border rounded-2xl shadow-2xl">
-            {/* Glow Effects */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <h3 className="text-xl font-bold mb-6 text-white flex items-center">
-              <span className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></span>
-              新建分组
-            </h3>
-
-            <div className="space-y-4 relative z-10">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">分组名称</label>
-                <input
-                  type="text"
-                  placeholder="例如：科技股、高息股"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">分组描述 (可选)</label>
-                <input
-                  type="text"
-                  placeholder="简要描述该分组的策略或特点"
-                  value={groupDescription}
-                  onChange={(e) => setGroupDescription(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-4 pt-8 relative z-10">
-              <button
-                onClick={() => setShowGroupModal(false)}
-                className="flex-1 px-4 py-3 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-all font-medium"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleCreateGroup}
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all"
-              >
-                确认创建
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddGroupModal
+        isOpen={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        onSuccess={() => loadGroups()}
+      />
 
       {/* 添加股票弹窗 */}
-      {showAddStockModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-card w-full max-w-lg p-6 relative overflow-hidden border border-border rounded-2xl shadow-2xl">
-            {/* Glow Effects */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <h3 className="text-xl font-bold mb-6 text-white flex items-center">
-              <span className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></span>
-              添加自选股票
-            </h3>
-
-            <div className="relative z-10">
-              <div className="flex gap-3 mb-4">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="输入股票代码或名称，如 000001"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="w-full pl-4 pr-10 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
-                    autoFocus
-                  />
-                  {searchKeyword && (
-                    <button
-                      onClick={() => {
-                        setSearchKeyword('');
-                        setSearchResults([]);
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={handleSearch}
-                  disabled={searching || !searchKeyword.trim()}
-                  className={`px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium transition-all ${searching || !searchKeyword.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10 hover:border-white/20'
-                    }`}
-                >
-                  {searching ? '搜索中...' : '搜索'}
-                </button>
-              </div>
-
-              <div className="h-[280px] overflow-auto bg-muted/20 rounded-xl border border-border mb-6">
-                {searchResults.length > 0 ? (
-                  <div className="divide-y divide-white/5">
-                    {searchResults.map((stock) => (
-                      <div
-                        key={stock.symbol}
-                        className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
-                      >
-                        <div>
-                          <div className="font-medium text-white group-hover:text-blue-400 transition-colors">{stock.name}</div>
-                          <div className="text-sm font-mono text-gray-500">{stock.symbol}</div>
-                        </div>
-                        <button
-                          onClick={() => handleAddStock(stock)}
-                          disabled={stock.isFavorited}
-                          className={`px-4 py-1.5 text-sm rounded-lg border font-medium transition-all ${stock.isFavorited
-                            ? 'border-transparent bg-white/5 text-gray-500 cursor-not-allowed'
-                            : 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10'
-                            }`}
-                        >
-                          {stock.isFavorited ? '已添加' : '添加到本组'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
-                    {searching ? (
-                      <svg className="animate-spin h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <>
-                        <svg className="w-8 h-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <p className="text-sm">{searchKeyword ? '未找到相关股票' : '输入代码或名称进行搜索'}</p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    setShowAddStockModal(false);
-                    setSearchKeyword('');
-                    setSearchResults([]);
-                  }}
-                  className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm font-medium text-white"
-                >
-                  完成
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddStockModal
+        isOpen={showAddStockModal}
+        onClose={() => setShowAddStockModal(false)}
+        onSuccess={(groupId) => {
+          setSelectedGroupId(groupId);
+          loadStocks(groupId);
+          loadGroups(); // 更新股票计数
+        }}
+        groups={groups}
+        activeGroupId={selectedGroupId}
+      />
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
