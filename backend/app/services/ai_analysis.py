@@ -264,20 +264,40 @@ class AIAnalysisService:
             
             content = response.content.strip()
             
+            # 调试日志
+            logger.info(f"LLM 返回内容: {content[:500]}...")
+            
             # 提取 JSON
             if '```json' in content:
                 content = content.split('```json')[1].split('```')[0].strip()
             elif '```' in content:
                 content = content.split('```')[1].split('```')[0].strip()
             
-            analysis_result = json.loads(content)
+            # 尝试解析 JSON，增加健壮性
+            try:
+                analysis_result = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON 解析失败: {e}, 内容: {content[:200]}...")
+                # 尝试提取可能的 JSON 对象
+                import re
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    try:
+                        analysis_result = json.loads(json_match.group())
+                        logger.info("从内容中提取 JSON 成功")
+                    except:
+                        raise ValueError(f"无法解析 LLM 返回的 JSON: {content[:200]}")
+                else:
+                    raise ValueError(f"LLM 返回内容不是有效 JSON: {content[:200]}")
             
             # 3. 保存报告
             today = datetime.now().strftime('%Y-%m-%d')
             report = AnalysisReport(
                 symbol=symbol,
                 report_date=today,
-                report_type='kline_analysis',
+                analysis_type='kline_analysis',
+                analysis_name='K线技术分析',
+                status="completed",
                 content=self._generate_kline_markdown(symbol, analysis_result),
                 data=json.dumps(analysis_result, ensure_ascii=False),
                 summary=analysis_result.get('summary', ''),
@@ -289,13 +309,14 @@ class AIAnalysisService:
             existing = self.db.query(AnalysisReport).filter(
                 AnalysisReport.symbol == symbol,
                 AnalysisReport.report_date == today,
-                AnalysisReport.report_type == 'kline_analysis'
+                AnalysisReport.analysis_type == 'kline_analysis'
             ).first()
             
             if existing:
                 existing.content = report.content
                 existing.data = report.data
                 existing.summary = report.summary
+                existing.status = "completed"
                 existing.recommendation = report.recommendation
                 existing.confidence = report.confidence
                 existing.created_at = func.now() # Update time

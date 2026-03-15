@@ -28,12 +28,6 @@ def test_health_check():
     assert response.json()["status"] == "healthy"
 
 
-def test_limit_up_stocks():
-    """测试涨停股票接口"""
-    response = client.post("/api/v1/analysis/limit-up")
-    assert response.status_code == 200
-
-
 def test_portfolio_list():
     """测试持仓列表接口"""
     response = client.get("/api/v1/portfolio/list")

@@ -136,3 +136,5 @@ cython_debug/
 # Project specific
 cache/
 reports/
+.env.docker.local
+.env.docker

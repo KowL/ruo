@@ -284,9 +284,7 @@ textarea::placeholder {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-  /* lighter subtle border */
 }
-
 /* Animations */
 @keyframes fadeIn {
   from {

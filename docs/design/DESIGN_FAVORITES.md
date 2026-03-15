@@ -43,7 +43,7 @@ class StockGroup(Base):
 class StockFavorite(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    group_id = Column(Integer, ForeignKey("stock_groups.id"), nullable=False)
+    group_id = Column(Integer, ForeignKey("stock_group.id"), nullable=False)
     symbol = Column(String(10), nullable=False)
     name = Column(String(50), nullable=False)
     added_at = Column(DateTime, server_default=func.now())
@@ -56,7 +56,7 @@ class StrategySubscription(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     strategy_id = Column(Integer, ForeignKey("strategies.id"), nullable=False)
     stock_pool_type = Column(String(20))  # "all" | "group" | "custom"
-    stock_group_id = Column(Integer, ForeignKey("stock_groups.id"), nullable=True)
+    stock_group_id = Column(Integer, ForeignKey("stock_group.id"), nullable=True)
     custom_symbols = Column(JSON, nullable=True)  # 自定义股票列表
     notify_enabled = Column(Boolean, default=True)
     notify_channels = Column(JSON, default=["websocket"])  # ["feishu", "websocket"]

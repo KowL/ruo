@@ -13,6 +13,7 @@ from datetime import datetime
 import logging
 
 from app.models.portfolio import Portfolio
+from app.models.strategy import Strategy
 from app.services.market_data import get_market_data_service
 
 logger = logging.getLogger(__name__)
@@ -146,8 +147,14 @@ class PortfolioService:
                     "totalProfitLossRatio": 0.0
                 }
 
+            # 2. 预获取策略信息 (批量查询，避免 N+1)
+            strategy_ids = {p.strategy_id for p in portfolios if p.strategy_id}
+            strategies = {}
+            if strategy_ids:
+                strategy_list = self.db.query(Strategy).filter(Strategy.id.in_(strategy_ids)).all()
+                strategies = {s.id: s.name for s in strategy_list}
 
-            # 2. 构建持仓列表（使用实时价格）
+            # 3. 构建持仓列表（使用实时价格）
             items = []
             total_cost = 0.0
             total_market_value = 0.0
@@ -173,7 +180,7 @@ class PortfolioService:
                     "changePct": pl_data['changePct'],
                     "strategyTag": portfolio.strategy_tag,
                     "strategyId": portfolio.strategy_id,
-                    "strategyName": portfolio.strategy.name if portfolio.strategy else None,
+                    "strategyName": strategies.get(portfolio.strategy_id),
                     "notes": portfolio.notes,
                     "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
                     "hasNewNews": False
@@ -401,7 +408,7 @@ class PortfolioService:
             "changePct": 0.0,
             "strategyTag": portfolio.strategy_tag,
             "strategyId": portfolio.strategy_id,
-            "strategyName": portfolio.strategy.name if portfolio.strategy else None,
+            "strategyName": None, # 简单响应暂不返回策略名
             "notes": portfolio.notes,
             "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
             "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None
@@ -433,7 +440,7 @@ class PortfolioService:
             "changePct": profit_loss_data['changePct'],
             "strategyTag": portfolio.strategy_tag,
             "strategyId": portfolio.strategy_id,
-            "strategyName": portfolio.strategy.name if portfolio.strategy else None,
+            "strategyName": self.db.query(Strategy.name).filter(Strategy.id == portfolio.strategy_id).scalar() if portfolio.strategy_id else None,
             "notes": portfolio.notes,
             "createdAt": portfolio.created_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.created_at else None,
             "updatedAt": portfolio.updated_at.strftime('%Y-%m-%d %H:%M:%S') if portfolio.updated_at else None

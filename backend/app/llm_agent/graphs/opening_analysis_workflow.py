@@ -63,7 +63,7 @@ def read_yesterday_report(state: AnalysisState) -> AnalysisState:
             report = db.query(AnalysisReport).filter(
                 AnalysisReport.symbol == "GLOBAL",
                 AnalysisReport.report_date == yesterday_date,
-                AnalysisReport.report_type == "limit-up"
+                AnalysisReport.analysis_type == "limit-up"
             ).first()
             
             if report and report.data:
@@ -597,7 +597,7 @@ def save_report_to_db(state: dict, date: str):
             existing = db.query(AnalysisReport).filter(
                 AnalysisReport.symbol == "GLOBAL",
                 AnalysisReport.report_date == report_date,
-                AnalysisReport.report_type == "opening_analysis"
+                AnalysisReport.analysis_type == "opening_analysis"
             ).first()
             
             # 将完整的 state 序列化为 JSON 字符串存入 content
@@ -607,14 +607,17 @@ def save_report_to_db(state: dict, date: str):
                 existing.content = md_content.strip()
                 existing.data = state_json
                 existing.summary = "开盘分析报告"
+                existing.status = "completed"
             else:
                 new_report = AnalysisReport(
                     symbol="GLOBAL",
                     report_date=report_date,
-                    report_type="opening_analysis",
+                    analysis_type="opening_analysis",
+                    analysis_name="每日开盘分析报告",
                     content=md_content.strip(),
                     data=state_json,
                     summary="开盘分析报告",
+                    status="completed",
                     confidence=1.0
                 )
                 db.add(new_report)
@@ -641,7 +644,7 @@ def get_cached_report(date: str) -> dict:
             report = db.query(AnalysisReport).filter(
                 AnalysisReport.symbol == "GLOBAL",
                 AnalysisReport.report_date == report_date,
-                AnalysisReport.report_type == "opening_analysis"
+                AnalysisReport.analysis_type == "opening_analysis"
             ).first()
             
             if report and report.data:

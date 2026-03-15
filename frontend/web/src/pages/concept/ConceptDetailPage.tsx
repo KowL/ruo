@@ -6,7 +6,7 @@ import {
   addStockToConcept,
   updateStockPositioning,
   removeStockFromConcept,
-} from '../../api/concepts';
+} from '../../api/concept';
 import { searchStock } from '../../api/stock';
 import { ConceptDetail, ConceptStock, StockPositioning, POSITIONING_OPTIONS } from '../../types/concept';
 import Button from '../../components/common/Button';
@@ -21,6 +21,7 @@ const positioningIcons: Record<StockPositioning, React.ReactNode> = {
   '中军': <Building2 className="w-4 h-4" />,
   '补涨': <TrendingUp className="w-4 h-4" />,
   '妖股': <Zap className="w-4 h-4" />,
+  '先锋': <Zap className="w-4 h-4" />, // Using Zap for '先锋' as well, or another appropriate icon
 };
 
 export default function ConceptDetailPage() {
@@ -84,7 +85,7 @@ export default function ConceptDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-slate-500">概念不存在</p>
-        <Button onClick={() => navigate('/concepts')} className="mt-4">
+        <Button onClick={() => navigate('/concept')} className="mt-4">
           返回列表
         </Button>
       </div>
@@ -96,7 +97,7 @@ export default function ConceptDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/concepts')}
+          onClick={() => navigate('/concept')}
           className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-slate-400" />

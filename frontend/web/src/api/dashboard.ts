@@ -43,7 +43,7 @@ export interface DashboardData {
   sentiment: SentimentData;
   market_breadth: MarketBreadth;
   sector_rotation: SectorRotation[];
-  hot_concepts: HotConcept[];
+  hot_concept: HotConcept[];
   stats: {
     recent_news_count: number;
     portfolio_count: number;

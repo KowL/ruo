@@ -37,22 +37,22 @@ export interface SearchStock {
 
 // 获取分组列表
 export function getGroups() {
-  return client.get<{ status: string; data: StockGroup[] }>('/favorites/groups');
+  return client.get<{ status: string; data: StockGroup[] }>('/favorite/groups');
 }
 
 // 创建分组
 export function createGroup(data: { name: string; description?: string; isDefault?: boolean }) {
-  return client.post<{ status: string; data: StockGroup }>('/favorites/groups', data);
+  return client.post<{ status: string; data: StockGroup }>('/favorite/groups', data);
 }
 
 // 更新分组
 export function updateGroup(groupId: number, data: { name?: string; description?: string; isDefault?: boolean }) {
-  return client.put<{ status: string; data: StockGroup }>(`/favorites/groups/${groupId}`, data);
+  return client.put<{ status: string; data: StockGroup }>(`/favorite/groups/${groupId}`, data);
 }
 
 // 删除分组
 export function deleteGroup(groupId: number) {
-  return client.delete<{ status: string }>(`/favorites/groups/${groupId}`);
+  return client.delete<{ status: string }>(`/favorite/groups/${groupId}`);
 }
 
 // ==================== 自选股票管理 ====================
@@ -60,27 +60,27 @@ export function deleteGroup(groupId: number) {
 // 获取自选股票列表
 export function getStocks(groupId?: number) {
   const params = groupId ? { group_id: groupId } : {};
-  return client.get<{ status: string; data: StockFavorite[] }>('/favorites/stocks', { params });
+  return client.get<{ status: string; data: StockFavorite[] }>('/favorite/stocks', { params });
 }
 
 // 添加自选股票
 export function addStock(data: { groupId: number; symbol: string; name: string }) {
-  return client.post<{ status: string; data: StockFavorite }>('/favorites/stocks', data);
+  return client.post<{ status: string; data: StockFavorite }>('/favorite/stocks', data);
 }
 
 // 删除自选股票
 export function deleteStock(favoriteId: number) {
-  return client.delete<{ status: string }>(`/favorites/stocks/${favoriteId}`);
+  return client.delete<{ status: string }>(`/favorite/stocks/${favoriteId}`);
 }
 
 // 移动自选股票到其他分组
 export function moveStock(favoriteId: number, newGroupId: number) {
-  return client.put<{ status: string; data: StockFavorite }>(`/favorites/stocks/${favoriteId}/move`, { newGroupId });
+  return client.put<{ status: string; data: StockFavorite }>(`/favorite/stocks/${favoriteId}/move`, { newGroupId });
 }
 
 // 搜索股票
 export function searchStocks(keyword: string) {
-  return client.get<{ status: string; data: SearchStock[] }>('/favorites/stocks/search', {
+  return client.get<{ status: string; data: SearchStock[] }>('/favorite/stocks/search', {
     params: { keyword },
   });
 }

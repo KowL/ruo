@@ -9,10 +9,8 @@ import {
   Bot
 } from 'lucide-react';
 import { TaskList } from '@/components/TaskList';
-import { WeatherCard } from '@/components/WeatherCard';
-import { HealthCard } from '@/components/HealthCard';
-import { FinanceCard } from '@/components/FinanceCard';
-import { tasks, weather, healthData, financeData } from '@/data/mockData';
+import { NewsFlashList } from '@/components/news/NewsFlashList';
+import { tasks } from '@/data/mockData';
 import { Send } from 'lucide-react';
 
 const quickActions = [
@@ -52,7 +50,7 @@ export function HomePage() {
                 className="flex items-center gap-2 mb-2"
               >
                 <Sparkles className="w-5 h-5 text-yellow-100" />
-                <span className="text-orange-50 text-sm font-medium">AI助手</span>
+                <span className="text-orange-50 text-sm font-medium">工作台</span>
               </motion.div>
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
@@ -80,9 +78,9 @@ export function HomePage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl"
+              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden"
             >
-              🤖
+              <img src="/favicon.svg" alt="Ruo AI" className="w-10 h-10 object-contain" />
             </motion.div>
           </div>
         </div>
@@ -125,15 +123,9 @@ export function HomePage() {
         <div className="lg:col-span-1">
           <TaskList tasks={tasks} />
         </div>
-
-        {/* Right Column - Life Dashboard */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-foreground font-semibold">生活信息看板</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <WeatherCard weather={weather} />
-            <HealthCard health={healthData} />
-          </div>
-          <FinanceCard finance={financeData} />
+        {/* Right Column - News Flash */}
+        <div className="lg:col-span-2">
+          <NewsFlashList />
         </div>
       </div>
 

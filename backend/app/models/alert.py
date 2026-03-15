@@ -2,7 +2,7 @@
 预警设置模型
 Alert/Notification Model
 """
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -12,8 +12,8 @@ class AlertRule(Base):
     __tablename__ = "alert_rules"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)
-    portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
+    user_id = Column(Integer, nullable=False, default=1)
+    portfolio_id = Column(Integer, nullable=False)
     
     # 预警类型: price_change(涨跌幅), profit_loss(盈亏比例), target_price(目标价)
     alert_type = Column(String(20), nullable=False)
@@ -47,9 +47,9 @@ class AlertLog(Base):
     __tablename__ = "alert_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)
-    alert_rule_id = Column(Integer, ForeignKey("alert_rules.id"), nullable=False)
-    portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
+    user_id = Column(Integer, nullable=False, default=1)
+    alert_rule_id = Column(Integer, nullable=False)
+    portfolio_id = Column(Integer, nullable=False)
     
     # 触发时的数据快照
     symbol = Column(String(10), nullable=False)

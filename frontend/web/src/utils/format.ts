@@ -29,6 +29,8 @@ export const formatTime = (time: string | Date): string => {
 
 // 相对时间
 export const formatRelativeTime = (time: string | Date): string => {
+  const diffSecs = dayjs().diff(dayjs(time), 'second');
+  if (diffSecs < 60) return `${Math.max(1, diffSecs)}秒前`;
   return dayjs(time).fromNow();
 };
 

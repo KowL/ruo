@@ -104,7 +104,7 @@ alembic upgrade head
 6. **stock_prices** - 股票价格历史数据表
    - K 线数据（开高低收、成交量等）
 
-7. **analysis_reports** - AI 分析报告表
+7. **analysis_report** - AI 分析报告表
    - 分析结果、推荐操作、置信度等
 
 ---

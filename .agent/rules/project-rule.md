@@ -121,7 +121,7 @@ except Exception:
 ```
 核心业务:    portfolio, stock, news
 策略回测:    strategy, backtest
-行情市场:    dashboard, concepts, concept_monitor, short_term_radar, dragon_tiger
+行情市场:    dashboard, concepts, concept_monitor, dragon_tiger
 分析智能:    sentiment, daily_report, alerts, analysis
 ```
 

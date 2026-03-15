@@ -2,17 +2,17 @@
 策略模型 - Strategy Model
 定义交易策略、回测记录、策略绩效
 """
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
 class Strategy(Base):
     """交易策略表"""
-    __tablename__ = "strategies"
+    __tablename__ = "strategy"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)
+    user_id = Column(Integer, nullable=False, default=1)
     
     name = Column(String(100), nullable=False)
     description = Column(Text)
@@ -55,11 +55,11 @@ class Strategy(Base):
 
 class Backtest(Base):
     """回测记录表"""
-    __tablename__ = "backtests"
+    __tablename__ = "backtest"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)
-    strategy_id = Column(Integer, ForeignKey("strategies.id"), nullable=False)
+    user_id = Column(Integer, nullable=False, default=1)
+    strategy_id = Column(Integer, nullable=False)
     
     # 回测参数
     start_date = Column(String(10), nullable=False)  # YYYY-MM-DD
@@ -101,11 +101,11 @@ class Backtest(Base):
 
 class StrategySignal(Base):
     """策略信号表 (实盘/模拟)"""
-    __tablename__ = "strategy_signals"
+    __tablename__ = "strategy_signal"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, default=1)
-    strategy_id = Column(Integer, ForeignKey("strategies.id"), nullable=False)
+    user_id = Column(Integer, nullable=False, default=1)
+    strategy_id = Column(Integer, nullable=False)
     
     symbol = Column(String(10), nullable=False)
     name = Column(String(50))

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Trash2, ChevronRight } from 'lucide-react';
-import { getConcepts, deleteConcept } from '../../api/concepts';
+import { getConceptList, deleteConcept } from '../../api/concept';
 import { ConceptListItem } from '../../types/concept';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -9,23 +9,23 @@ import Loading from '../../components/common/Loading';
 import Modal from '../../components/common/Modal';
 import ConceptForm from './ConceptForm';
 
-export default function ConceptsPage() {
+export default function ConceptPage() {
   const navigate = useNavigate();
-  const [concepts, setConcepts] = useState<ConceptListItem[]>([]);
+  const [concept, setConcept] = useState<ConceptListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   useEffect(() => {
-    loadConcepts();
+    loadConcept();
   }, []);
 
-  const loadConcepts = async () => {
+  const loadConcept = async () => {
     try {
       setLoading(true);
-      const data = await getConcepts();
-      setConcepts(data);
+      const data = await getConceptList();
+      setConcept(data);
     } catch (error) {
       console.error('加载概念列表失败:', error);
     } finally {
@@ -37,14 +37,14 @@ export default function ConceptsPage() {
     if (!deleteId) return;
     try {
       await deleteConcept(deleteId);
-      setConcepts(concepts.filter(c => c.id !== deleteId));
+      setConcept(concept.filter(c => c.id !== deleteId));
       setDeleteId(null);
     } catch (error) {
       console.error('删除概念失败:', error);
     }
   };
 
-  const filteredConcepts = concepts.filter(c =>
+  const filteredConcept = concept.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -83,13 +83,13 @@ export default function ConceptsPage() {
         />
       </div>
 
-      {/* Concepts Grid */}
+      {/* Concept Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredConcepts.map((concept) => (
+        {filteredConcept.map((concept) => (
           <Card
             key={concept.id}
             className="group cursor-pointer hover:border-cyan-500/30 transition-colors"
-            onClick={() => navigate(`/concepts/${concept.id}`)}
+            onClick={() => navigate(`/concept/${concept.id}`)}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -127,7 +127,7 @@ export default function ConceptsPage() {
         ))}
       </div>
 
-      {filteredConcepts.length === 0 && !loading && (
+      {filteredConcept.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-slate-500">
             {searchTerm ? '没有找到匹配的概念' : '暂无概念，点击上方按钮创建'}
@@ -140,7 +140,7 @@ export default function ConceptsPage() {
         <ConceptForm
           onSuccess={() => {
             setShowCreateModal(false);
-            loadConcepts();
+            loadConcept();
           }}
           onCancel={() => setShowCreateModal(false)}
         />

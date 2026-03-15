@@ -9,7 +9,7 @@ from app.core.database import Base
 
 class Stock(Base):
     """股票基础信息表"""
-    __tablename__ = "stocks"
+    __tablename__ = "stock"
 
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String(10), unique=True, nullable=False, index=True)
@@ -38,7 +38,7 @@ class Stock(Base):
 
 class StockPrice(Base):
     """股票价格历史数据表"""
-    __tablename__ = "stock_prices"
+    __tablename__ = "stock_price"
 
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String(10), nullable=False, index=True)
@@ -58,12 +58,14 @@ class StockPrice(Base):
 
 class AnalysisReport(Base):
     """AI 分析报告表"""
-    __tablename__ = "analysis_reports"
+    __tablename__ = "analysis_report"
 
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String(10), nullable=False, index=True)
     report_date = Column(DateTime(timezone=True), nullable=False, index=True)
-    report_type = Column(String(50), nullable=False)  # daily/weekly/special
+    analysis_type = Column(String(50), nullable=False)  # daily/weekly/special/custom
+    analysis_name = Column(String(100))  # 分析名称，如“K线技术分析”
+    status = Column(String(20), default="processing")  # processing/completed/failed
     content = Column(Text, nullable=False)  # 最终展示的 Markdown 报告
     data = Column(Text)  # 原始 JSON 格式的状态数据
     summary = Column(Text)  # 简要总结
@@ -72,4 +74,4 @@ class AnalysisReport(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
-        return f"<AnalysisReport(symbol='{self.symbol}', type='{self.report_type}', date='{self.report_date}')>"
+        return f"<AnalysisReport(symbol='{self.symbol}', type='{self.analysis_type}', name='{self.analysis_name}', date='{self.report_date}')>"

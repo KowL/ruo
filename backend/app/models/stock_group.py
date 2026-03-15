@@ -1,17 +1,17 @@
 """
 自选分组模型 - StockGroup Model
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
 class StockGroup(Base):
     """自选分组表"""
-    __tablename__ = "stock_groups"
+    __tablename__ = "stock_group"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
     name = Column(String(50), nullable=False)  # 分组名称，如"科技股"、"龙头股"
     description = Column(String(200))  # 描述
     is_default = Column(Boolean, default=False)  # 是否为默认分组

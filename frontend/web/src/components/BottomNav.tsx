@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { id: 'home', label: '首页', icon: Home, path: '/' },
+  { id: 'home', label: '工作台', icon: Home, path: '/' },
   { id: 'ai-console', label: 'AI', icon: Bot, path: '/ai-console' },
   { id: 'stock', label: '股票', icon: TrendingUp, path: '/stock' },
   { id: 'life', label: '生活', icon: Heart, path: '/life' },

@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS strategy_signals (
 -- ==================== 10. 自选股模块 (Favorites & Subscription) ====================
 
 -- 自选分组表
-CREATE TABLE IF NOT EXISTS stock_groups (
+CREATE TABLE IF NOT EXISTS stock_group (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     name VARCHAR(50) NOT NULL,
@@ -300,20 +300,20 @@ CREATE TABLE IF NOT EXISTS stock_groups (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
-CREATE INDEX IF NOT EXISTS idx_stock_groups_user ON stock_groups(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_group_user ON stock_group(user_id);
 
 -- 自选股票表
-CREATE TABLE IF NOT EXISTS stock_favorites (
+CREATE TABLE IF NOT EXISTS stock_favorite (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    group_id INTEGER NOT NULL REFERENCES stock_groups(id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES stock_group(id) ON DELETE CASCADE,
     symbol VARCHAR(10) NOT NULL,
     name VARCHAR(50) NOT NULL,
     added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_stock_favorites_user ON stock_favorites(user_id);
-CREATE INDEX IF NOT EXISTS idx_stock_favorites_group ON stock_favorites(group_id);
-CREATE INDEX IF NOT EXISTS idx_stock_favorites_symbol ON stock_favorites(symbol);
+CREATE INDEX IF NOT EXISTS idx_stock_favorite_user ON stock_favorite(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_favorite_group ON stock_favorite(group_id);
+CREATE INDEX IF NOT EXISTS idx_stock_favorite_symbol ON stock_favorite(symbol);
 
 -- 策略订阅表
 CREATE TABLE IF NOT EXISTS strategy_subscriptions (
@@ -321,7 +321,7 @@ CREATE TABLE IF NOT EXISTS strategy_subscriptions (
     user_id INTEGER NOT NULL REFERENCES users(id),
     strategy_id INTEGER NOT NULL REFERENCES strategies(id) ON DELETE CASCADE,
     stock_pool_type VARCHAR(20) DEFAULT 'all',
-    stock_group_id INTEGER REFERENCES stock_groups(id) ON DELETE SET NULL,
+    stock_group_id INTEGER REFERENCES stock_group(id) ON DELETE SET NULL,
     custom_symbols JSONB,
     notify_enabled BOOLEAN DEFAULT TRUE,
     notify_channels JSONB DEFAULT '["websocket"]',

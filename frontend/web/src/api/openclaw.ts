@@ -101,7 +101,6 @@ const DEFAULT_AGENTS: Agent[] = [];
  */
 export async function testConnection(): Promise<{ status: string; message: string }> {
   try {
-    const config = getGatewayConfig();
     const client = createGatewayClient();
     // 尝试获取 agents 列表来测试连接
     const result = await client.get('/openclaw/agents');
@@ -141,13 +140,13 @@ export async function listAgents(): Promise<{ status: string; data: Agent[] }> {
 /**
  * 获取单个 Agent 详情
  */
-export async function getAgent(agentId: string): Promise<{ status: string; data: Agent }> {
+export async function getAgent(agentId: string): Promise<{ status: string; data: Agent; message?: string }> {
   const result = await listAgents();
   const agent = result.data.find(a => a.id === agentId);
   if (agent) {
     return { status: 'success', data: agent };
   }
-  return { status: 'error', message: 'Agent not found' };
+  return { status: 'error', message: 'Agent not found', data: {} as Agent };
 }
 
 /**
@@ -158,7 +157,6 @@ export async function chat(
   request: ChatRequest
 ): Promise<{ status: string; data: ChatResponse }> {
   try {
-    const config = getGatewayConfig();
     const client = createGatewayClient();
     const response = await client.post('/v1/chat/completions', {
       model: `openclaw:${agentId}`,
@@ -261,7 +259,7 @@ export async function* chatStream(
  * 列出所有会话（暂不支持，返回空列表）
  */
 export async function listSessions(
-  agentId: string
+  _agentId: string
 ): Promise<{ status: string; data: Session[] }> {
   return { status: 'success', data: [] };
 }

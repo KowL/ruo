@@ -10,7 +10,7 @@ import type {
  * 获取策略模板
  */
 export function getStrategyTemplates() {
-  return client.get<any, ApiResponse<StrategyTemplate[]>>('/strategies/templates');
+  return client.get<any, ApiResponse<StrategyTemplate[]>>('/strategy/templates');
 }
 
 /**
@@ -25,42 +25,42 @@ export function createStrategy(data: {
   positionRules?: any;
   riskRules?: any;
 }) {
-  return client.post<any, ApiResponse<Strategy>>('/strategies', data);
+  return client.post<any, ApiResponse<Strategy>>('/strategy', data);
 }
 
 /**
  * 获取策略列表
  */
 export function getStrategies() {
-  return client.get<any, ApiResponse<Strategy[]>>('/strategies');
+  return client.get<any, ApiResponse<Strategy[]>>('/strategy');
 }
 
 /**
  * 获取策略详情
  */
 export function getStrategy(strategyId: number) {
-  return client.get<any, ApiResponse<Strategy>>(`/strategies/${strategyId}`);
+  return client.get<any, ApiResponse<Strategy>>(`/strategy/${strategyId}`);
 }
 
 /**
  * 更新策略
  */
 export function updateStrategy(strategyId: number, data: Partial<Strategy>) {
-  return client.put<any, ApiResponse<Strategy>>(`/strategies/${strategyId}`, data);
+  return client.put<any, ApiResponse<Strategy>>(`/strategy/${strategyId}`, data);
 }
 
 /**
  * 删除策略
  */
 export function deleteStrategy(strategyId: number) {
-  return client.delete<any, ApiResponse<void>>(`/strategies/${strategyId}`);
+  return client.delete<any, ApiResponse<void>>(`/strategy/${strategyId}`);
 }
 
 /**
  * 生成策略信号
  */
 export function generateSignals(strategyId: number, symbols: string[]) {
-  return client.post<any, ApiResponse<StrategySignal[]>>(`/strategies/${strategyId}/signals`, { symbols });
+  return client.post<any, ApiResponse<StrategySignal[]>>(`/strategy/${strategyId}/signals`, { symbols });
 }
 
 /**
@@ -68,12 +68,12 @@ export function generateSignals(strategyId: number, symbols: string[]) {
  */
 export function getSignals(strategyId: number, status?: string) {
   const params = status ? { status } : {};
-  return client.get<any, ApiResponse<StrategySignal[]>>(`/strategies/${strategyId}/signals`, { params });
+  return client.get<any, ApiResponse<StrategySignal[]>>(`/strategy/${strategyId}/signals`, { params });
 }
 
 /**
  * 更新信号状态
  */
 export function updateSignalStatus(signalId: number, status: string) {
-  return client.put<any, ApiResponse<void>>(`/strategies/signals/${signalId}?status=${status}`);
+  return client.put<any, ApiResponse<void>>(`/strategy/signals/${signalId}?status=${status}`);
 }

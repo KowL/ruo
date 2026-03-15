@@ -52,7 +52,6 @@ Ruo 是一款 AI 智能投顾副驾系统，采用前后端分离架构：
 │   │       ├── dashboard.py   #     仪表盘
 │   │       ├── concepts.py    #     概念管理
 │   │       ├── concept_monitor.py # 概念异动监控
-│   │       ├── short_term_radar.py # 短线雷达
 │   │       ├── dragon_tiger.py#     龙虎榜分析
 │   │       ├── sentiment.py   #     市场情绪指数
 │   │       ├── daily_report.py#     每日简报
@@ -75,7 +74,6 @@ Ruo 是一款 AI 智能投顾副驾系统，采用前后端分离架构：
 │   │   ├── notification_service.py # 通知推送（飞书等）
 │   │   ├── concept_monitor.py #   概念异动监控
 │   │   ├── dragon_tiger.py    #   龙虎榜分析
-│   │   ├── short_term_radar.py#   短线信号雷达
 │   │   └── report.py          #   报告导出（PDF）
 │   │
 │   ├── models/                # ORM 模型层（10 个模型）

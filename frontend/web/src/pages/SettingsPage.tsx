@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { User, Shield, ChevronRight, Moon, Smartphone, Mail, Bot, Save, RotateCcw, Zap, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -225,7 +224,7 @@ export function SettingsPage() {
 
         {/* 其他分类设置 */}
         <div className="space-y-8">
-          {settingSections.map((section, sectionIndex) => (
+          {settingSections.map((section) => (
             <section key={section.title} className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">{section.title}</h3>
               <Card className="bg-card border-border shadow-sm overflow-hidden">

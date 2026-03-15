@@ -175,7 +175,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ data, symbol, name, period = 'd
             axisLabel: {
               show: true,
               color: '#94a3b8',
-              interval: (index: number, value: string) => {
+              interval: (_index: number, value: string) => {
                 return ['09:30', '10:30', '11:30', '14:00', '15:00'].includes(value);
               },
               formatter: (value: string) => value

@@ -20,14 +20,16 @@ import DashboardPage from './pages/DashboardPage';
 import PortfolioPage from './pages/PortfolioPage';
 import NewsPage from './pages/NewsPage';
 import ChartPage from './pages/ChartPage';
-import RadarPage from './pages/RadarPage';
 import StrategyPage from './pages/StrategyPage';
 import SubscriptionPage from './pages/SubscriptionPage';
-import StockAnalysisPage from './pages/StockAnalysisPage';
-import OpeningAnalysisPage from './pages/OpeningAnalysisPage';
-import ConceptsPage from './pages/concepts/ConceptsPage';
-import ConceptDetailPage from './pages/concepts/ConceptDetailPage';
+import AIAnalysisPage from './pages/AIAnalysisPage';
+import ConceptPage from './pages/concept/ConceptPage';
+import ConceptDetailPage from './pages/concept/ConceptDetailPage';
 import ConceptMonitorPage from './pages/ConceptMonitorPage';
+import LimitUpLadderPage from './pages/LimitUpLadderPage';
+import ConceptLibraryPage from './pages/concept/ConceptLibraryPage';
+import FavoritesPage from './pages/FavoritesPage';
+import AnalysisHistoryDetailPage from './pages/AnalysisHistoryDetailPage';
 
 function AppContent() {
   const { isVisible, toggleSidebar } = useSidebarStore();
@@ -103,17 +105,20 @@ function AppContent() {
               >
                 {/* Default Stock Route is the old Dashboard */}
                 <Route index element={<DashboardPage />} />
+                <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="portfolio" element={<PortfolioPage />} />
                 <Route path="subscriptions" element={<SubscriptionPage />} />
                 <Route path="news" element={<NewsPage />} />
                 <Route path="chart" element={<ChartPage />} />
-                <Route path="radar" element={<RadarPage />} />
                 <Route path="strategies" element={<StrategyPage />} />
-                <Route path="analysis" element={<StockAnalysisPage />} />
-                <Route path="opening-analysis" element={<OpeningAnalysisPage />} />
-                <Route path="concepts" element={<ConceptsPage />} />
-                <Route path="concepts/:id" element={<ConceptDetailPage />} />
+                <Route path="analysis" element={<AIAnalysisPage />} />
+                <Route path="opening-analysis" element={<AIAnalysisPage />} />
+                <Route path="analysis-history/:id" element={<AnalysisHistoryDetailPage />} />
+                <Route path="concept" element={<ConceptPage />} />
+                <Route path="concept/:id" element={<ConceptDetailPage />} />
                 <Route path="concept-monitor" element={<ConceptMonitorPage />} />
+                <Route path="limit-up-ladder" element={<LimitUpLadderPage />} />
+                <Route path="concept-library" element={<ConceptLibraryPage />} />
               </Route>
 
               <Route

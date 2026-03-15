@@ -1,14 +1,19 @@
 """
-概念管理 API 端点
-Concept Management API Endpoints
+概念/题材库 API 端点
+统一管理：概念 CRUD + 题材库数据
 """
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, Field
+import logging
+import urllib.parse
 
 from app.core.database import get_db
 from app.models.concept import Concept, ConceptStock, StockPositioning
+import datetime
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -37,59 +42,101 @@ class ConceptStockUpdate(BaseModel):
     notes: Optional[str] = Field(None, max_length=200)
 
 
-class ConceptStockResponse(BaseModel):
-    id: int
-    stock_symbol: str
-    stock_name: Optional[str]
-    positioning: str
-    notes: Optional[str]
-    updated_at: Optional[str]
+# ==================== 题材库 (行情统计) API ====================
 
-    class Config:
-        from_attributes = True
+@router.get("/ranking", summary="概念排行", tags=["题材库"])
+async def get_concept_ranking(
+    db: Session = Depends(get_db),
+    sort_by: str = "hot_score",
+    limit: int = 20
+):
+    """获取概念排行"""
+    concepts = db.query(Concept).limit(limit).all()
+    
+    result = []
+    for concept in concepts:
+        stock_count = db.query(ConceptStock).filter(ConceptStock.concept_id == concept.id).count()
+        leader_stock = db.query(ConceptStock).filter(
+            ConceptStock.concept_id == concept.id,
+            ConceptStock.positioning == "龙头"
+        ).first()
+        
+        result.append({
+            "id": concept.id,
+            "theme_name": concept.name, # 前端期望 theme_name
+            "name": concept.name,
+            "description": concept.description or "",
+            "stock_count": stock_count,
+            "hot_score": 50,
+            "limit_up_count": 0,
+            "continuous_days": 0,
+            "change_pct": 0,
+            "lifecycle": "震荡期",
+            "leader_stocks": [
+                {
+                    "name": leader_stock.stock_name or leader_stock.stock_symbol,
+                    "positioning": leader_stock.positioning,
+                    "change_pct": 0
+                }
+            ] if leader_stock else []
+        })
+    
+    return {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "sort_by": sort_by,
+        "update_time": datetime.datetime.now().isoformat()
+    }
 
 
-class ConceptResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str]
-    created_at: Optional[str]
-    updated_at: Optional[str]
-    stocks: List[ConceptStockResponse] = []
+@router.get("/distribution", summary="概念分布", tags=["题材库"])
+async def get_concept_distribution(db: Session = Depends(get_db)):
+    """获取概念分布统计"""
+    all_concepts = db.query(Concept).all()
+    
+    distribution = []
+    for concept in all_concepts[:12]:
+        stock_count = db.query(ConceptStock).filter(
+            ConceptStock.concept_id == concept.id
+        ).count()
+        
+        distribution.append({
+            "theme_name": concept.name,
+            "limit_up_count": stock_count,
+            "percentage": stock_count * 10 if stock_count > 0 else 0,
+            "lifecycle": "震荡期",
+            "hot_score": 50
+        })
+    
+    lifecycle_stats = {
+        "高潮期": 0,
+        "发酵期": 0,
+        "退潮期": 0,
+        "震荡期": len(all_concepts)
+    }
+    
+    return {
+        "status": "success",
+        "data": {
+            "distribution": distribution,
+            "lifecycle_stats": lifecycle_stats,
+            "total_limit_up": 0,
+            "theme_count": len(all_concepts)
+        },
+        "update_time": datetime.datetime.now().isoformat()
+    }
 
-    class Config:
-        from_attributes = True
 
+# ==================== 概念管理 API ====================
 
-class ConceptListItem(BaseModel):
-    id: int
-    name: str
-    description: Optional[str]
-    stock_count: int
-    created_at: Optional[str]
-
-    class Config:
-        from_attributes = True
-
-
-# ==================== API 端点 ====================
-
-@router.get("/", summary="获取概念列表", tags=["概念管理"])
+@router.get("/list", summary="获取概念列表", tags=["概念管理"])
 async def get_concepts(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100
 ):
-    """
-    获取概念列表
-
-    **参数：**
-    - skip: 跳过条数（分页）
-    - limit: 返回条数（默认 100）
-
-    **返回：**
-    - 概念列表，包含每个概念的股票数量
-    """
+    """获取概念列表，包含股票数量"""
     concepts = db.query(Concept).offset(skip).limit(limit).all()
     
     result = []
@@ -100,7 +147,11 @@ async def get_concepts(
             "name": concept.name,
             "description": concept.description,
             "stock_count": stock_count,
-            "created_at": concept.created_at.isoformat() if concept.created_at else None
+            "change_pct": 0,
+            "lead_stock": "",
+            "lead_change": 0,
+            "code": f"BK{concept.id:04d}",
+            
         })
     
     return {
@@ -115,16 +166,7 @@ async def get_concept(
     concept_id: int,
     db: Session = Depends(get_db)
 ):
-    """
-    获取概念详情（包含股票列表）
-
-    **参数：**
-    - concept_id: 概念 ID
-
-    **返回：**
-    - 概念基本信息
-    - 关联股票列表（含定位信息）
-    """
+    """获取概念详情（包含股票列表）"""
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     
     if not concept:
@@ -138,19 +180,20 @@ async def get_concept(
             "id": concept.id,
             "name": concept.name,
             "description": concept.description,
-            "created_at": concept.created_at.isoformat() if concept.created_at else None,
-            "updated_at": concept.updated_at.isoformat() if concept.updated_at else None,
+            "stock_count": len(stocks),
             "stocks": [
                 {
                     "id": s.id,
-                    "stock_symbol": s.stock_symbol,
-                    "stock_name": s.stock_name,
+                    "symbol": s.stock_symbol,
+                    "name": s.stock_name or s.stock_symbol,
                     "positioning": s.positioning,
                     "notes": s.notes,
-                    "updated_at": s.updated_at.isoformat() if s.updated_at else None
+                    "is_highlight": 0
                 }
                 for s in stocks
-            ]
+            ],
+            
+            "updated_at": concept.updated_at.isoformat() if concept.updated_at else None
         }
     }
 
@@ -160,17 +203,7 @@ async def create_concept(
     concept_data: ConceptCreate,
     db: Session = Depends(get_db)
 ):
-    """
-    创建新概念
-
-    **参数：**
-    - name: 概念名称（必填，唯一）
-    - description: 概念描述（可选）
-
-    **返回：**
-    - 创建的概念信息
-    """
-    # 检查名称是否已存在
+    """创建新概念"""
     existing = db.query(Concept).filter(Concept.name == concept_data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail=f"概念已存在: {concept_data.name}")
@@ -188,8 +221,7 @@ async def create_concept(
         "data": {
             "id": concept.id,
             "name": concept.name,
-            "description": concept.description,
-            "created_at": concept.created_at.isoformat() if concept.created_at else None
+            "description": concept.description
         }
     }
 
@@ -200,20 +232,12 @@ async def update_concept(
     concept_data: ConceptUpdate,
     db: Session = Depends(get_db)
 ):
-    """
-    更新概念信息
-
-    **参数：**
-    - concept_id: 概念 ID
-    - name: 新名称（可选）
-    - description: 新描述（可选）
-    """
+    """更新概念信息"""
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     
     if not concept:
         raise HTTPException(status_code=404, detail=f"概念不存在: {concept_id}")
     
-    # 检查新名称是否冲突
     if concept_data.name and concept_data.name != concept.name:
         existing = db.query(Concept).filter(Concept.name == concept_data.name).first()
         if existing:
@@ -231,8 +255,7 @@ async def update_concept(
         "data": {
             "id": concept.id,
             "name": concept.name,
-            "description": concept.description,
-            "updated_at": concept.updated_at.isoformat() if concept.updated_at else None
+            "description": concept.description
         }
     }
 
@@ -242,12 +265,7 @@ async def delete_concept(
     concept_id: int,
     db: Session = Depends(get_db)
 ):
-    """
-    删除概念（会同时删除关联的股票记录）
-
-    **参数：**
-    - concept_id: 概念 ID
-    """
+    """删除概念"""
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     
     if not concept:
@@ -270,22 +288,11 @@ async def add_stock_to_concept(
     stock_data: ConceptStockCreate,
     db: Session = Depends(get_db)
 ):
-    """
-    添加股票到概念
-
-    **参数：**
-    - concept_id: 概念 ID
-    - stock_symbol: 股票代码
-    - stock_name: 股票名称（可选）
-    - positioning: 定位（可选，默认"补涨"）
-    - notes: 备注（可选）
-    """
-    # 检查概念是否存在
+    """添加股票到概念"""
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     if not concept:
         raise HTTPException(status_code=404, detail=f"概念不存在: {concept_id}")
     
-    # 验证定位值
     valid_positions = [p.value for p in StockPositioning]
     if stock_data.positioning not in valid_positions:
         raise HTTPException(
@@ -293,7 +300,6 @@ async def add_stock_to_concept(
             detail=f"无效的定位值: {stock_data.positioning}，可选值: {valid_positions}"
         )
     
-    # 检查是否已存在
     existing = db.query(ConceptStock).filter(
         ConceptStock.concept_id == concept_id,
         ConceptStock.stock_symbol == stock_data.stock_symbol
@@ -302,7 +308,7 @@ async def add_stock_to_concept(
     if existing:
         raise HTTPException(
             status_code=400, 
-            detail=f"股票 {stock_data.stock_symbol} 已在概念 '{concept.name}' 中"
+            detail=f"股票 {stock_data.stock_symbol} 已在概念中"
         )
     
     concept_stock = ConceptStock(
@@ -335,34 +341,19 @@ async def update_stock_positioning(
     stock_data: ConceptStockUpdate,
     db: Session = Depends(get_db)
 ):
-    """
-    更新股票在概念中的定位
-
-    **参数：**
-    - concept_id: 概念 ID
-    - stock_symbol: 股票代码
-    - positioning: 新定位（可选）
-    - notes: 新备注（可选）
-    """
+    """更新股票在概念中的定位"""
     concept_stock = db.query(ConceptStock).filter(
         ConceptStock.concept_id == concept_id,
         ConceptStock.stock_symbol == stock_symbol
     ).first()
     
     if not concept_stock:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"股票 {stock_symbol} 不在概念中"
-        )
+        raise HTTPException(status_code=404, detail=f"股票不存在")
     
-    # 验证定位值
     if stock_data.positioning:
         valid_positions = [p.value for p in StockPositioning]
         if stock_data.positioning not in valid_positions:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"无效的定位值: {stock_data.positioning}，可选值: {valid_positions}"
-            )
+            raise HTTPException(status_code=400, detail=f"无效的定位值")
         concept_stock.positioning = stock_data.positioning
     
     if stock_data.notes is not None:
@@ -378,8 +369,7 @@ async def update_stock_positioning(
             "stock_symbol": concept_stock.stock_symbol,
             "stock_name": concept_stock.stock_name,
             "positioning": concept_stock.positioning,
-            "notes": concept_stock.notes,
-            "updated_at": concept_stock.updated_at.isoformat() if concept_stock.updated_at else None
+            "notes": concept_stock.notes
         }
     }
 
@@ -390,28 +380,79 @@ async def remove_stock_from_concept(
     stock_symbol: str,
     db: Session = Depends(get_db)
 ):
-    """
-    从概念中移除股票
-
-    **参数：**
-    - concept_id: 概念 ID
-    - stock_symbol: 股票代码
-    """
+    """从概念中移除股票"""
     concept_stock = db.query(ConceptStock).filter(
         ConceptStock.concept_id == concept_id,
         ConceptStock.stock_symbol == stock_symbol
     ).first()
     
     if not concept_stock:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"股票 {stock_symbol} 不在概念中"
-        )
+        raise HTTPException(status_code=404, detail=f"股票不存在")
     
     db.delete(concept_stock)
     db.commit()
     
     return {
         "status": "success",
-        "message": f"股票 {stock_symbol} 已从概念中移除"
+        "message": f"股票已移除"
+    }
+
+
+
+
+@router.get("/{concept_name}", summary="概念详情", tags=["题材库"])
+async def get_concept_detail(
+    concept_name: str,
+    db: Session = Depends(get_db)
+):
+    """获取概念详情及成分股"""
+    decoded_name = urllib.parse.unquote(concept_name)
+    
+    concept = db.query(Concept).filter(Concept.name == decoded_name).first()
+    
+    if not concept:
+        raise HTTPException(status_code=404, detail=f"概念不存在: {decoded_name}")
+    
+    stocks = db.query(ConceptStock).filter(ConceptStock.concept_id == concept.id).all()
+    
+    # 区分龙头和成分股
+    leader_stocks = []
+    follower_stocks = []
+    
+    for s in stocks:
+        stock_item = {
+            "symbol": s.stock_symbol,
+            "name": s.stock_name or s.stock_symbol,
+            "positioning": s.positioning,
+            "notes": s.notes,
+            "change_pct": 0.0,
+            "price": 0.0,
+            "limit_up_days": 0,
+            "reason": s.notes or "",
+            "first_limit_time": "",
+            "last_limit_time": "",
+            "turnover": 0.0
+        }
+        if s.positioning == "龙头":
+            leader_stocks.append(stock_item)
+        else:
+            follower_stocks.append(stock_item)
+            
+    return {
+        "status": "success",
+        "data": {
+            "theme_name": concept.name,
+            "theme_level": 1,
+            "parent_theme": None,
+            "hot_score": 50,
+            "limit_up_count": len(leader_stocks),
+            "continuous_days": 1,
+            "leader_stocks": leader_stocks,
+            "follower_stocks": follower_stocks,
+            "lifecycle": "发酵期",
+            "change_pct": 0.0,
+            "turnover": 0.0,
+            "fund_flow": 0.0,
+            "update_time": datetime.datetime.now().isoformat()
+        }
     }

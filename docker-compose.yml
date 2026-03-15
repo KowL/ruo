@@ -1,3 +1,8 @@
+# 使用说明：
+# 本地开发: cp .env .env.local && docker-compose --env-file .env.local up
+# Docker部署: cp .env.docker .env.local && docker-compose --env-file .env.local up
+# 
+# .env.docker 已经配置了 host.docker.internal 用于Docker容器访问宿主机
 services:
   # ==================== PostgreSQL 数据库 ====================
   postgres:
@@ -48,6 +53,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - /app/.venv
       - ./cache:/app/cache
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock

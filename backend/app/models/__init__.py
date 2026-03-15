@@ -13,6 +13,7 @@ from app.models.market_price import DailyPrice, WeeklyPrice, MonthlyPrice
 from app.models.stock_group import StockGroup
 from app.models.stock_favorite import StockFavorite
 from app.models.strategy_subscription import StrategySubscription
+from app.models.prompt import Prompt
 
 __all__ = [
     'User',
@@ -36,4 +37,5 @@ __all__ = [
     'StockGroup',
     'StockFavorite',
     'StrategySubscription',
+    'Prompt',
 ]

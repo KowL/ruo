@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createConcept, updateConcept } from '../../api/concepts';
+import { createConcept, updateConcept } from '../../api/concept';
 import { Concept } from '../../types/concept';
 import Button from '../../components/common/Button';
 

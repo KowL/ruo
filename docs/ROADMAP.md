@@ -55,7 +55,6 @@
 |------|--------|------|
 | 概念异动监控 | P0 | 概念涨幅榜、资金流入 |
 | 持仓预警推送 | P0 | 止损线、大涨提醒 |
-| 短线雷达 | P1 | 竞价爆点、异动捕捉 |
 | 龙虎榜分析 | P1 | 游资动向追踪 |
 
 ---
@@ -119,7 +118,7 @@ tools:
     
   - name: concept_analysis
     description: 概念异动分析与龙头股识别
-    endpoint: /api/v1/concepts/{id}/analysis
+    endpoint: /api/v1/concept/{id}/analysis
     
   - name: stock_diagnosis
     description: 个股 AI 诊断（行情+基本面+情绪）

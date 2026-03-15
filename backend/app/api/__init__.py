@@ -12,7 +12,7 @@ api_router = APIRouter()
 # ========================================
 # 核心业务
 # ========================================
-from .endpoints import portfolio, stock, news, favorites, subscriptions
+from .endpoints import portfolio, stock, news, favorite, subscriptions, dashboard, dragon_tiger, market, concept, concept_monitor
 
 # 持仓管理
 api_router.include_router(
@@ -23,8 +23,8 @@ api_router.include_router(
 
 # 自选管理
 api_router.include_router(
-    favorites.router,
-    prefix="/favorites",
+    favorite.router,
+    prefix="/favorite",
     tags=["自选管理"]
 )
 
@@ -57,7 +57,7 @@ from .endpoints import strategy, backtest
 # 策略管理
 api_router.include_router(
     strategy.router,
-    prefix="/strategies",
+    prefix="/strategy",
     tags=["策略管理"]
 )
 
@@ -71,7 +71,6 @@ api_router.include_router(
 # ========================================
 # 行情与市场数据
 # ========================================
-from .endpoints import concepts, concept_monitor, dashboard, dragon_tiger, short_term_radar, market
 
 # 仪表盘
 api_router.include_router(
@@ -89,8 +88,8 @@ api_router.include_router(
 
 # 概念管理
 api_router.include_router(
-    concepts.router,
-    prefix="/concepts",
+    concept.router,
+    prefix="/concept",
     tags=["概念管理"]
 )
 
@@ -101,12 +100,6 @@ api_router.include_router(
     tags=["概念监控"]
 )
 
-# 短线雷达
-api_router.include_router(
-    short_term_radar.router,
-    prefix="/radar",
-    tags=["短线雷达"]
-)
 
 # 龙虎榜分析
 api_router.include_router(
@@ -153,6 +146,18 @@ except ImportError as e:
     logger.warning(f"市场分析模块未加载（LLM 依赖不可用）: {e}")
 
 # ========================================
+# 股票分析
+# ========================================
+from .endpoints import limit_up_ladder
+
+# 连板天梯
+api_router.include_router(
+    limit_up_ladder.router,
+    prefix="/stock",
+    tags=["股票分析"]
+)
+
+# ========================================
 # OpenClaw 集成
 # ========================================
 from .endpoints import openclaw
@@ -161,4 +166,15 @@ api_router.include_router(
     openclaw.router,
     prefix="/openclaw",
     tags=["OpenClaw 集成"]
+)
+
+# ========================================
+# 提示词广场
+# ========================================
+from .endpoints import prompt
+
+api_router.include_router(
+    prompt.router,
+    prefix="/prompt",
+    tags=["提示词广场"]
 )
